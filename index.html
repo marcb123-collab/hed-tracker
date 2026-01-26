@@ -11,12 +11,9 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #f5f5f5;
             min-height: 100vh;
-            min-height: -webkit-fill-available;
             display: flex;
             flex-direction: column;
         }
-        
-        html { height: -webkit-fill-available; }
         
         .dashboard {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -34,7 +31,10 @@
         
         .dash-title { font-size: 16px; font-weight: 600; }
         .dash-date { font-size: 12px; opacity: 0.9; }
-        .sync-indicator { font-size: 10px; opacity: 0.7; margin-left: 8px; }
+        .sync-indicator { font-size: 10px; margin-left: 8px; }
+        .sync-indicator.green { color: #90EE90; }
+        .sync-indicator.yellow { color: #FFD700; }
+        .sync-indicator.red { color: #FFB6C1; }
         
         .stats-row {
             display: grid;
@@ -209,7 +209,6 @@
         
         .input-btn.add { background: #667eea; color: white; }
         .input-btn.add:active { background: #5a6fd6; }
-        .input-btn.add.shake { animation: shake 0.3s; }
         .input-btn.photo { background: #FF9800; color: white; }
         
         @keyframes shake {
@@ -217,6 +216,7 @@
             25% { transform: translateX(-4px); }
             75% { transform: translateX(4px); }
         }
+        .shake { animation: shake 0.3s; }
         
         .modal {
             display: none;
@@ -292,7 +292,7 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
         
-        .plan-day.today { border-left: 4px solid #667eea; }
+        .plan-day.today { border-left: 4px solid #667eea; background: #f8f9ff; }
         
         .plan-day-header {
             font-weight: 600;
@@ -302,10 +302,8 @@
             justify-content: space-between;
         }
         
-        .plan-day-workout { font-size: 12px; color: #666; }
-        .plan-day-details { font-size: 11px; color: #888; margin-top: 4px; }
-        
-        .all-items-grid { display: flex; flex-direction: column; gap: 6px; }
+        .plan-day-workout { font-size: 12px; color: #333; }
+        .plan-day-details { font-size: 11px; color: #666; margin-top: 6px; line-height: 1.4; }
         
         #photoInput, #cameraInput { display: none; }
     </style>
@@ -313,7 +311,7 @@
 <body>
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span class="sync-indicator" id="syncIndicator">●</span></span>
+            <span class="dash-title">Marc's HED Tracker <span class="sync-indicator" id="syncIndicator">⚪</span></span>
             <span class="dash-date" id="dateDisplay"></span>
         </div>
         <div class="stats-row">
@@ -334,27 +332,27 @@
         </div>
         <div class="status-row">
             <span class="status-chip">vs Target: <span id="deficit" class="deficit">0</span></span>
-            <span class="status-chip" id="steps">0 steps</span>
-            <span class="status-chip" id="workout">⬜</span>
+            <span class="status-chip" id="stepsDisplay">0 steps</span>
+            <span class="status-chip" id="workoutDisplay">⬜</span>
             <button class="copy-btn" onclick="copySummary()">📋 Summary</button>
             <button class="copy-btn" onclick="copyFull()">📋 Full</button>
         </div>
     </div>
     
     <div class="tabs">
-        <button class="tab active" onclick="showPane('today')">Today</button>
-        <button class="tab" onclick="showPane('add')">Add</button>
-        <button class="tab" onclick="showPane('plan')">Plan</button>
-        <button class="tab" onclick="showPane('history')">History</button>
+        <button class="tab active" id="tabToday" onclick="showPane('today')">Today</button>
+        <button class="tab" id="tabAdd" onclick="showPane('add')">Add</button>
+        <button class="tab" id="tabPlan" onclick="showPane('plan')">Plan</button>
+        <button class="tab" id="tabHistory" onclick="showPane('history')">History</button>
     </div>
     
     <div class="content">
         <!-- Today Pane -->
-        <div class="pane active" id="todayPane">
+        <div class="pane active" id="paneToday">
             <div class="card">
                 <div class="card-header">
                     <span>Today's Log</span>
-                    <button class="qbtn action" onclick="syncFromSheets()" style="font-size:10px;padding:4px 8px;">🔄 Refresh</button>
+                    <button class="qbtn action" onclick="manualSync()" style="font-size:10px;padding:4px 8px;">🔄 Sync</button>
                 </div>
                 <div class="item-list" id="logList">
                     <div class="no-entries">No entries yet</div>
@@ -367,7 +365,7 @@
         </div>
         
         <!-- Add Pane -->
-        <div class="pane" id="addPane">
+        <div class="pane" id="paneAdd">
             <div class="section-title">📸 PHOTO</div>
             <div class="quick-grid">
                 <button class="qbtn photo" onclick="takePhoto()">📷 Camera</button>
@@ -383,22 +381,22 @@
             <div class="section-title">🔄 SYNC</div>
             <div class="quick-grid">
                 <button class="qbtn action" onclick="syncSteps()">🔄 Sync Steps</button>
-                <button class="qbtn action" onclick="googleSignIn()" id="signInBtn" style="display:none;">🔑 Sign In</button>
-                <button class="qbtn action" onclick="syncFromSheets()">📥 Refresh from Sheets</button>
+                <button class="qbtn action" id="signInBtn" onclick="doSignIn()">🔑 Sign In to Google</button>
+                <button class="qbtn action" onclick="manualSync()">📥 Sync with Sheets</button>
             </div>
         </div>
         
         <!-- Plan Pane -->
-        <div class="pane" id="planPane">
+        <div class="pane" id="panePlan">
             <div class="card">
-                <div class="card-header">Weekly Exercise Plan</div>
-                <p style="font-size:11px;color:#666;margin-bottom:10px;">6-day rotation, workout 10-11am (8-9am if calls). Sunday rest.</p>
+                <div class="card-header">📅 Weekly Exercise Plan</div>
+                <p style="font-size:11px;color:#666;">6-day rotation. Workout 10-11am (8-9am if calls). Sunday rest.</p>
             </div>
             <div id="planList"></div>
         </div>
         
         <!-- History Pane -->
-        <div class="pane" id="historyPane">
+        <div class="pane" id="paneHistory">
             <div id="historyList"></div>
         </div>
     </div>
@@ -444,13 +442,13 @@
     </div>
 
     <script>
-        // Config
+        // ===== CONFIG =====
         const CLIENT_ID = '163799557992-hgstjj16f2d587jjicjonmlulaqsh552.apps.googleusercontent.com';
         const SCOPES = 'https://www.googleapis.com/auth/fitness.activity.read https://www.googleapis.com/auth/spreadsheets';
         const SHEET_ID = '13jRxb7mOAZUyi1mO3z005W6gtG5Kh4X5PZPM4FTwNMY';
         const TARGETS = { cal: 1600, protein: 110 };
         
-        // All available items
+        // ===== DATA =====
         const ALL_FOODS = [
             { name: 'Baseline', cal: 78, protein: 1, icon: '📋' },
             { name: 'Rice Bread+Hummus', cal: 190, protein: 4, icon: '🍞' },
@@ -482,88 +480,142 @@
             { day: 'Thursday', workout: 'Ab Circuit', time: '10-11am', details: 'Pilates warmup (15-20 min) + GymFiesta belly routine. 9 exercises, 3-4 sets, 14-20 reps.' },
             { day: 'Friday', workout: 'Bike', time: '10-11am', details: '35-40 min moderate pace, 350-450 kcal burn.' },
             { day: 'Saturday', workout: 'Resistance', time: '10-11am', details: 'Muscle bending bar + resistance bands. 5 exercises each, 3 sets.' },
-            { day: 'Sunday', workout: 'Rest Day', time: '', details: '45-60 min walk.' },
+            { day: 'Sunday', workout: 'Rest Day', time: '', details: '45-60 min walk recommended.' },
         ];
         
-        let tokenClient, accessToken = localStorage.getItem('hed_token');
+        // ===== STATE =====
+        let tokenClient = null;
+        let accessToken = null;
         let state = { date: '', calIn: 0, calOut: 0, protein: 0, steps: 0, workout: false, entries: [] };
-        let itemUsage = JSON.parse(localStorage.getItem('hed_usage') || '{}');
+        let itemUsage = {};
         let photoData = null;
-        let syncTimeout = null;
+        let googleReady = false;
         
-        // Init
-        async function init() {
-            state.date = new Date().toDateString();
+        // ===== INIT =====
+        function init() {
+            console.log('HED Tracker initializing...');
+            
+            // Load local data
+            loadLocalState();
+            loadUsage();
+            
+            // Render UI
             updateUI();
             renderAllItems();
             renderPlan();
-            initGoogle();
-            await syncFromSheets();
+            
+            // Check for new day
+            const today = new Date().toDateString();
+            if (state.date && state.date !== today) {
+                console.log('New day detected, archiving...');
+                archiveDay();
+            }
+            state.date = today;
+            saveLocalState();
+            
+            console.log('Init complete. State:', state);
         }
         
-        function initGoogle() {
-            if (typeof google === 'undefined') { setTimeout(initGoogle, 200); return; }
+        // ===== GOOGLE AUTH =====
+        function onGoogleLoad() {
+            console.log('Google Identity Services loaded');
+            googleReady = true;
+            
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: CLIENT_ID,
                 scope: SCOPES,
-                callback: async (r) => {
-                    if (r.access_token) {
-                        accessToken = r.access_token;
-                        localStorage.setItem('hed_token', accessToken);
-                        document.getElementById('signInBtn').style.display = 'none';
-                        await syncFromSheets();
-                        syncSteps();
-                    }
-                }
+                callback: onTokenResponse
             });
-            if (!accessToken) document.getElementById('signInBtn').style.display = 'inline-flex';
+            
+            // Check for saved token
+            accessToken = localStorage.getItem('hed_token');
+            if (accessToken) {
+                console.log('Found saved token');
+                document.getElementById('signInBtn').textContent = '✓ Signed In';
+                setSyncStatus('green');
+            }
         }
         
-        function googleSignIn() { tokenClient.requestAccessToken(); }
+        function onTokenResponse(response) {
+            console.log('Token response:', response);
+            if (response.access_token) {
+                accessToken = response.access_token;
+                localStorage.setItem('hed_token', accessToken);
+                document.getElementById('signInBtn').textContent = '✓ Signed In';
+                toast('Signed in successfully!');
+                setSyncStatus('green');
+                syncToSheets();
+            } else if (response.error) {
+                console.error('Auth error:', response.error);
+                toast('Sign in failed');
+                setSyncStatus('red');
+            }
+        }
         
-        // Sheets Sync
+        function doSignIn() {
+            console.log('Sign in requested, googleReady:', googleReady);
+            if (!googleReady) {
+                toast('Google loading... try again');
+                return;
+            }
+            tokenClient.requestAccessToken();
+        }
+        
+        // ===== SHEETS SYNC =====
         async function syncToSheets() {
-            if (!accessToken) return;
-            setSyncStatus('syncing');
-            
-            const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
-            const data = [today, state.calIn, state.protein, state.calOut, state.steps, state.calIn - state.calOut, state.workout ? 'Yes' : 'No', JSON.stringify(state.entries)];
-            
-            try {
-                // Write to CurrentDay tab
-                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/CurrentDay!A2:H2?valueInputOption=RAW`, {
-                    method: 'PUT',
-                    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ values: [data] })
-                });
-                setSyncStatus('synced');
-            } catch (e) {
-                console.error('Sync to sheets failed:', e);
-                setSyncStatus('error');
+            if (!accessToken) {
+                console.log('No token, skipping sync');
+                return;
             }
-        }
-        
-        async function syncFromSheets() {
-            if (!accessToken) { 
-                loadLocalState();
-                return; 
-            }
-            setSyncStatus('syncing');
+            
+            setSyncStatus('yellow');
+            console.log('Syncing to sheets...');
             
             try {
                 // Ensure tabs exist
                 await ensureSheetTabs();
                 
-                // Read CurrentDay tab
+                // Write current day
+                const today = new Date().toLocaleDateString('en-CA');
+                const data = [today, state.calIn, state.protein, state.calOut, state.steps, state.calIn - state.calOut, state.workout ? 'Yes' : 'No', JSON.stringify(state.entries)];
+                
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/CurrentDay!A2:H2?valueInputOption=RAW`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ values: [data] })
+                });
+                
+                if (res.status === 401) {
+                    console.log('Token expired');
+                    localStorage.removeItem('hed_token');
+                    accessToken = null;
+                    document.getElementById('signInBtn').textContent = '🔑 Sign In to Google';
+                    setSyncStatus('red');
+                    toast('Session expired - sign in again');
+                    return;
+                }
+                
+                console.log('Sync successful');
+                setSyncStatus('green');
+            } catch (e) {
+                console.error('Sync error:', e);
+                setSyncStatus('red');
+            }
+        }
+        
+        async function syncFromSheets() {
+            if (!accessToken) return;
+            
+            setSyncStatus('yellow');
+            
+            try {
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/CurrentDay!A2:H2`, {
-                    headers: { Authorization: `Bearer ${accessToken}` }
+                    headers: { 'Authorization': 'Bearer ' + accessToken }
                 });
                 
                 if (res.status === 401) {
                     localStorage.removeItem('hed_token');
                     accessToken = null;
-                    document.getElementById('signInBtn').style.display = 'inline-flex';
-                    loadLocalState();
                     return;
                 }
                 
@@ -572,42 +624,33 @@
                 
                 if (data.values && data.values[0] && data.values[0][0] === today) {
                     const row = data.values[0];
-                    state.date = new Date().toDateString();
                     state.calIn = parseInt(row[1]) || 0;
                     state.protein = parseInt(row[2]) || 0;
                     state.calOut = parseInt(row[3]) || 0;
                     state.steps = parseInt(row[4]) || 0;
                     state.workout = row[6] === 'Yes';
                     try { state.entries = JSON.parse(row[7] || '[]'); } catch { state.entries = []; }
-                } else {
-                    // New day - archive old data if exists
-                    if (data.values && data.values[0] && data.values[0][0]) {
-                        await archiveToDaily(data.values[0]);
-                    }
-                    state = { date: new Date().toDateString(), calIn: 0, calOut: 0, protein: 0, steps: 0, workout: false, entries: [] };
-                    await syncToSheets();
+                    saveLocalState();
+                    updateUI();
+                    toast('Synced from Sheets');
                 }
                 
-                saveLocalState();
-                updateUI();
-                setSyncStatus('synced');
+                setSyncStatus('green');
             } catch (e) {
-                console.error('Sync from sheets failed:', e);
-                loadLocalState();
-                setSyncStatus('error');
+                console.error('Sync from sheets error:', e);
+                setSyncStatus('red');
             }
         }
         
         async function ensureSheetTabs() {
             try {
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}`, {
-                    headers: { Authorization: `Bearer ${accessToken}` }
+                    headers: { 'Authorization': 'Bearer ' + accessToken }
                 });
                 const data = await res.json();
-                const sheets = data.sheets.map(s => s.properties.title);
+                const sheets = data.sheets ? data.sheets.map(s => s.properties.title) : [];
                 
                 const requests = [];
-                
                 if (!sheets.includes('CurrentDay')) {
                     requests.push({ addSheet: { properties: { title: 'CurrentDay' } } });
                 }
@@ -618,20 +661,20 @@
                 if (requests.length > 0) {
                     await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`, {
                         method: 'POST',
-                        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                        headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
                         body: JSON.stringify({ requests })
                     });
                     
                     // Add headers
                     await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/CurrentDay!A1:H1?valueInputOption=RAW`, {
                         method: 'PUT',
-                        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                        headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
                         body: JSON.stringify({ values: [['Date', 'Cal In', 'Protein', 'Cal Out', 'Steps', 'Net', 'Workout', 'Entries']] })
                     });
                     
                     await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog!A1:H1?valueInputOption=RAW`, {
                         method: 'PUT',
-                        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                        headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
                         body: JSON.stringify({ values: [['Date', 'Cal In', 'Protein', 'Cal Out', 'Steps', 'Net', 'Workout', 'Items']] })
                     });
                 }
@@ -640,55 +683,77 @@
             }
         }
         
-        async function archiveToDaily(row) {
-            try {
-                const items = [];
-                try {
-                    const entries = JSON.parse(row[7] || '[]');
-                    entries.forEach(e => items.push(e.name));
-                } catch {}
-                
-                const archiveRow = [row[0], row[1], row[2], row[3], row[4], row[5], row[6], items.join(', ')];
-                
-                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog!A:H:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
-                    method: 'POST',
-                    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ values: [archiveRow] })
-                });
-            } catch (e) {
-                console.error('Archive failed:', e);
+        function manualSync() {
+            if (!accessToken) {
+                toast('Sign in first');
+                doSignIn();
+                return;
             }
+            syncFromSheets();
+            syncToSheets();
         }
         
-        function setSyncStatus(status) {
-            const el = document.getElementById('syncIndicator');
-            if (status === 'syncing') { el.textContent = '◐'; el.style.color = '#FFD700'; }
-            else if (status === 'synced') { el.textContent = '●'; el.style.color = '#90EE90'; }
-            else { el.textContent = '●'; el.style.color = '#FFB6C1'; }
+        // ===== LOCAL STORAGE =====
+        function saveLocalState() {
+            localStorage.setItem('hed_state', JSON.stringify(state));
         }
         
-        function debouncedSync() {
-            clearTimeout(syncTimeout);
-            syncTimeout = setTimeout(() => syncToSheets(), 1000);
-        }
-        
-        // Local state backup
-        function saveLocalState() { localStorage.setItem('hed_state', JSON.stringify(state)); }
         function loadLocalState() {
-            const saved = localStorage.getItem('hed_state');
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                if (parsed.date === new Date().toDateString()) state = parsed;
+            try {
+                const saved = localStorage.getItem('hed_state');
+                if (saved) {
+                    state = JSON.parse(saved);
+                }
+            } catch (e) {
+                console.error('Error loading state:', e);
             }
-            updateUI();
+            state.date = state.date || new Date().toDateString();
+            state.entries = state.entries || [];
         }
         
-        // UI
+        function loadUsage() {
+            try {
+                const saved = localStorage.getItem('hed_usage');
+                if (saved) itemUsage = JSON.parse(saved);
+            } catch (e) {}
+        }
+        
+        function saveUsage() {
+            localStorage.setItem('hed_usage', JSON.stringify(itemUsage));
+        }
+        
+        function archiveDay() {
+            // Save to local history
+            const history = JSON.parse(localStorage.getItem('hed_history') || '[]');
+            if (state.calIn > 0 || state.entries.length > 0) {
+                history.unshift({
+                    date: state.date,
+                    calIn: state.calIn,
+                    calOut: state.calOut,
+                    protein: state.protein,
+                    steps: state.steps,
+                    workout: state.workout
+                });
+                localStorage.setItem('hed_history', JSON.stringify(history.slice(0, 30)));
+            }
+            
+            // Reset state
+            state = { date: new Date().toDateString(), calIn: 0, calOut: 0, protein: 0, steps: 0, workout: false, entries: [] };
+        }
+        
+        // ===== UI =====
+        function setSyncStatus(color) {
+            const el = document.getElementById('syncIndicator');
+            el.className = 'sync-indicator ' + color;
+            el.textContent = color === 'green' ? '🟢' : color === 'yellow' ? '🟡' : color === 'red' ? '🔴' : '⚪';
+        }
+        
         function updateUI() {
             document.getElementById('dateDisplay').textContent = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
             document.getElementById('calIn').textContent = state.calIn;
             document.getElementById('protein').textContent = state.protein + 'g';
             document.getElementById('burned').textContent = state.calOut;
+            
             const net = state.calIn - state.calOut;
             document.getElementById('net').textContent = net;
             
@@ -704,8 +769,8 @@
             defEl.textContent = deficit;
             defEl.className = deficit <= 0 ? 'deficit' : 'over';
             
-            document.getElementById('steps').textContent = state.steps.toLocaleString() + ' steps';
-            document.getElementById('workout').textContent = state.workout ? '✅' : '⬜';
+            document.getElementById('stepsDisplay').textContent = state.steps.toLocaleString() + ' steps';
+            document.getElementById('workoutDisplay').textContent = state.workout ? '✅' : '⬜';
             
             renderLog();
             renderQuickItems();
@@ -714,8 +779,8 @@
         
         function renderLog() {
             const list = document.getElementById('logList');
-            if (!state.entries.length) {
-                list.innerHTML = '<div class="no-entries">No entries yet</div>';
+            if (!state.entries || state.entries.length === 0) {
+                list.innerHTML = '<div class="no-entries">No entries yet. Tap Add to log food or exercise.</div>';
                 return;
             }
             list.innerHTML = state.entries.map((e, i) => `
@@ -732,49 +797,64 @@
         
         function renderQuickItems() {
             // Get most used items (top 8)
-            const sorted = [...ALL_FOODS, ...ALL_EXERCISES].sort((a, b) => (itemUsage[b.name] || 0) - (itemUsage[a.name] || 0));
+            const allItems = [...ALL_FOODS, ...ALL_EXERCISES];
+            const sorted = allItems.sort((a, b) => (itemUsage[b.name] || 0) - (itemUsage[a.name] || 0));
             const top = sorted.slice(0, 8);
             
-            document.getElementById('quickItems').innerHTML = top.map(item => {
+            let html = top.map(item => {
                 if (item.protein !== undefined) {
                     return `<button class="qbtn food" onclick="addFood('${item.name}',${item.cal},${item.protein})">${item.icon} ${item.name.split(' ')[0]} <span class="qbtn-cal">${item.cal}/${item.protein}g</span></button>`;
                 } else {
                     return `<button class="qbtn exercise" onclick="addExercise('${item.name}',${item.cal})">${item.icon} ${item.name} <span class="qbtn-cal">${item.cal}</span></button>`;
                 }
-            }).join('') + `<button class="qbtn food" onclick="openCustom()">➕ Custom</button>`;
+            }).join('');
+            
+            html += `<button class="qbtn food" onclick="openCustom()">➕ Custom</button>`;
+            document.getElementById('quickItems').innerHTML = html;
         }
         
         function renderAllItems() {
-            document.getElementById('allFoodItems').innerHTML = ALL_FOODS.map(f => 
+            // Foods
+            let foodHtml = ALL_FOODS.map(f => 
                 `<button class="qbtn food" onclick="addFood('${f.name}',${f.cal},${f.protein})">${f.icon} ${f.name} <span class="qbtn-cal">${f.cal}/${f.protein}g</span></button>`
-            ).join('') + `<button class="qbtn food" onclick="openCustom()">➕ Custom</button>`;
+            ).join('');
+            foodHtml += `<button class="qbtn food" onclick="openCustom()">➕ Custom</button>`;
+            document.getElementById('allFoodItems').innerHTML = foodHtml;
             
-            document.getElementById('allExerciseItems').innerHTML = ALL_EXERCISES.map(e => 
+            // Exercises
+            let exHtml = ALL_EXERCISES.map(e => 
                 `<button class="qbtn exercise" onclick="addExercise('${e.name}',${e.cal})">${e.icon} ${e.name} <span class="qbtn-cal">${e.cal}</span></button>`
-            ).join('') + `<button class="qbtn exercise" onclick="toggleWorkout()">✅ Workout Done</button>`;
+            ).join('');
+            exHtml += `<button class="qbtn exercise" onclick="toggleWorkout()">✅ Workout Done</button>`;
+            document.getElementById('allExerciseItems').innerHTML = exHtml;
         }
         
         function renderPlan() {
-            const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-            document.getElementById('planList').innerHTML = WEEKLY_PLAN.map(p => `
-                <div class="plan-day ${p.day === today ? 'today' : ''}">
+            const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+            
+            const html = WEEKLY_PLAN.map(p => `
+                <div class="plan-day ${p.day === todayName ? 'today' : ''}">
                     <div class="plan-day-header">
-                        <span>${p.day}${p.day === today ? ' (Today)' : ''}</span>
+                        <span>${p.day}${p.day === todayName ? ' (TODAY)' : ''}</span>
                         <span>${p.time}</span>
                     </div>
-                    <div class="plan-day-workout">${p.workout}</div>
+                    <div class="plan-day-workout">💪 ${p.workout}</div>
                     <div class="plan-day-details">${p.details}</div>
                 </div>
             `).join('');
+            
+            document.getElementById('planList').innerHTML = html;
         }
         
         function renderHistory() {
             const history = JSON.parse(localStorage.getItem('hed_history') || '[]');
             const list = document.getElementById('historyList');
-            if (!history.length) {
+            
+            if (history.length === 0) {
                 list.innerHTML = '<div class="no-entries">No history yet</div>';
                 return;
             }
+            
             list.innerHTML = history.map(d => `
                 <div class="card">
                     <div class="card-header"><span>${d.date}</span><span>${d.workout ? '✅' : '⬜'}</span></div>
@@ -789,78 +869,21 @@
         }
         
         function showPane(name) {
-            document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', 
-                (name === 'today' && i === 0) || (name === 'add' && i === 1) || (name === 'plan' && i === 2) || (name === 'history' && i === 3)
-            ));
-            document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
-            document.getElementById(name + 'Pane').classList.add('active');
+            // Update tabs
+            document.getElementById('tabToday').classList.toggle('active', name === 'today');
+            document.getElementById('tabAdd').classList.toggle('active', name === 'add');
+            document.getElementById('tabPlan').classList.toggle('active', name === 'plan');
+            document.getElementById('tabHistory').classList.toggle('active', name === 'history');
+            
+            // Update panes
+            document.getElementById('paneToday').classList.toggle('active', name === 'today');
+            document.getElementById('paneAdd').classList.toggle('active', name === 'add');
+            document.getElementById('panePlan').classList.toggle('active', name === 'plan');
+            document.getElementById('paneHistory').classList.toggle('active', name === 'history');
         }
         
         function toast(msg) {
             const t = document.getElementById('toast');
             t.textContent = msg;
             t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 2000);
-        }
-        
-        // Actions
-        function addFood(name, cal, protein) {
-            state.calIn += cal;
-            state.protein += protein;
-            state.entries.push({ type: 'food', name, cal, protein, time: Date.now() });
-            itemUsage[name] = (itemUsage[name] || 0) + 1;
-            localStorage.setItem('hed_usage', JSON.stringify(itemUsage));
-            saveLocalState();
-            updateUI();
-            debouncedSync();
-            showPane('today');
-            toast('Added ' + name);
-        }
-        
-        function addExercise(name, cal) {
-            state.calOut += cal;
-            state.entries.push({ type: 'exercise', name, cal, time: Date.now() });
-            itemUsage[name] = (itemUsage[name] || 0) + 1;
-            localStorage.setItem('hed_usage', JSON.stringify(itemUsage));
-            saveLocalState();
-            updateUI();
-            debouncedSync();
-            showPane('today');
-            toast('Added ' + name);
-        }
-        
-        function deleteEntry(i) {
-            const e = state.entries[i];
-            if (e.type === 'food') {
-                state.calIn -= e.cal;
-                state.protein -= e.protein;
-            } else {
-                state.calOut -= e.cal;
-                if (e.steps) state.steps = 0;
-            }
-            state.entries.splice(i, 1);
-            saveLocalState();
-            updateUI();
-            debouncedSync();
-        }
-        
-        function toggleWorkout() {
-            state.workout = !state.workout;
-            saveLocalState();
-            updateUI();
-            debouncedSync();
-            toast(state.workout ? 'Workout done! 💪' : 'Workout unmarked');
-        }
-        
-        // Steps
-        async function syncSteps() {
-            if (!accessToken) { googleSignIn(); return; }
-            toast('Syncing steps...');
-            const now = new Date();
-            const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-            try {
-                const res = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
-                    method: 'POST',
-                    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        aggregateBy: [{ dataTypeName: 'com.google.step_count.delta', dataSourceId: 'derived:com.google.step_count.delta:com.google
+            setTimeout(()
