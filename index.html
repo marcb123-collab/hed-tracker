@@ -10,117 +10,127 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #f5f5f5;
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
+            padding-bottom: env(safe-area-inset-bottom);
         }
         
         .dashboard {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 12px 16px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
+            padding: 12px 14px;
+            padding-top: max(12px, env(safe-area-inset-top));
         }
         
-        .dashboard h1 {
-            font-size: 16px;
-            margin-bottom: 4px;
+        .dash-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-        
-        .subtitle { font-size: 10px; opacity: 0.8; margin-bottom: 10px; }
-        .date { font-size: 13px; opacity: 0.9; }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
             margin-bottom: 10px;
         }
         
-        .stat-card {
+        .dash-title { font-size: 16px; font-weight: 600; }
+        .dash-date { font-size: 12px; opacity: 0.9; }
+        
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .stat {
             background: rgba(255,255,255,0.15);
             border-radius: 8px;
-            padding: 10px;
+            padding: 8px 6px;
+            text-align: center;
         }
         
-        .stat-label { font-size: 10px; opacity: 0.8; text-transform: uppercase; }
-        .stat-value { font-size: 22px; font-weight: bold; }
-        .stat-target { font-size: 10px; opacity: 0.7; }
+        .stat-value { font-size: 18px; font-weight: 700; }
+        .stat-label { font-size: 9px; opacity: 0.8; text-transform: uppercase; }
         
-        .progress-bar {
-            height: 3px;
-            background: rgba(255,255,255,0.3);
-            border-radius: 2px;
-            margin-top: 4px;
-            overflow: hidden;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: white;
-            border-radius: 2px;
-            transition: width 0.3s ease;
-        }
-        
-        .exercise-row {
+        .progress-row {
             display: flex;
             gap: 8px;
-            font-size: 12px;
-            flex-wrap: wrap;
+            margin-bottom: 8px;
         }
         
-        .exercise-item {
+        .progress-item { flex: 1; }
+        .progress-label { font-size: 9px; opacity: 0.8; margin-bottom: 2px; }
+        .progress-bar { height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; }
+        .progress-fill { height: 100%; background: white; border-radius: 2px; transition: width 0.3s; }
+        
+        .status-row {
+            display: flex;
+            gap: 6px;
+            font-size: 11px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .status-chip {
             background: rgba(255,255,255,0.15);
-            padding: 4px 10px;
-            border-radius: 16px;
+            padding: 4px 8px;
+            border-radius: 12px;
         }
         
         .deficit { color: #90EE90; }
         .over { color: #FFB6C1; }
         
-        .tab-nav {
+        .copy-btn {
+            background: rgba(255,255,255,0.25);
+            border: none;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            cursor: pointer;
+        }
+        
+        .copy-btn:active { background: rgba(255,255,255,0.4); }
+        
+        /* Tabs */
+        .tabs {
             display: flex;
             background: white;
             border-bottom: 1px solid #e0e0e0;
         }
         
-        .tab-btn {
+        .tab {
             flex: 1;
             padding: 10px;
             border: none;
             background: none;
-            font-size: 13px;
+            font-size: 12px;
             cursor: pointer;
             border-bottom: 2px solid transparent;
+            color: #666;
         }
         
-        .tab-btn.active { color: #667eea; border-bottom-color: #667eea; }
+        .tab.active { color: #667eea; border-bottom-color: #667eea; font-weight: 600; }
         
-        .content-area { flex: 1; overflow-y: auto; }
-        .tab-content { display: none; padding: 10px; }
-        .tab-content.active { display: block; }
+        /* Content */
+        .content { flex: 1; overflow-y: auto; }
+        .pane { display: none; padding: 10px; }
+        .pane.active { display: block; }
         
-        /* Today's Summary */
-        .summary-section {
+        /* Summary */
+        .summary-card {
             background: white;
             border-radius: 10px;
             padding: 12px;
             margin-bottom: 10px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
         
-        .summary-title {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 10px;
+        .summary-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 10px;
+            font-weight: 600;
+            font-size: 13px;
         }
         
         .summary-list { font-size: 12px; }
@@ -128,113 +138,107 @@
         .summary-item {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             padding: 6px 0;
             border-bottom: 1px solid #f0f0f0;
         }
         
         .summary-item:last-child { border-bottom: none; }
-        .summary-item-name { flex: 1; }
-        .summary-item-values { color: #666; white-space: nowrap; }
-        .summary-item.food { border-left: 3px solid #4CAF50; padding-left: 8px; }
-        .summary-item.exercise { border-left: 3px solid #2196F3; padding-left: 8px; }
         
-        .summary-totals {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 2px solid #667eea;
-        }
+        .item-left { display: flex; align-items: center; gap: 6px; flex: 1; }
+        .item-dot { width: 6px; height: 6px; border-radius: 50%; }
+        .item-dot.food { background: #4CAF50; }
+        .item-dot.exercise { background: #2196F3; }
+        .item-name { flex: 1; }
+        .item-values { color: #666; font-size: 11px; }
+        .item-delete { background: none; border: none; color: #ccc; font-size: 16px; padding: 0 4px; cursor: pointer; }
+        .item-delete:hover { color: #f44336; }
         
-        .summary-total {
-            text-align: center;
+        .no-entries { color: #999; text-align: center; padding: 20px; font-size: 13px; }
+        
+        /* Quick buttons */
+        .section-title {
             font-size: 11px;
-        }
-        
-        .summary-total-value { font-weight: 600; font-size: 14px; }
-        .summary-total-label { color: #666; }
-        
-        /* Quick Add */
-        .quick-add {
-            background: white;
-            padding: 10px;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        
-        .quick-add-title {
-            font-size: 11px;
-            color: #666;
-            margin-bottom: 6px;
             font-weight: 600;
+            color: #666;
+            margin: 12px 0 8px 0;
         }
         
-        .quick-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+        .quick-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
         
-        .quick-btn {
-            background: #f0f0f0;
+        .qbtn {
+            background: #f5f5f5;
             border: none;
-            padding: 6px 10px;
-            border-radius: 16px;
+            padding: 8px 10px;
+            border-radius: 8px;
             font-size: 11px;
             cursor: pointer;
-            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
         
-        .quick-btn:hover { background: #e0e0e0; }
-        .quick-btn:active { background: #d0d0d0; }
-        .quick-btn.food { border-left: 3px solid #4CAF50; }
-        .quick-btn.exercise { border-left: 3px solid #2196F3; }
-        .quick-btn.photo { border-left: 3px solid #FF9800; background: #FFF3E0; }
-        .quick-btn.google { border-left: 3px solid #4285F4; background: #E8F0FE; }
-        .quick-btn.sheets { border-left: 3px solid #0F9D58; background: #E6F4EA; }
+        .qbtn:active { background: #e8e8e8; }
+        .qbtn.food { border-left: 3px solid #4CAF50; }
+        .qbtn.exercise { border-left: 3px solid #2196F3; }
+        .qbtn.action { background: #E8F0FE; border-left: 3px solid #4285F4; }
+        .qbtn.photo { background: #FFF3E0; border-left: 3px solid #FF9800; }
         
-        /* Log entries */
-        .log-entry {
+        .qbtn-cal { color: #888; font-size: 10px; }
+        
+        /* Input bar */
+        .input-bar {
             background: white;
-            border-radius: 8px;
             padding: 10px;
-            margin-bottom: 6px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 8px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom));
         }
         
-        .log-entry.food { border-left: 3px solid #4CAF50; }
-        .log-entry.exercise { border-left: 3px solid #2196F3; }
-        .log-time { font-size: 10px; color: #999; }
-        .log-item { font-weight: 500; margin: 2px 0; font-size: 13px; }
-        .log-macros { font-size: 11px; color: #666; }
-        
-        .log-photo {
-            max-width: 100%;
-            max-height: 120px;
-            border-radius: 6px;
-            margin-top: 6px;
-        }
-        
-        .log-delete {
-            float: right;
-            background: none;
-            border: none;
-            color: #ccc;
-            cursor: pointer;
+        .input-field {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
             font-size: 14px;
+            outline: none;
         }
         
-        .log-delete:hover { color: #f44336; }
+        .input-field:focus { border-color: #667eea; }
+        
+        .input-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .input-btn.add { background: #667eea; color: white; }
+        .input-btn.photo { background: #FF9800; color: white; }
         
         /* History */
-        .history-day {
+        .history-card {
             background: white;
-            border-radius: 8px;
+            border-radius: 10px;
             padding: 12px;
             margin-bottom: 8px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
         
         .history-date {
             font-weight: 600;
-            font-size: 13px;
-            margin-bottom: 6px;
+            font-size: 12px;
+            margin-bottom: 8px;
             display: flex;
             justify-content: space-between;
         }
@@ -244,294 +248,247 @@
             grid-template-columns: repeat(4, 1fr);
             gap: 6px;
             font-size: 11px;
+            text-align: center;
         }
         
-        .history-stat { text-align: center; }
         .history-stat-value { font-weight: 600; font-size: 14px; }
-        .history-stat-label { color: #666; font-size: 9px; }
+        .history-stat-label { color: #888; font-size: 9px; }
         .history-stat.good .history-stat-value { color: #4CAF50; }
-        .history-stat.over .history-stat-value { color: #f44336; }
-        
-        /* Input Area */
-        .input-area {
-            background: white;
-            padding: 10px;
-            border-top: 1px solid #e0e0e0;
-            display: flex;
-            gap: 6px;
-        }
-        
-        .input-area input {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 20px;
-            font-size: 13px;
-            outline: none;
-        }
-        
-        .input-area input:focus { border-color: #667eea; }
-        
-        .input-area button {
-            background: #667eea;
-            color: white;
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .input-area button:active { background: #5a6fd6; }
-        .photo-btn { background: #FF9800 !important; }
+        .history-stat.bad .history-stat-value { color: #f44336; }
         
         /* Modal */
         .modal {
             display: none;
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
+            inset: 0;
             background: rgba(0,0,0,0.5);
-            z-index: 200;
+            z-index: 100;
             align-items: center;
             justify-content: center;
         }
         
-        .modal.active { display: flex; }
+        .modal.open { display: flex; }
         
-        .modal-content {
+        .modal-box {
             background: white;
-            border-radius: 12px;
-            padding: 16px;
+            border-radius: 14px;
+            padding: 20px;
             width: 90%;
-            max-width: 340px;
-            max-height: 80vh;
-            overflow-y: auto;
+            max-width: 320px;
         }
         
-        .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+        .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 14px; }
         
         .modal-input {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
-            border-radius: 6px;
+            border-radius: 8px;
             margin-bottom: 10px;
-            font-size: 13px;
+            font-size: 14px;
         }
         
-        .modal-buttons { display: flex; gap: 8px; justify-content: flex-end; }
+        .modal-btns { display: flex; gap: 10px; justify-content: flex-end; }
         
         .modal-btn {
             padding: 8px 16px;
-            border-radius: 6px;
+            border-radius: 8px;
             border: none;
-            cursor: pointer;
             font-size: 13px;
+            cursor: pointer;
         }
         
         .modal-btn.cancel { background: #f0f0f0; }
         .modal-btn.save { background: #667eea; color: white; }
         
-        .photo-preview {
-            max-width: 100%;
-            max-height: 150px;
-            border-radius: 6px;
-            margin-bottom: 10px;
-        }
+        .photo-preview { max-width: 100%; max-height: 150px; border-radius: 8px; margin-bottom: 10px; }
         
-        .reset-btn {
-            background: rgba(255,255,255,0.2);
-            border: none;
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
             color: white;
-            padding: 3px 8px;
-            border-radius: 10px;
-            font-size: 10px;
-            cursor: pointer;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            z-index: 200;
+            display: none;
         }
         
-        .no-data { text-align: center; color: #999; padding: 30px; font-size: 13px; }
+        .toast.show { display: block; }
+        
+        /* Hidden */
         #photoInput, #cameraInput { display: none; }
-        .sync-status { font-size: 10px; opacity: 0.8; }
     </style>
 </head>
 <body>
+    <!-- Dashboard -->
     <div class="dashboard">
-        <h1>
-            <span>Marc's HED Tracker</span>
-            <span class="date" id="currentDate"></span>
-        </h1>
-        <div class="subtitle">Health • Exercise • Diet <span id="syncStatus" class="sync-status"></span></div>
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">Calories In</div>
-                <div class="stat-value"><span id="calIn">0</span></div>
-                <div class="stat-target">/ 1600 kcal</div>
-                <div class="progress-bar"><div class="progress-fill" id="calProgress" style="width: 0%"></div></div>
+        <div class="dash-header">
+            <span class="dash-title">Marc's HED Tracker</span>
+            <span class="dash-date" id="dateDisplay"></span>
+        </div>
+        <div class="stats-row">
+            <div class="stat">
+                <div class="stat-value" id="calIn">0</div>
+                <div class="stat-label">Cal In</div>
             </div>
-            <div class="stat-card">
+            <div class="stat">
+                <div class="stat-value" id="protein">0</div>
                 <div class="stat-label">Protein</div>
-                <div class="stat-value"><span id="proteinIn">0</span>g</div>
-                <div class="stat-target">/ 110g</div>
-                <div class="progress-bar"><div class="progress-fill" id="proteinProgress" style="width: 0%"></div></div>
             </div>
-            <div class="stat-card">
+            <div class="stat">
+                <div class="stat-value" id="burned">0</div>
                 <div class="stat-label">Burned</div>
-                <div class="stat-value"><span id="calOut">0</span></div>
-                <div class="stat-target">kcal</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">Steps</div>
-                <div class="stat-value"><span id="steps">0</span></div>
-                <div class="stat-target"><span id="stepsCalories">0</span> kcal</div>
+            <div class="stat">
+                <div class="stat-value" id="net">0</div>
+                <div class="stat-label">Net</div>
             </div>
         </div>
-        <div class="exercise-row">
-            <span class="exercise-item">Net: <span id="netCal">0</span></span>
-            <span class="exercise-item">vs Target: <span id="deficit" class="deficit">0</span></span>
-            <span class="exercise-item" id="workoutStatus">⬜</span>
-            <button class="reset-btn" onclick="resetDay()">Reset</button>
+        <div class="progress-row">
+            <div class="progress-item">
+                <div class="progress-label">Calories <span id="calPct">0</span>%</div>
+                <div class="progress-bar"><div class="progress-fill" id="calBar" style="width:0%"></div></div>
+            </div>
+            <div class="progress-item">
+                <div class="progress-label">Protein <span id="worPct">0</span>%</div>
+                <div class="progress-bar"><div class="progress-fill" id="worBar" style="width:0%"></div></div>
+            </div>
+        </div>
+        <div class="status-row">
+            <span class="status-chip">vs Target: <span id="deficit" class="deficit">0</span></span>
+            <span class="status-chip" id="steps">0 steps</span>
+            <span class="status-chip" id="workout">⬜</span>
+            <button class="copy-btn" onclick="copySummary()">📋 Summary</button>
+            <button class="copy-btn" onclick="copyFull()">📋 Full</button>
         </div>
     </div>
     
-    <div class="tab-nav">
-        <button class="tab-btn active" onclick="switchTab('today')">Today</button>
-        <button class="tab-btn" onclick="switchTab('add')">Add</button>
-        <button class="tab-btn" onclick="switchTab('history')">History</button>
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab active" onclick="showPane('today')">Today</button>
+        <button class="tab" onclick="showPane('add')">Add</button>
+        <button class="tab" onclick="showPane('history')">History</button>
     </div>
     
-    <div class="content-area">
-        <!-- TODAY TAB -->
-        <div class="tab-content active" id="todayTab">
-            <div class="summary-section">
-                <div class="summary-title">
-                    <span>📋 Today's Summary</span>
-                    <button class="quick-btn google" onclick="syncGoogleFit()" style="font-size:10px;">🔄 Sync</button>
+    <!-- Content -->
+    <div class="content">
+        <!-- Today Pane -->
+        <div class="pane active" id="todayPane">
+            <div class="summary-card">
+                <div class="summary-header">
+                    <span>Today's Log</span>
+                    <button class="qbtn action" onclick="syncSteps()" style="font-size:10px;padding:4px 8px;">🔄 Sync Steps</button>
                 </div>
-                <div class="summary-list" id="summaryList">
-                    <div class="no-data">No entries yet</div>
-                </div>
-                <div class="summary-totals">
-                    <div class="summary-total">
-                        <div class="summary-total-value" id="sumCalIn">0</div>
-                        <div class="summary-total-label">Cal In</div>
-                    </div>
-                    <div class="summary-total">
-                        <div class="summary-total-value" id="sumProtein">0g</div>
-                        <div class="summary-total-label">Protein</div>
-                    </div>
-                    <div class="summary-total">
-                        <div class="summary-total-value" id="sumCalOut">0</div>
-                        <div class="summary-total-label">Burned</div>
-                    </div>
-                    <div class="summary-total">
-                        <div class="summary-total-value" id="sumNet">0</div>
-                        <div class="summary-total-label">Net</div>
-                    </div>
-                </div>
-            </div>
-            <button class="quick-btn sheets" onclick="syncToSheets()" style="width:100%;padding:10px;margin-bottom:10px;">📊 Save to Google Sheets</button>
-        </div>
-        
-        <!-- ADD TAB -->
-        <div class="tab-content" id="addTab">
-            <div class="quick-add">
-                <div class="quick-add-title">🔄 Sync</div>
-                <div class="quick-buttons" style="margin-bottom: 10px;">
-                    <button class="quick-btn google" onclick="syncGoogleFit()" id="syncBtn">🔄 Sync Steps</button>
-                    <button class="quick-btn google" onclick="googleSignIn()" id="signInBtn" style="display:none;">🔑 Sign In</button>
-                </div>
-                
-                <div class="quick-add-title">📸 Photo</div>
-                <div class="quick-buttons" style="margin-bottom: 10px;">
-                    <button class="quick-btn photo" onclick="openPhotoCapture()">📷 Camera</button>
-                    <button class="quick-btn photo" onclick="openPhotoUpload()">🖼️ Upload</button>
-                </div>
-                
-                <div class="quick-add-title">🍽️ Food</div>
-                <div class="quick-buttons" style="margin-bottom: 10px;">
-                    <button class="quick-btn food" onclick="addQuickItem('Baseline', 78, 1)">📋 Baseline (78/1g)</button>
-                    <button class="quick-btn food" onclick="addQuickItem('Rice Bread+Hummus', 190, 4)">🍞 Rice Bread+Hummus (190/4g)</button>
-                    <button class="quick-btn food" onclick="addQuickItem('Asahi Shake', 194, 27)">🥤 Asahi Shake (194/27g)</button>
-                    <button class="quick-btn food" onclick="addQuickItem('Oikos 18g', 100, 18)">🥛 Oikos 18g (100/18g)</button>
-                    <button class="quick-btn food" onclick="addQuickItem('Oikos 13g', 90, 13)">🥛 Oikos 13g (90/13g)</button>
-                    <button class="quick-btn food" onclick="addQuickItem('Protein Bar', 200, 15)">🍫 Protein Bar (200/15g)</button>
-                    <button class="quick-btn food" onclick="addQuickItem('Matcha Tall', 150, 3)">🍵 Matcha Tall (150/3g)</button>
-                    <button class="quick-btn food" onclick="addQuickItem('Matcha Grande', 200, 4)">🍵 Matcha Grande (200/4g)</button>
-                    <button class="quick-btn food" onclick="addQuickItem('Green Tea Pudding', 120, 3)">🍮 Pudding (120/3g)</button>
-                    <button class="quick-btn food" onclick="addQuickItem('Banana Bread', 180, 3)">🍌 Banana Bread (180/3g)</button>
-                    <button class="quick-btn food" onclick="openCustomFood()">➕ Custom</button>
-                </div>
-                
-                <div class="quick-add-title">💪 Exercise</div>
-                <div class="quick-buttons">
-                    <button class="quick-btn exercise" onclick="addExercise('Pilates', 90)">🧘 Pilates (90)</button>
-                    <button class="quick-btn exercise" onclick="addExercise('Ab Circuit', 200)">💪 Ab Circuit (200)</button>
-                    <button class="quick-btn exercise" onclick="addExercise('Bike', 400)">🚴 Bike (400)</button>
-                    <button class="quick-btn exercise" onclick="addExercise('Resistance', 180)">🏋️ Resistance (180)</button>
-                    <button class="quick-btn exercise" onclick="addExercise('Long Walk', 150)">🚶 Walk (150)</button>
-                    <button class="quick-btn exercise" onclick="addExercise('Drums 1hr', 175)">🥁 Drums 1hr (175)</button>
-                    <button class="quick-btn exercise" onclick="addExercise('Drums 2hr', 350)">🥁 Drums 2hr (350)</button>
-                    <button class="quick-btn exercise" onclick="openSteps()">👟 Manual Steps</button>
-                    <button class="quick-btn exercise" onclick="markWorkout()">✅ Workout Done</button>
+                <div class="summary-list" id="logList">
+                    <div class="no-entries">No entries yet</div>
                 </div>
             </div>
         </div>
         
-        <!-- HISTORY TAB -->
-        <div class="tab-content" id="historyTab">
-            <div id="historyArea"></div>
+        <!-- Add Pane -->
+        <div class="pane" id="addPane">
+            <div class="section-title">📸 PHOTO</div>
+            <div class="quick-grid">
+                <button class="qbtn photo" onclick="takePhoto()">📷 Camera</button>
+                <button class="qbtn photo" onclick="uploadPhoto()">🖼️ Upload</button>
+            </div>
+            
+            <div class="section-title">🍽️ FOOD</div>
+            <div class="quick-grid">
+                <button class="qbtn food" onclick="addFood('Baseline',78,1)">📋 Baseline <span class="qbtn-cal">78/1g</span></button>
+                <button class="qbtn food" onclick="addFood('Rice Bread+Hummus',190,4)">🍞 Rice Bread <span class="qbtn-cal">190/4g</span></button>
+                <button class="qbtn food" onclick="addFood('Asahi Shake',194,27)">🥤 Asahi <span class="qbtn-cal">194/27g</span></button>
+                <button class="qbtn food" onclick="addFood('Oikos 18g',100,18)">🥛 Oikos 18 <span class="qbtn-cal">100/18g</span></button>
+                <button class="qbtn food" onclick="addFood('Oikos 13g',90,13)">🥛 Oikos 13 <span class="qbtn-cal">90/13g</span></button>
+                <button class="qbtn food" onclick="addFood('Protein Bar',200,15)">🍫 Protein Bar <span class="qbtn-cal">200/15g</span></button>
+                <button class="qbtn food" onclick="addFood('Matcha Tall',150,3)">🍵 Matcha T <span class="qbtn-cal">150/3g</span></button>
+                <button class="qbtn food" onclick="addFood('Matcha Grande',200,4)">🍵 Matcha G <span class="qbtn-cal">200/4g</span></button>
+                <button class="qbtn food" onclick="addFood('Green Tea Pudding',120,3)">🍮 Pudding <span class="qbtn-cal">120/3g</span></button>
+                <button class="qbtn food" onclick="addFood('Banana Bread',180,3)">🍌 Banana Bread <span class="qbtn-cal">180/3g</span></button>
+                <button class="qbtn food" onclick="openCustom()">➕ Custom</button>
+            </div>
+            
+            <div class="section-title">💪 EXERCISE</div>
+            <div class="quick-grid">
+                <button class="qbtn exercise" onclick="addExercise('Pilates',90)">🧘 Pilates <span class="qbtn-cal">90</span></button>
+                <button class="qbtn exercise" onclick="addExercise('Ab Circuit',200)">💪 Ab Circuit <span class="qbtn-cal">200</span></button>
+                <button class="qbtn exercise" onclick="addExercise('Bike',400)">🚴 Bike <span class="qbtn-cal">400</span></button>
+                <button class="qbtn exercise" onclick="addExercise('Resistance',180)">🏋️ Resistance <span class="qbtn-cal">180</span></button>
+                <button class="qbtn exercise" onclick="addExercise('Long Walk',150)">🚶 Walk <span class="qbtn-cal">150</span></button>
+                <button class="qbtn exercise" onclick="addExercise('Drums 1hr',175)">🥁 Drums 1h <span class="qbtn-cal">175</span></button>
+                <button class="qbtn exercise" onclick="addExercise('Drums 2hr',350)">🥁 Drums 2h <span class="qbtn-cal">350</span></button>
+                <button class="qbtn exercise" onclick="toggleWorkout()">✅ Workout Done</button>
+            </div>
+            
+            <div class="section-title">🔄 SYNC</div>
+            <div class="quick-grid">
+                <button class="qbtn action" onclick="syncSteps()">🔄 Sync Steps</button>
+                <button class="qbtn action" onclick="googleSignIn()" id="signInBtn" style="display:none;">🔑 Sign In</button>
+            </div>
+        </div>
+        
+        <!-- History Pane -->
+        <div class="pane" id="historyPane">
+            <div id="historyList"></div>
         </div>
     </div>
     
-    <div class="input-area">
-        <input type="text" id="quickInput" placeholder="chicken 300cal 25g or 5000 steps">
-        <button class="photo-btn" onclick="openPhotoCapture()">📷</button>
-        <button onclick="parseInput()">+</button>
+    <!-- Input Bar -->
+    <div class="input-bar">
+        <input type="text" class="input-field" id="inputField" placeholder="Paste: Saba Set 650cal 35g">
+        <button class="input-btn photo" onclick="takePhoto()">📷</button>
+        <button class="input-btn add" onclick="parseInput()">+</button>
     </div>
     
-    <input type="file" id="photoInput" accept="image/*" onchange="handlePhotoSelect(event)">
-    <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handlePhotoSelect(event)">
+    <!-- Hidden inputs -->
+    <input type="file" id="photoInput" accept="image/*" onchange="handlePhoto(event)">
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handlePhoto(event)">
     
-    <!-- Modals -->
-    <div class="modal" id="foodModal">
-        <div class="modal-content">
-            <div class="modal-title">Add Food</div>
-            <input type="text" class="modal-input" id="foodName" placeholder="Food name">
-            <input type="number" class="modal-input" id="foodCal" placeholder="Calories">
-            <input type="number" class="modal-input" id="foodProtein" placeholder="Protein (g)">
-            <div class="modal-buttons">
-                <button class="modal-btn cancel" onclick="closeModal('foodModal')">Cancel</button>
-                <button class="modal-btn save" onclick="saveCustomFood()">Add</button>
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+    
+    <!-- Custom Food Modal -->
+    <div class="modal" id="customModal">
+        <div class="modal-box">
+            <div class="modal-title">Add Custom Food</div>
+            <input type="text" class="modal-input" id="customName" placeholder="Food name">
+            <input type="number" class="modal-input" id="customCal" placeholder="Calories">
+            <input type="number" class="modal-input" id="customPro" placeholder="Protein (g)">
+            <div class="modal-btns">
+                <button class="modal-btn cancel" onclick="closeModal('customModal')">Cancel</button>
+                <button class="modal-btn save" onclick="saveCustom()">Add</button>
             </div>
         </div>
     </div>
     
+    <!-- Photo Modal -->
     <div class="modal" id="photoModal">
-        <div class="modal-content">
+        <div class="modal-box">
             <div class="modal-title">Log Meal</div>
-            <img id="photoPreview" class="photo-preview" style="display:none;">
-            <input type="text" class="modal-input" id="photoFoodName" placeholder="Meal name">
-            <input type="number" class="modal-input" id="photoFoodCal" placeholder="Calories">
-            <input type="number" class="modal-input" id="photoFoodProtein" placeholder="Protein (g)">
-            <p style="font-size:10px;color:#666;margin-bottom:10px;">💡 Send photo to Claude for estimate</p>
-            <div class="modal-buttons">
+            <img id="photoPreview" class="photo-preview" style="display:none">
+            <input type="text" class="modal-input" id="photoName" placeholder="Meal name">
+            <input type="number" class="modal-input" id="photoCal" placeholder="Calories">
+            <input type="number" class="modal-input" id="photoPro" placeholder="Protein (g)">
+            <p style="font-size:11px;color:#888;margin-bottom:12px;">💡 Send photo to Claude for estimate</p>
+            <div class="modal-btns">
                 <button class="modal-btn cancel" onclick="closeModal('photoModal')">Cancel</button>
-                <button class="modal-btn save" onclick="savePhotoFood()">Add</button>
+                <button class="modal-btn save" onclick="savePhoto()">Add</button>
             </div>
         </div>
     </div>
     
+    <!-- Steps Modal -->
     <div class="modal" id="stepsModal">
-        <div class="modal-content">
+        <div class="modal-box">
             <div class="modal-title">Manual Steps</div>
             <input type="number" class="modal-input" id="stepsInput" placeholder="Number of steps">
-            <div class="modal-buttons">
+            <div class="modal-btns">
                 <button class="modal-btn cancel" onclick="closeModal('stepsModal')">Cancel</button>
-                <button class="modal-btn save" onclick="saveSteps()">Save</button>
+                <button class="modal-btn save" onclick="saveManualSteps()">Save</button>
             </div>
         </div>
     </div>
@@ -541,416 +498,403 @@
         const CLIENT_ID = '163799557992-hgstjj16f2d587jjicjonmlulaqsh552.apps.googleusercontent.com';
         const SCOPES = 'https://www.googleapis.com/auth/fitness.activity.read https://www.googleapis.com/auth/spreadsheets';
         const SHEET_ID = '13jRxb7mOAZUyi1mO3z005W6gtG5Kh4X5PZPM4FTwNMY';
+        const TARGETS = { cal: 1600, protein: 110 };
         
-        let tokenClient, accessToken = null;
-        let state = { date: new Date().toDateString(), calIn: 0, calOut: 0, protein: 0, steps: 0, workoutDone: false, entries: [] };
-        const targets = { calories: 1600, protein: 110 };
-        let currentPhotoData = null;
+        let tokenClient, accessToken = localStorage.getItem('hed_token');
+        let state = { date: '', calIn: 0, calOut: 0, protein: 0, steps: 0, workout: false, entries: [] };
+        let photoData = null;
         
-        // Google Auth
-        function initGoogleAuth() {
+        // Init
+        function init() {
+            loadState();
+            updateUI();
+            initGoogle();
+            scheduleMidnightSave();
+        }
+        
+        function initGoogle() {
+            if (typeof google === 'undefined') {
+                setTimeout(initGoogle, 200);
+                return;
+            }
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: CLIENT_ID,
                 scope: SCOPES,
-                callback: (response) => {
-                    if (response.access_token) {
-                        accessToken = response.access_token;
-                        localStorage.setItem('gfit_token', accessToken);
-                        updateSyncStatus('Connected');
-                        document.getElementById('syncBtn').style.display = 'inline-block';
+                callback: (r) => {
+                    if (r.access_token) {
+                        accessToken = r.access_token;
+                        localStorage.setItem('hed_token', accessToken);
                         document.getElementById('signInBtn').style.display = 'none';
-                        fetchGoogleFitSteps();
+                        syncSteps();
                     }
-                },
+                }
             });
-            const savedToken = localStorage.getItem('gfit_token');
-            if (savedToken) {
-                accessToken = savedToken;
-                updateSyncStatus('Connected');
-                document.getElementById('signInBtn').style.display = 'none';
-            } else {
-                document.getElementById('signInBtn').style.display = 'inline-block';
-            }
+            if (!accessToken) document.getElementById('signInBtn').style.display = 'inline-flex';
         }
         
         function googleSignIn() { tokenClient.requestAccessToken(); }
         
-        function syncGoogleFit() {
-            if (!accessToken) { googleSignIn(); return; }
-            fetchGoogleFitSteps();
-        }
-        
-        async function fetchGoogleFitSteps() {
-            updateSyncStatus('Syncing...');
-            const now = new Date();
-            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-            
-            try {
-                const response = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        aggregateBy: [{ dataTypeName: "com.google.step_count.delta", dataSourceId: "derived:com.google.step_count.delta:com.google.android.gms:estimated_steps" }],
-                        bucketByTime: { durationMillis: 86400000 },
-                        startTimeMillis: startOfDay,
-                        endTimeMillis: now.getTime()
-                    })
-                });
-                
-                if (response.status === 401) {
-                    localStorage.removeItem('gfit_token');
-                    accessToken = null;
-                    updateSyncStatus('Sign in required');
-                    document.getElementById('signInBtn').style.display = 'inline-block';
-                    return;
-                }
-                
-                const data = await response.json();
-                let steps = 0;
-                if (data.bucket) {
-                    for (const bucket of data.bucket) {
-                        if (bucket.dataset) {
-                            for (const dataset of bucket.dataset) {
-                                if (dataset.point) {
-                                    for (const point of dataset.point) {
-                                        if (point.value) steps += point.value[0].intVal || 0;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                const stepsCal = Math.round(steps * 0.04);
-                const oldStepsCal = Math.round(state.steps * 0.04);
-                state.calOut -= oldStepsCal;
-                state.steps = steps;
-                state.calOut += stepsCal;
-                
-                const idx = state.entries.findIndex(e => e.name === 'Steps (Google Fit)' || e.name === 'Steps');
-                if (idx >= 0) {
-                    state.entries[idx] = { type: 'exercise', name: 'Steps (Google Fit)', cal: stepsCal, steps, time: new Date().toISOString() };
+        // State
+        function loadState() {
+            const today = new Date().toDateString();
+            const saved = localStorage.getItem('hed_state');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed.date === today) {
+                    state = parsed;
                 } else {
-                    state.entries.push({ type: 'exercise', name: 'Steps (Google Fit)', cal: stepsCal, steps, time: new Date().toISOString() });
+                    saveToHistory(parsed);
+                    saveToSheets(parsed);
+                    state.date = today;
                 }
-                
-                saveState();
-                updateUI();
-                updateSyncStatus('Synced ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
-            } catch (error) {
-                console.error(error);
-                updateSyncStatus('Sync failed');
+            } else {
+                state.date = today;
             }
         }
         
-        async function syncToSheets() {
-            if (!accessToken) { googleSignIn(); return; }
-            updateSyncStatus('Saving...');
-            
-            const dateStr = new Date().toLocaleDateString();
-            const row = [dateStr, state.calIn, state.protein, state.calOut, state.steps, state.calIn - state.calOut, state.workoutDone ? 'Yes' : 'No', state.entries.map(e => e.name).join(', ')];
-            
+        function saveState() {
+            state.date = new Date().toDateString();
+            localStorage.setItem('hed_state', JSON.stringify(state));
+        }
+        
+        function saveToHistory(data) {
+            if (!data.calIn && !data.entries.length) return;
+            let history = JSON.parse(localStorage.getItem('hed_history') || '[]');
+            history.unshift({ date: data.date, calIn: data.calIn, calOut: data.calOut, protein: data.protein, steps: data.steps, workout: data.workout });
+            localStorage.setItem('hed_history', JSON.stringify(history.slice(0, 30)));
+        }
+        
+        async function saveToSheets(data) {
+            if (!accessToken || (!data.calIn && !data.entries.length)) return;
+            const row = [data.date, data.calIn, data.protein, data.calOut, data.steps, data.calIn - data.calOut, data.workout ? 'Yes' : 'No', data.entries.map(e => e.name).join(', ')];
             try {
-                // First check if headers exist
-                const checkResponse = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/A1:H1`, {
-                    headers: { 'Authorization': `Bearer ${accessToken}` }
-                });
-                
-                const checkData = await checkResponse.json();
-                
-                if (!checkData.values || checkData.values.length === 0) {
-                    // Add headers
+                const check = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/A1`, { headers: { Authorization: `Bearer ${accessToken}` } });
+                const checkData = await check.json();
+                if (!checkData.values) {
                     await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/A1:H1?valueInputOption=RAW`, {
                         method: 'PUT',
-                        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
                         body: JSON.stringify({ values: [['Date', 'Cal In', 'Protein', 'Cal Out', 'Steps', 'Net', 'Workout', 'Items']] })
                     });
                 }
-                
-                // Append data
-                const appendResponse = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/A:H:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
+                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/A:H:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ values: [row] })
                 });
-                
-                if (appendResponse.ok) {
-                    updateSyncStatus('Saved to Sheets ✓');
-                } else {
-                    throw new Error('Save failed');
-                }
-            } catch (error) {
-                console.error(error);
-                updateSyncStatus('Save failed');
-            }
+            } catch (e) { console.error(e); }
         }
         
-        function updateSyncStatus(status) { document.getElementById('syncStatus').textContent = status; }
-        
-        // State Management
-        function loadState() {
-            const saved = localStorage.getItem('hedTracker');
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                if (parsed.date !== new Date().toDateString()) {
-                    saveToHistory(parsed);
-                    state.date = new Date().toDateString();
-                } else {
-                    state = parsed;
-                }
-            }
-            updateUI();
+        function scheduleMidnightSave() {
+            const now = new Date();
+            const midnight = new Date(now);
+            midnight.setHours(24, 0, 0, 0);
+            const ms = midnight - now;
+            setTimeout(() => {
+                saveToHistory(state);
+                saveToSheets(state);
+                state = { date: new Date().toDateString(), calIn: 0, calOut: 0, protein: 0, steps: 0, workout: false, entries: [] };
+                saveState();
+                updateUI();
+                scheduleMidnightSave();
+            }, ms);
         }
         
-        function saveState() { localStorage.setItem('hedTracker', JSON.stringify(state)); }
-        
-        function saveToHistory(dayData) {
-            if (dayData.calIn === 0 && dayData.entries.length === 0) return;
-            let history = JSON.parse(localStorage.getItem('hedHistory') || '[]');
-            history.unshift({ date: dayData.date, calIn: dayData.calIn, calOut: dayData.calOut, protein: dayData.protein, steps: dayData.steps, workoutDone: dayData.workoutDone });
-            localStorage.setItem('hedHistory', JSON.stringify(history.slice(0, 10)));
-        }
-        
+        // UI
         function updateUI() {
-            document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            document.getElementById('dateDisplay').textContent = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
             document.getElementById('calIn').textContent = state.calIn;
-            document.getElementById('proteinIn').textContent = state.protein;
-            document.getElementById('calOut').textContent = state.calOut;
-            document.getElementById('steps').textContent = state.steps.toLocaleString();
-            document.getElementById('stepsCalories').textContent = Math.round(state.steps * 0.04);
+            document.getElementById('protein').textContent = state.protein + 'g';
+            document.getElementById('burned').textContent = state.calOut;
+            const net = state.calIn - state.calOut;
+            document.getElementById('net').textContent = net;
             
-            const netCal = state.calIn - state.calOut;
-            document.getElementById('netCal').textContent = netCal;
+            const calPct = Math.min(Math.round((state.calIn / TARGETS.cal) * 100), 100);
+            const worPct = Math.min(Math.round((state.protein / TARGETS.protein) * 100), 100);
+            document.getElementById('calPct').textContent = calPct;
+            document.getElementById('worPct').textContent = worPct;
+            document.getElementById('calBar').style.width = calPct + '%';
+            document.getElementById('worBar').style.width = worPct + '%';
             
-            const deficit = netCal - targets.calories;
-            const deficitEl = document.getElementById('deficit');
-            deficitEl.textContent = deficit;
-            deficitEl.className = deficit <= 0 ? 'deficit' : 'over';
+            const deficit = net - TARGETS.cal;
+            const defEl = document.getElementById('deficit');
+            defEl.textContent = deficit;
+            defEl.className = deficit <= 0 ? 'deficit' : 'over';
             
-            document.getElementById('workoutStatus').textContent = state.workoutDone ? '✅' : '⬜';
-            document.getElementById('calProgress').style.width = Math.min((state.calIn / targets.calories) * 100, 100) + '%';
-            document.getElementById('proteinProgress').style.width = Math.min((state.protein / targets.protein) * 100, 100) + '%';
+            document.getElementById('steps').textContent = state.steps.toLocaleString() + ' steps';
+            document.getElementById('workout').textContent = state.workout ? '✅' : '⬜';
             
-            // Summary totals
-            document.getElementById('sumCalIn').textContent = state.calIn;
-            document.getElementById('sumProtein').textContent = state.protein + 'g';
-            document.getElementById('sumCalOut').textContent = state.calOut;
-            document.getElementById('sumNet').textContent = netCal;
-            
-            renderSummary();
+            renderLog();
             renderHistory();
         }
         
-        function renderSummary() {
-            const list = document.getElementById('summaryList');
-            if (state.entries.length === 0) {
-                list.innerHTML = '<div class="no-data">No entries yet</div>';
+        function renderLog() {
+            const list = document.getElementById('logList');
+            if (!state.entries.length) {
+                list.innerHTML = '<div class="no-entries">No entries yet</div>';
                 return;
             }
-            
             list.innerHTML = state.entries.map((e, i) => `
-                <div class="summary-item ${e.type}">
-                    <span class="summary-item-name">${e.name}</span>
-                    <span class="summary-item-values">${e.type === 'food' ? e.cal + '/' + e.protein + 'g' : e.cal + ' cal'}</span>
-                    <button class="log-delete" onclick="deleteEntry(${i})" style="margin-left:8px;">×</button>
+                <div class="summary-item">
+                    <div class="item-left">
+                        <div class="item-dot ${e.type}"></div>
+                        <span class="item-name">${e.name}</span>
+                    </div>
+                    <span class="item-values">${e.type === 'food' ? e.cal + '/' + e.protein + 'g' : e.cal + ' cal'}</span>
+                    <button class="item-delete" onclick="deleteEntry(${i})">×</button>
                 </div>
             `).join('');
         }
         
         function renderHistory() {
-            const area = document.getElementById('historyArea');
-            const history = JSON.parse(localStorage.getItem('hedHistory') || '[]');
-            
-            if (history.length === 0) {
-                area.innerHTML = '<div class="no-data">No history yet</div>';
+            const history = JSON.parse(localStorage.getItem('hed_history') || '[]');
+            const list = document.getElementById('historyList');
+            if (!history.length) {
+                list.innerHTML = '<div class="no-entries">No history yet</div>';
                 return;
             }
-            
-            area.innerHTML = history.map(day => `
-                <div class="history-day">
-                    <div class="history-date"><span>${day.date}</span><span>${day.workoutDone ? '✅' : '⬜'}</span></div>
+            list.innerHTML = history.map(d => `
+                <div class="history-card">
+                    <div class="history-date"><span>${d.date}</span><span>${d.workout ? '✅' : '⬜'}</span></div>
                     <div class="history-stats">
-                        <div class="history-stat ${day.calIn <= targets.calories ? 'good' : 'over'}"><div class="history-stat-value">${day.calIn}</div><div class="history-stat-label">Cal In</div></div>
-                        <div class="history-stat ${day.protein >= targets.protein ? 'good' : ''}"><div class="history-stat-value">${day.protein}g</div><div class="history-stat-label">Protein</div></div>
-                        <div class="history-stat"><div class="history-stat-value">${day.calOut}</div><div class="history-stat-label">Burned</div></div>
-                        <div class="history-stat"><div class="history-stat-value">${(day.steps || 0).toLocaleString()}</div><div class="history-stat-label">Steps</div></div>
+                        <div class="history-stat ${d.calIn <= TARGETS.cal ? 'good' : 'bad'}"><div class="history-stat-value">${d.calIn}</div><div class="history-stat-label">Cal In</div></div>
+                        <div class="history-stat ${d.protein >= TARGETS.protein ? 'good' : ''}"><div class="history-stat-value">${d.protein}g</div><div class="history-stat-label">Protein</div></div>
+                        <div class="history-stat"><div class="history-stat-value">${d.calOut}</div><div class="history-stat-label">Burned</div></div>
+                        <div class="history-stat"><div class="history-stat-value">${(d.steps||0).toLocaleString()}</div><div class="history-stat-label">Steps</div></div>
                     </div>
                 </div>
             `).join('');
         }
         
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-btn').forEach((b, i) => {
-                b.classList.toggle('active', (tab === 'today' && i === 0) || (tab === 'add' && i === 1) || (tab === 'history' && i === 2));
-            });
-            document.getElementById('todayTab').classList.toggle('active', tab === 'today');
-            document.getElementById('addTab').classList.toggle('active', tab === 'add');
-            document.getElementById('historyTab').classList.toggle('active', tab === 'history');
+        function showPane(name) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+            document.querySelector(`.tab:nth-child(${name==='today'?1:name==='add'?2:3})`).classList.add('active');
+            document.getElementById(name + 'Pane').classList.add('active');
         }
         
-        function addQuickItem(name, cal, protein) {
+        function toast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000);
+        }
+        
+        // Actions
+        function addFood(name, cal, protein) {
             state.calIn += cal;
             state.protein += protein;
-            state.entries.push({ type: 'food', name, cal, protein, time: new Date().toISOString() });
+            state.entries.push({ type: 'food', name, cal, protein, time: Date.now() });
             saveState();
             updateUI();
-            switchTab('today');
+            showPane('today');
+            toast('Added ' + name);
         }
         
         function addExercise(name, cal) {
             state.calOut += cal;
-            state.entries.push({ type: 'exercise', name, cal, time: new Date().toISOString() });
+            state.entries.push({ type: 'exercise', name, cal, time: Date.now() });
             saveState();
             updateUI();
-            switchTab('today');
+            showPane('today');
+            toast('Added ' + name);
         }
         
-        function openPhotoCapture() { document.getElementById('cameraInput').click(); }
-        function openPhotoUpload() { document.getElementById('photoInput').click(); }
-        
-        function handlePhotoSelect(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    currentPhotoData = e.target.result;
-                    document.getElementById('photoPreview').src = currentPhotoData;
-                    document.getElementById('photoPreview').style.display = 'block';
-                    document.getElementById('photoModal').classList.add('active');
-                };
-                reader.readAsDataURL(file);
-            }
-            event.target.value = '';
-        }
-        
-        function savePhotoFood() {
-            const name = document.getElementById('photoFoodName').value || 'Meal';
-            const cal = parseInt(document.getElementById('photoFoodCal').value) || 0;
-            const protein = parseInt(document.getElementById('photoFoodProtein').value) || 0;
-            
-            state.calIn += cal;
-            state.protein += protein;
-            state.entries.push({ type: 'food', name, cal, protein, photo: currentPhotoData, time: new Date().toISOString() });
-            
-            saveState();
-            updateUI();
-            
-            document.getElementById('photoFoodName').value = '';
-            document.getElementById('photoFoodCal').value = '';
-            document.getElementById('photoFoodProtein').value = '';
-            document.getElementById('photoPreview').style.display = 'none';
-            currentPhotoData = null;
-            closeModal('photoModal');
-            switchTab('today');
-        }
-        
-        function openCustomFood() { document.getElementById('foodModal').classList.add('active'); }
-        function openSteps() { document.getElementById('stepsModal').classList.add('active'); }
-        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-        
-        function saveCustomFood() {
-            const name = document.getElementById('foodName').value || 'Custom';
-            const cal = parseInt(document.getElementById('foodCal').value) || 0;
-            const protein = parseInt(document.getElementById('foodProtein').value) || 0;
-            addQuickItem(name, cal, protein);
-            document.getElementById('foodName').value = '';
-            document.getElementById('foodCal').value = '';
-            document.getElementById('foodProtein').value = '';
-            closeModal('foodModal');
-        }
-        
-        function saveSteps() {
-            const newSteps = parseInt(document.getElementById('stepsInput').value) || 0;
-            const stepsCal = Math.round(newSteps * 0.04);
-            state.calOut -= Math.round(state.steps * 0.04);
-            state.steps = newSteps;
-            state.calOut += stepsCal;
-            
-            const idx = state.entries.findIndex(e => e.name === 'Steps' || e.name === 'Steps (Google Fit)');
-            if (idx >= 0) {
-                state.entries[idx] = { type: 'exercise', name: 'Steps', cal: stepsCal, steps: newSteps, time: new Date().toISOString() };
+        function deleteEntry(i) {
+            const e = state.entries[i];
+            if (e.type === 'food') {
+                state.calIn -= e.cal;
+                state.protein -= e.protein;
             } else {
-                state.entries.push({ type: 'exercise', name: 'Steps', cal: stepsCal, steps: newSteps, time: new Date().toISOString() });
+                state.calOut -= e.cal;
+                if (e.steps) state.steps = 0;
             }
-            
-            saveState();
-            updateUI();
-            document.getElementById('stepsInput').value = '';
-            closeModal('stepsModal');
-            switchTab('today');
-        }
-        
-        function markWorkout() {
-            state.workoutDone = !state.workoutDone;
+            state.entries.splice(i, 1);
             saveState();
             updateUI();
         }
         
-        function deleteEntry(index) {
-            const entry = state.entries[index];
-            if (entry.type === 'food') {
-                state.calIn -= entry.cal;
-                state.protein -= entry.protein;
-            } else {
-                state.calOut -= entry.cal;
-                if (entry.steps) state.steps = 0;
-            }
-            state.entries.splice(index, 1);
+        function toggleWorkout() {
+            state.workout = !state.workout;
             saveState();
             updateUI();
+            toast(state.workout ? 'Workout done! 💪' : 'Workout unmarked');
         }
         
-        function parseInput() {
-            const input = document.getElementById('quickInput').value.trim().toLowerCase();
-            if (!input) return;
-            
-            const stepsMatch = input.match(/(\d+)\s*steps?/i);
-            if (stepsMatch) {
-                document.getElementById('stepsInput').value = stepsMatch[1];
-                saveSteps();
-                document.getElementById('quickInput').value = '';
-                return;
-            }
-            
-            const foodMatch = input.match(/(.+?)\s*(\d+)\s*cal.*?(\d+)\s*g/i);
-            if (foodMatch) {
-                addQuickItem(foodMatch[1].trim(), parseInt(foodMatch[2]), parseInt(foodMatch[3]));
-                document.getElementById('quickInput').value = '';
-                return;
-            }
-            
-            const calMatch = input.match(/(.+?)\s*(\d+)\s*cal/i);
-            if (calMatch) {
-                addQuickItem(calMatch[1].trim(), parseInt(calMatch[2]), 0);
-                document.getElementById('quickInput').value = '';
-                return;
-            }
-            
-            alert('Format: "chicken 300cal 25g" or "5000 steps"');
-        }
-        
-        function resetDay() {
-            if (confirm('Reset today?')) {
-                state = { date: new Date().toDateString(), calIn: 0, calOut: 0, protein: 0, steps: 0, workoutDone: false, entries: [] };
+        // Steps
+        async function syncSteps() {
+            if (!accessToken) { googleSignIn(); return; }
+            toast('Syncing steps...');
+            const now = new Date();
+            const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            try {
+                const res = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        aggregateBy: [{ dataTypeName: 'com.google.step_count.delta', dataSourceId: 'derived:com.google.step_count.delta:com.google.android.gms:estimated_steps' }],
+                        bucketByTime: { durationMillis: 86400000 },
+                        startTimeMillis: start,
+                        endTimeMillis: now.getTime()
+                    })
+                });
+                if (res.status === 401) {
+                    localStorage.removeItem('hed_token');
+                    accessToken = null;
+                    document.getElementById('signInBtn').style.display = 'inline-flex';
+                    toast('Please sign in again');
+                    return;
+                }
+                const data = await res.json();
+                let steps = 0;
+                data.bucket?.forEach(b => b.dataset?.forEach(d => d.point?.forEach(p => { steps += p.value?.[0]?.intVal || 0; })));
+                
+                const oldCal = Math.round(state.steps * 0.04);
+                const newCal = Math.round(steps * 0.04);
+                state.calOut = state.calOut - oldCal + newCal;
+                state.steps = steps;
+                
+                const idx = state.entries.findIndex(e => e.name?.includes('Steps'));
+                if (idx >= 0) state.entries[idx] = { type: 'exercise', name: 'Steps (Synced)', cal: newCal, steps, time: Date.now() };
+                else state.entries.push({ type: 'exercise', name: 'Steps (Synced)', cal: newCal, steps, time: Date.now() });
+                
                 saveState();
                 updateUI();
+                toast(steps.toLocaleString() + ' steps synced');
+            } catch (e) {
+                console.error(e);
+                toast('Sync failed');
             }
         }
         
-        document.getElementById('quickInput').addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); parseInput(); } });
-        
-        function waitForGoogle() {
-            if (typeof google !== 'undefined' && google.accounts) {
-                initGoogleAuth();
-            } else {
-                setTimeout(waitForGoogle, 100);
-            }
+        function saveManualSteps() {
+            const steps = parseInt(document.getElementById('stepsInput').value) || 0;
+            const oldCal = Math.round(state.steps * 0.04);
+            const newCal = Math.round(steps * 0.04);
+            state.calOut = state.calOut - oldCal + newCal;
+            state.steps = steps;
+            
+            const idx = state.entries.findIndex(e => e.name?.includes('Steps'));
+            if (idx >= 0) state.entries[idx] = { type: 'exercise', name: 'Steps (Manual)', cal: newCal, steps, time: Date.now() };
+            else state.entries.push({ type: 'exercise', name: 'Steps (Manual)', cal: newCal, steps, time: Date.now() });
+            
+            saveState();
+            updateUI();
+            closeModal('stepsModal');
+            showPane('today');
+            toast(steps.toLocaleString() + ' steps logged');
         }
         
-        window.onload = function() {
-            loadState();
-            waitForGoogle();
-        };
+        // Photo
+        function takePhoto() { document.getElementById('cameraInput').click(); }
+        function uploadPhoto() { document.getElementById('photoInput').click(); }
+        
+        function handlePhoto(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                photoData = ev.target.result;
+                document.getElementById('photoPreview').src = photoData;
+                document.getElementById('photoPreview').style.display = 'block';
+                document.getElementById('photoModal').classList.add('open');
+            };
+            reader.readAsDataURL(file);
+            e.target.value = '';
+        }
+        
+        function savePhoto() {
+            const name = document.getElementById('photoName').value || 'Meal';
+            const cal = parseInt(document.getElementById('photoCal').value) || 0;
+            const protein = parseInt(document.getElementById('photoPro').value) || 0;
+            state.calIn += cal;
+            state.protein += protein;
+            state.entries.push({ type: 'food', name, cal, protein, photo: photoData, time: Date.now() });
+            saveState();
+            updateUI();
+            closeModal('photoModal');
+            document.getElementById('photoName').value = '';
+            document.getElementById('photoCal').value = '';
+            document.getElementById('photoPro').value = '';
+            photoData = null;
+            showPane('today');
+            toast('Added ' + name);
+        }
+        
+        // Custom
+        function openCustom() { document.getElementById('customModal').classList.add('open'); }
+        
+        function saveCustom() {
+            const name = document.getElementById('customName').value || 'Custom';
+            const cal = parseInt(document.getElementById('customCal').value) || 0;
+            const protein = parseInt(document.getElementById('customPro').value) || 0;
+            addFood(name, cal, protein);
+            closeModal('customModal');
+            document.getElementById('customName').value = '';
+            document.getElementById('customCal').value = '';
+            document.getElementById('customPro').value = '';
+        }
+        
+        function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+        
+        // Input parsing
+        function parseInput() {
+            const input = document.getElementById('inputField').value.trim();
+            if (!input) return;
+            
+            // Match: Name 000cal 00g
+            const match = input.match(/^(.+?)\s+(\d+)\s*cal\s*(\d+)\s*g?$/i);
+            if (match) {
+                addFood(match[1].trim(), parseInt(match[2]), parseInt(match[3]));
+                document.getElementById('inputField').value = '';
+                return;
+            }
+            
+            // Match: Name 000cal
+            const match2 = input.match(/^(.+?)\s+(\d+)\s*cal$/i);
+            if (match2) {
+                addFood(match2[1].trim(), parseInt(match2[2]), 0);
+                document.getElementById('inputField').value = '';
+                return;
+            }
+            
+            // Match: 0000 steps
+            const match3 = input.match(/^(\d+)\s*steps?$/i);
+            if (match3) {
+                document.getElementById('stepsInput').value = match3[1];
+                saveManualSteps();
+                document.getElementById('inputField').value = '';
+                return;
+            }
+            
+            toast('Format: Saba Set 650cal 35g');
+        }
+        
+        document.getElementById('inputField').addEventListener('keypress', e => { if (e.key === 'Enter') parseInput(); });
+        
+        // Copy functions
+        function copySummary() {
+            const net = state.calIn - state.calOut;
+            const text = `Cal: ${state.calIn}/1600 | Protein: ${state.protein}/110g | Burned: ${state.calOut} | Net: ${net}`;
+            navigator.clipboard.writeText(text);
+            toast('Summary copied!');
+        }
+        
+        function copyFull() {
+            const date = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            let text = `HED ${date}:\n`;
+            state.entries.forEach(e => {
+                if (e.type === 'food') text += `• ${e.name} (${e.cal}/${e.protein}g)\n`;
+                else text += `• ${e.name} (${e.cal} cal)\n`;
+            });
+            const net = state.calIn - state.calOut;
+            text += `---\nCal: ${state.calIn}/1600 | Protein: ${state.protein}/110g | Burned: ${state.calOut} | Net: ${net}`;
+            navigator.clipboard.writeText(text);
+            toast('Full log copied!');
+        }
+        
+        // Start
+        window.onload = init;
     </script>
     <script src="https://accounts.google.com/gsi/client" async></script>
 </body>
