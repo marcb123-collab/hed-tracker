@@ -4,13 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Marc's HED Tracker</title>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -23,65 +18,45 @@
         .dashboard {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 16px;
+            padding: 12px 16px;
             position: sticky;
             top: 0;
             z-index: 100;
         }
         
         .dashboard h1 {
-            font-size: 18px;
+            font-size: 16px;
             margin-bottom: 4px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         
-        .subtitle {
-            font-size: 11px;
-            opacity: 0.8;
-            margin-bottom: 12px;
-        }
-        
-        .date {
-            font-size: 14px;
-            opacity: 0.9;
-        }
+        .subtitle { font-size: 10px; opacity: 0.8; margin-bottom: 10px; }
+        .date { font-size: 13px; opacity: 0.9; }
         
         .stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 12px;
+            gap: 8px;
+            margin-bottom: 10px;
         }
         
         .stat-card {
             background: rgba(255,255,255,0.15);
-            border-radius: 10px;
-            padding: 12px;
+            border-radius: 8px;
+            padding: 10px;
         }
         
-        .stat-label {
-            font-size: 11px;
-            opacity: 0.8;
-            text-transform: uppercase;
-        }
-        
-        .stat-value {
-            font-size: 24px;
-            font-weight: bold;
-        }
-        
-        .stat-target {
-            font-size: 11px;
-            opacity: 0.7;
-        }
+        .stat-label { font-size: 10px; opacity: 0.8; text-transform: uppercase; }
+        .stat-value { font-size: 22px; font-weight: bold; }
+        .stat-target { font-size: 10px; opacity: 0.7; }
         
         .progress-bar {
-            height: 4px;
+            height: 3px;
             background: rgba(255,255,255,0.3);
             border-radius: 2px;
-            margin-top: 6px;
+            margin-top: 4px;
             overflow: hidden;
         }
         
@@ -94,15 +69,15 @@
         
         .exercise-row {
             display: flex;
-            gap: 10px;
-            font-size: 13px;
+            gap: 8px;
+            font-size: 12px;
             flex-wrap: wrap;
         }
         
         .exercise-item {
             background: rgba(255,255,255,0.15);
-            padding: 6px 12px;
-            border-radius: 20px;
+            padding: 4px 10px;
+            border-radius: 16px;
         }
         
         .deficit { color: #90EE90; }
@@ -116,46 +91,92 @@
         
         .tab-btn {
             flex: 1;
-            padding: 12px;
+            padding: 10px;
             border: none;
             background: none;
-            font-size: 14px;
+            font-size: 13px;
             cursor: pointer;
             border-bottom: 2px solid transparent;
         }
         
-        .tab-btn.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
+        .tab-btn.active { color: #667eea; border-bottom-color: #667eea; }
+        
+        .content-area { flex: 1; overflow-y: auto; }
+        .tab-content { display: none; padding: 10px; }
+        .tab-content.active { display: block; }
+        
+        /* Today's Summary */
+        .summary-section {
+            background: white;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         
+        .summary-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .summary-list { font-size: 12px; }
+        
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .summary-item:last-child { border-bottom: none; }
+        .summary-item-name { flex: 1; }
+        .summary-item-values { color: #666; white-space: nowrap; }
+        .summary-item.food { border-left: 3px solid #4CAF50; padding-left: 8px; }
+        .summary-item.exercise { border-left: 3px solid #2196F3; padding-left: 8px; }
+        
+        .summary-totals {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 2px solid #667eea;
+        }
+        
+        .summary-total {
+            text-align: center;
+            font-size: 11px;
+        }
+        
+        .summary-total-value { font-weight: 600; font-size: 14px; }
+        .summary-total-label { color: #666; }
+        
+        /* Quick Add */
         .quick-add {
             background: white;
-            padding: 12px;
+            padding: 10px;
             border-bottom: 1px solid #e0e0e0;
-            max-height: 45vh;
-            overflow-y: auto;
         }
         
         .quick-add-title {
-            font-size: 12px;
+            font-size: 11px;
             color: #666;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             font-weight: 600;
         }
         
-        .quick-buttons {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
+        .quick-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
         
         .quick-btn {
             background: #f0f0f0;
             border: none;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 12px;
+            padding: 6px 10px;
+            border-radius: 16px;
+            font-size: 11px;
             cursor: pointer;
             transition: background 0.2s;
         }
@@ -166,39 +187,28 @@
         .quick-btn.exercise { border-left: 3px solid #2196F3; }
         .quick-btn.photo { border-left: 3px solid #FF9800; background: #FFF3E0; }
         .quick-btn.google { border-left: 3px solid #4285F4; background: #E8F0FE; }
+        .quick-btn.sheets { border-left: 3px solid #0F9D58; background: #E6F4EA; }
         
-        .content-area {
-            flex: 1;
-            overflow-y: auto;
-        }
-        
-        .tab-content {
-            display: none;
-            padding: 12px;
-        }
-        
-        .tab-content.active { display: block; }
-        
+        /* Log entries */
         .log-entry {
             background: white;
-            border-radius: 10px;
-            padding: 12px;
-            margin-bottom: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 6px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
         
         .log-entry.food { border-left: 3px solid #4CAF50; }
         .log-entry.exercise { border-left: 3px solid #2196F3; }
-        
-        .log-time { font-size: 11px; color: #999; }
-        .log-item { font-weight: 500; margin: 4px 0; }
-        .log-macros { font-size: 12px; color: #666; }
+        .log-time { font-size: 10px; color: #999; }
+        .log-item { font-weight: 500; margin: 2px 0; font-size: 13px; }
+        .log-macros { font-size: 11px; color: #666; }
         
         .log-photo {
             max-width: 100%;
-            max-height: 150px;
-            border-radius: 8px;
-            margin-top: 8px;
+            max-height: 120px;
+            border-radius: 6px;
+            margin-top: 6px;
         }
         
         .log-delete {
@@ -207,22 +217,24 @@
             border: none;
             color: #ccc;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 14px;
         }
         
         .log-delete:hover { color: #f44336; }
         
+        /* History */
         .history-day {
             background: white;
-            border-radius: 10px;
-            padding: 14px;
-            margin-bottom: 10px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
         
         .history-date {
             font-weight: 600;
-            margin-bottom: 8px;
+            font-size: 13px;
+            margin-bottom: 6px;
             display: flex;
             justify-content: space-between;
         }
@@ -230,30 +242,31 @@
         .history-stats {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            font-size: 12px;
+            gap: 6px;
+            font-size: 11px;
         }
         
         .history-stat { text-align: center; }
-        .history-stat-value { font-weight: 600; font-size: 16px; }
-        .history-stat-label { color: #666; font-size: 10px; }
+        .history-stat-value { font-weight: 600; font-size: 14px; }
+        .history-stat-label { color: #666; font-size: 9px; }
         .history-stat.good .history-stat-value { color: #4CAF50; }
         .history-stat.over .history-stat-value { color: #f44336; }
         
+        /* Input Area */
         .input-area {
             background: white;
-            padding: 12px;
+            padding: 10px;
             border-top: 1px solid #e0e0e0;
             display: flex;
-            gap: 8px;
+            gap: 6px;
         }
         
         .input-area input {
             flex: 1;
-            padding: 12px;
+            padding: 10px;
             border: 1px solid #ddd;
-            border-radius: 24px;
-            font-size: 14px;
+            border-radius: 20px;
+            font-size: 13px;
             outline: none;
         }
         
@@ -263,11 +276,11 @@
             background: #667eea;
             color: white;
             border: none;
-            width: 44px;
-            height: 44px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             cursor: pointer;
-            font-size: 18px;
+            font-size: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -276,13 +289,11 @@
         .input-area button:active { background: #5a6fd6; }
         .photo-btn { background: #FF9800 !important; }
         
+        /* Modal */
         .modal {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.5);
             z-index: 200;
             align-items: center;
@@ -293,41 +304,33 @@
         
         .modal-content {
             background: white;
-            border-radius: 16px;
-            padding: 20px;
+            border-radius: 12px;
+            padding: 16px;
             width: 90%;
-            max-width: 360px;
+            max-width: 340px;
             max-height: 80vh;
             overflow-y: auto;
         }
         
-        .modal-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 16px;
-        }
+        .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
         
         .modal-input {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             border: 1px solid #ddd;
-            border-radius: 8px;
-            margin-bottom: 12px;
-            font-size: 14px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-size: 13px;
         }
         
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-        }
+        .modal-buttons { display: flex; gap: 8px; justify-content: flex-end; }
         
         .modal-btn {
-            padding: 10px 20px;
-            border-radius: 8px;
+            padding: 8px 16px;
+            border-radius: 6px;
             border: none;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
         }
         
         .modal-btn.cancel { background: #f0f0f0; }
@@ -335,48 +338,24 @@
         
         .photo-preview {
             max-width: 100%;
-            max-height: 200px;
-            border-radius: 8px;
-            margin-bottom: 12px;
+            max-height: 150px;
+            border-radius: 6px;
+            margin-bottom: 10px;
         }
         
         .reset-btn {
             background: rgba(255,255,255,0.2);
             border: none;
             color: white;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 10px;
             cursor: pointer;
         }
         
-        .no-history {
-            text-align: center;
-            color: #999;
-            padding: 40px;
-        }
-        
+        .no-data { text-align: center; color: #999; padding: 30px; font-size: 13px; }
         #photoInput, #cameraInput { display: none; }
-        
-        .sync-status {
-            font-size: 11px;
-            opacity: 0.8;
-            margin-left: 8px;
-        }
-        
-        .loading {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border: 2px solid #fff;
-            border-radius: 50%;
-            border-top-color: transparent;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        .sync-status { font-size: 10px; opacity: 0.8; }
     </style>
 </head>
 <body>
@@ -390,18 +369,14 @@
             <div class="stat-card">
                 <div class="stat-label">Calories In</div>
                 <div class="stat-value"><span id="calIn">0</span></div>
-                <div class="stat-target">/ <span id="calTarget">1600</span> kcal</div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="calProgress" style="width: 0%"></div>
-                </div>
+                <div class="stat-target">/ 1600 kcal</div>
+                <div class="progress-bar"><div class="progress-fill" id="calProgress" style="width: 0%"></div></div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Protein</div>
                 <div class="stat-value"><span id="proteinIn">0</span>g</div>
-                <div class="stat-target">/ <span id="proteinTarget">110</span>g</div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="proteinProgress" style="width: 0%"></div>
-                </div>
+                <div class="stat-target">/ 110g</div>
+                <div class="progress-bar"><div class="progress-fill" id="proteinProgress" style="width: 0%"></div></div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Burned</div>
@@ -415,68 +390,105 @@
             </div>
         </div>
         <div class="exercise-row">
-            <span class="exercise-item">Net: <span id="netCal">0</span> kcal</span>
-            <span class="exercise-item">Deficit: <span id="deficit" class="deficit">0</span></span>
-            <span class="exercise-item" id="workoutStatus">Workout: ⬜</span>
+            <span class="exercise-item">Net: <span id="netCal">0</span></span>
+            <span class="exercise-item">vs Target: <span id="deficit" class="deficit">0</span></span>
+            <span class="exercise-item" id="workoutStatus">⬜</span>
             <button class="reset-btn" onclick="resetDay()">Reset</button>
         </div>
     </div>
     
     <div class="tab-nav">
         <button class="tab-btn active" onclick="switchTab('today')">Today</button>
+        <button class="tab-btn" onclick="switchTab('add')">Add</button>
         <button class="tab-btn" onclick="switchTab('history')">History</button>
     </div>
     
-    <div class="quick-add" id="quickAddSection">
-        <div class="quick-add-title">🔄 Google Fit Sync</div>
-        <div class="quick-buttons" style="margin-bottom: 12px;">
-            <button class="quick-btn google" onclick="syncGoogleFit()" id="syncBtn">🔄 Sync Steps from Google Fit</button>
-            <button class="quick-btn google" onclick="googleSignIn()" id="signInBtn" style="display:none;">🔑 Sign in to Google</button>
-        </div>
-        
-        <div class="quick-add-title">📸 Photo Logging</div>
-        <div class="quick-buttons" style="margin-bottom: 12px;">
-            <button class="quick-btn photo" onclick="openPhotoCapture()">📷 Take Photo</button>
-            <button class="quick-btn photo" onclick="openPhotoUpload()">🖼️ Upload Photo</button>
-        </div>
-        
-        <div class="quick-add-title">🍽️ Quick Add Food</div>
-        <div class="quick-buttons" style="margin-bottom: 12px;">
-            <button class="quick-btn food" onclick="addQuickItem('Daily Baseline', 78, 1)">📋 Baseline</button>
-            <button class="quick-btn food" onclick="addQuickItem('Rice Bread + Hummus', 190, 4)">🍞 Rice Bread+Hummus</button>
-            <button class="quick-btn food" onclick="addQuickItem('Asahi Shake', 194, 27)">🥤 Asahi Shake</button>
-            <button class="quick-btn food" onclick="addQuickItem('Oikos 18g', 100, 18)">🥛 Oikos 18g</button>
-            <button class="quick-btn food" onclick="addQuickItem('Oikos 13g', 90, 13)">🥛 Oikos 13g</button>
-            <button class="quick-btn food" onclick="addQuickItem('Protein Bar', 200, 15)">🍫 Protein Bar</button>
-            <button class="quick-btn food" onclick="addQuickItem('Matcha Latte', 200, 3)">🍵 Matcha Latte</button>
-            <button class="quick-btn food" onclick="openCustomFood()">➕ Custom Food</button>
-        </div>
-        
-        <div class="quick-add-title">💪 Workouts</div>
-        <div class="quick-buttons">
-            <button class="quick-btn exercise" onclick="addExercise('Pilates', 90)">🧘 Pilates (90)</button>
-            <button class="quick-btn exercise" onclick="addExercise('Ab Circuit', 200)">💪 Ab Circuit (200)</button>
-            <button class="quick-btn exercise" onclick="addExercise('Bike', 400)">🚴 Bike (400)</button>
-            <button class="quick-btn exercise" onclick="addExercise('Resistance', 180)">🏋️ Resistance (180)</button>
-            <button class="quick-btn exercise" onclick="addExercise('Long Walk', 150)">🚶 Long Walk (150)</button>
-            <button class="quick-btn exercise" onclick="addExercise('Drumming 1hr', 175)">🥁 Drums 1hr (175)</button>
-            <button class="quick-btn exercise" onclick="addExercise('Drumming 2hr', 350)">🥁 Drums 2hr (350)</button>
-            <button class="quick-btn exercise" onclick="openSteps()">👟 Manual Steps</button>
-            <button class="quick-btn exercise" onclick="markWorkout()">✅ Workout Done</button>
-        </div>
-    </div>
-    
     <div class="content-area">
+        <!-- TODAY TAB -->
         <div class="tab-content active" id="todayTab">
-            <div id="logArea"></div>
+            <div class="summary-section">
+                <div class="summary-title">
+                    <span>📋 Today's Summary</span>
+                    <button class="quick-btn google" onclick="syncGoogleFit()" style="font-size:10px;">🔄 Sync</button>
+                </div>
+                <div class="summary-list" id="summaryList">
+                    <div class="no-data">No entries yet</div>
+                </div>
+                <div class="summary-totals">
+                    <div class="summary-total">
+                        <div class="summary-total-value" id="sumCalIn">0</div>
+                        <div class="summary-total-label">Cal In</div>
+                    </div>
+                    <div class="summary-total">
+                        <div class="summary-total-value" id="sumProtein">0g</div>
+                        <div class="summary-total-label">Protein</div>
+                    </div>
+                    <div class="summary-total">
+                        <div class="summary-total-value" id="sumCalOut">0</div>
+                        <div class="summary-total-label">Burned</div>
+                    </div>
+                    <div class="summary-total">
+                        <div class="summary-total-value" id="sumNet">0</div>
+                        <div class="summary-total-label">Net</div>
+                    </div>
+                </div>
+            </div>
+            <button class="quick-btn sheets" onclick="syncToSheets()" style="width:100%;padding:10px;margin-bottom:10px;">📊 Save to Google Sheets</button>
         </div>
+        
+        <!-- ADD TAB -->
+        <div class="tab-content" id="addTab">
+            <div class="quick-add">
+                <div class="quick-add-title">🔄 Sync</div>
+                <div class="quick-buttons" style="margin-bottom: 10px;">
+                    <button class="quick-btn google" onclick="syncGoogleFit()" id="syncBtn">🔄 Sync Steps</button>
+                    <button class="quick-btn google" onclick="googleSignIn()" id="signInBtn" style="display:none;">🔑 Sign In</button>
+                </div>
+                
+                <div class="quick-add-title">📸 Photo</div>
+                <div class="quick-buttons" style="margin-bottom: 10px;">
+                    <button class="quick-btn photo" onclick="openPhotoCapture()">📷 Camera</button>
+                    <button class="quick-btn photo" onclick="openPhotoUpload()">🖼️ Upload</button>
+                </div>
+                
+                <div class="quick-add-title">🍽️ Food</div>
+                <div class="quick-buttons" style="margin-bottom: 10px;">
+                    <button class="quick-btn food" onclick="addQuickItem('Baseline', 78, 1)">📋 Baseline (78/1g)</button>
+                    <button class="quick-btn food" onclick="addQuickItem('Rice Bread+Hummus', 190, 4)">🍞 Rice Bread+Hummus (190/4g)</button>
+                    <button class="quick-btn food" onclick="addQuickItem('Asahi Shake', 194, 27)">🥤 Asahi Shake (194/27g)</button>
+                    <button class="quick-btn food" onclick="addQuickItem('Oikos 18g', 100, 18)">🥛 Oikos 18g (100/18g)</button>
+                    <button class="quick-btn food" onclick="addQuickItem('Oikos 13g', 90, 13)">🥛 Oikos 13g (90/13g)</button>
+                    <button class="quick-btn food" onclick="addQuickItem('Protein Bar', 200, 15)">🍫 Protein Bar (200/15g)</button>
+                    <button class="quick-btn food" onclick="addQuickItem('Matcha Tall', 150, 3)">🍵 Matcha Tall (150/3g)</button>
+                    <button class="quick-btn food" onclick="addQuickItem('Matcha Grande', 200, 4)">🍵 Matcha Grande (200/4g)</button>
+                    <button class="quick-btn food" onclick="addQuickItem('Green Tea Pudding', 120, 3)">🍮 Pudding (120/3g)</button>
+                    <button class="quick-btn food" onclick="addQuickItem('Banana Bread', 180, 3)">🍌 Banana Bread (180/3g)</button>
+                    <button class="quick-btn food" onclick="openCustomFood()">➕ Custom</button>
+                </div>
+                
+                <div class="quick-add-title">💪 Exercise</div>
+                <div class="quick-buttons">
+                    <button class="quick-btn exercise" onclick="addExercise('Pilates', 90)">🧘 Pilates (90)</button>
+                    <button class="quick-btn exercise" onclick="addExercise('Ab Circuit', 200)">💪 Ab Circuit (200)</button>
+                    <button class="quick-btn exercise" onclick="addExercise('Bike', 400)">🚴 Bike (400)</button>
+                    <button class="quick-btn exercise" onclick="addExercise('Resistance', 180)">🏋️ Resistance (180)</button>
+                    <button class="quick-btn exercise" onclick="addExercise('Long Walk', 150)">🚶 Walk (150)</button>
+                    <button class="quick-btn exercise" onclick="addExercise('Drums 1hr', 175)">🥁 Drums 1hr (175)</button>
+                    <button class="quick-btn exercise" onclick="addExercise('Drums 2hr', 350)">🥁 Drums 2hr (350)</button>
+                    <button class="quick-btn exercise" onclick="openSteps()">👟 Manual Steps</button>
+                    <button class="quick-btn exercise" onclick="markWorkout()">✅ Workout Done</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- HISTORY TAB -->
         <div class="tab-content" id="historyTab">
             <div id="historyArea"></div>
         </div>
     </div>
     
     <div class="input-area">
-        <input type="text" id="quickInput" placeholder="e.g. chicken 300cal 25g or 5000 steps">
+        <input type="text" id="quickInput" placeholder="chicken 300cal 25g or 5000 steps">
         <button class="photo-btn" onclick="openPhotoCapture()">📷</button>
         <button onclick="parseInput()">+</button>
     </div>
@@ -484,6 +496,7 @@
     <input type="file" id="photoInput" accept="image/*" onchange="handlePhotoSelect(event)">
     <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handlePhotoSelect(event)">
     
+    <!-- Modals -->
     <div class="modal" id="foodModal">
         <div class="modal-content">
             <div class="modal-title">Add Food</div>
@@ -499,12 +512,12 @@
     
     <div class="modal" id="photoModal">
         <div class="modal-content">
-            <div class="modal-title">Log Meal with Photo</div>
+            <div class="modal-title">Log Meal</div>
             <img id="photoPreview" class="photo-preview" style="display:none;">
             <input type="text" class="modal-input" id="photoFoodName" placeholder="Meal name">
-            <input type="number" class="modal-input" id="photoFoodCal" placeholder="Calories (estimate)">
+            <input type="number" class="modal-input" id="photoFoodCal" placeholder="Calories">
             <input type="number" class="modal-input" id="photoFoodProtein" placeholder="Protein (g)">
-            <p style="font-size: 11px; color: #666; margin-bottom: 12px;">💡 Send photo to Claude for accurate estimate</p>
+            <p style="font-size:10px;color:#666;margin-bottom:10px;">💡 Send photo to Claude for estimate</p>
             <div class="modal-buttons">
                 <button class="modal-btn cancel" onclick="closeModal('photoModal')">Cancel</button>
                 <button class="modal-btn save" onclick="savePhotoFood()">Add</button>
@@ -514,7 +527,7 @@
     
     <div class="modal" id="stepsModal">
         <div class="modal-content">
-            <div class="modal-title">Log Steps Manually</div>
+            <div class="modal-title">Manual Steps</div>
             <input type="number" class="modal-input" id="stepsInput" placeholder="Number of steps">
             <div class="modal-buttons">
                 <button class="modal-btn cancel" onclick="closeModal('stepsModal')">Cancel</button>
@@ -524,28 +537,17 @@
     </div>
 
     <script>
-        // Google Fit Config
+        // Config
         const CLIENT_ID = '163799557992-hgstjj16f2d587jjicjonmlulaqsh552.apps.googleusercontent.com';
-        const SCOPES = 'https://www.googleapis.com/auth/fitness.activity.read';
+        const SCOPES = 'https://www.googleapis.com/auth/fitness.activity.read https://www.googleapis.com/auth/spreadsheets';
+        const SHEET_ID = '13jRxb7mOAZUyi1mO3z005W6gtG5Kh4X5PZPM4FTwNMY';
         
-        let tokenClient;
-        let accessToken = null;
-        
-        // State
-        let state = {
-            date: new Date().toDateString(),
-            calIn: 0,
-            calOut: 0,
-            protein: 0,
-            steps: 0,
-            workoutDone: false,
-            entries: []
-        };
-        
+        let tokenClient, accessToken = null;
+        let state = { date: new Date().toDateString(), calIn: 0, calOut: 0, protein: 0, steps: 0, workoutDone: false, entries: [] };
         const targets = { calories: 1600, protein: 110 };
         let currentPhotoData = null;
         
-        // Initialize Google Identity Services
+        // Google Auth
         function initGoogleAuth() {
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: CLIENT_ID,
@@ -561,8 +563,6 @@
                     }
                 },
             });
-            
-            // Check for existing token
             const savedToken = localStorage.getItem('gfit_token');
             if (savedToken) {
                 accessToken = savedToken;
@@ -573,66 +573,47 @@
             }
         }
         
-        function googleSignIn() {
-            tokenClient.requestAccessToken();
-        }
+        function googleSignIn() { tokenClient.requestAccessToken(); }
         
         function syncGoogleFit() {
-            if (!accessToken) {
-                googleSignIn();
-                return;
-            }
+            if (!accessToken) { googleSignIn(); return; }
             fetchGoogleFitSteps();
         }
         
         async function fetchGoogleFitSteps() {
             updateSyncStatus('Syncing...');
-            
             const now = new Date();
             const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-            const endOfDay = now.getTime();
-            
-            const requestBody = {
-                aggregateBy: [{
-                    dataTypeName: "com.google.step_count.delta",
-                    dataSourceId: "derived:com.google.step_count.delta:com.google.android.gms:estimated_steps"
-                }],
-                bucketByTime: { durationMillis: 86400000 },
-                startTimeMillis: startOfDay,
-                endTimeMillis: endOfDay
-            };
             
             try {
                 const response = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(requestBody)
+                    headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        aggregateBy: [{ dataTypeName: "com.google.step_count.delta", dataSourceId: "derived:com.google.step_count.delta:com.google.android.gms:estimated_steps" }],
+                        bucketByTime: { durationMillis: 86400000 },
+                        startTimeMillis: startOfDay,
+                        endTimeMillis: now.getTime()
+                    })
                 });
                 
                 if (response.status === 401) {
-                    // Token expired
                     localStorage.removeItem('gfit_token');
                     accessToken = null;
-                    updateSyncStatus('Please sign in');
+                    updateSyncStatus('Sign in required');
                     document.getElementById('signInBtn').style.display = 'inline-block';
                     return;
                 }
                 
                 const data = await response.json();
-                
                 let steps = 0;
-                if (data.bucket && data.bucket.length > 0) {
+                if (data.bucket) {
                     for (const bucket of data.bucket) {
-                        if (bucket.dataset && bucket.dataset.length > 0) {
+                        if (bucket.dataset) {
                             for (const dataset of bucket.dataset) {
-                                if (dataset.point && dataset.point.length > 0) {
+                                if (dataset.point) {
                                     for (const point of dataset.point) {
-                                        if (point.value && point.value.length > 0) {
-                                            steps += point.value[0].intVal || 0;
-                                        }
+                                        if (point.value) steps += point.value[0].intVal || 0;
                                     }
                                 }
                             }
@@ -640,49 +621,73 @@
                     }
                 }
                 
-                // Update steps
                 const stepsCal = Math.round(steps * 0.04);
                 const oldStepsCal = Math.round(state.steps * 0.04);
                 state.calOut -= oldStepsCal;
                 state.steps = steps;
                 state.calOut += stepsCal;
                 
-                // Update steps entry
-                const existingStepsIndex = state.entries.findIndex(e => e.name === 'Steps (Google Fit)');
-                if (existingStepsIndex >= 0) {
-                    state.entries[existingStepsIndex].cal = stepsCal;
-                    state.entries[existingStepsIndex].steps = steps;
-                    state.entries[existingStepsIndex].time = new Date().toISOString();
+                const idx = state.entries.findIndex(e => e.name === 'Steps (Google Fit)' || e.name === 'Steps');
+                if (idx >= 0) {
+                    state.entries[idx] = { type: 'exercise', name: 'Steps (Google Fit)', cal: stepsCal, steps, time: new Date().toISOString() };
                 } else {
-                    // Remove manual steps entry if exists
-                    const manualIndex = state.entries.findIndex(e => e.name === 'Steps');
-                    if (manualIndex >= 0) {
-                        state.entries.splice(manualIndex, 1);
-                    }
-                    state.entries.push({
-                        type: 'exercise',
-                        name: 'Steps (Google Fit)',
-                        cal: stepsCal,
-                        steps: steps,
-                        time: new Date().toISOString()
-                    });
+                    state.entries.push({ type: 'exercise', name: 'Steps (Google Fit)', cal: stepsCal, steps, time: new Date().toISOString() });
                 }
                 
                 saveState();
                 updateUI();
-                updateSyncStatus('Synced ' + new Date().toLocaleTimeString());
-                
+                updateSyncStatus('Synced ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
             } catch (error) {
-                console.error('Error fetching steps:', error);
+                console.error(error);
                 updateSyncStatus('Sync failed');
             }
         }
         
-        function updateSyncStatus(status) {
-            document.getElementById('syncStatus').textContent = status;
+        async function syncToSheets() {
+            if (!accessToken) { googleSignIn(); return; }
+            updateSyncStatus('Saving...');
+            
+            const dateStr = new Date().toLocaleDateString();
+            const row = [dateStr, state.calIn, state.protein, state.calOut, state.steps, state.calIn - state.calOut, state.workoutDone ? 'Yes' : 'No', state.entries.map(e => e.name).join(', ')];
+            
+            try {
+                // First check if headers exist
+                const checkResponse = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/A1:H1`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                
+                const checkData = await checkResponse.json();
+                
+                if (!checkData.values || checkData.values.length === 0) {
+                    // Add headers
+                    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/A1:H1?valueInputOption=RAW`, {
+                        method: 'PUT',
+                        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ values: [['Date', 'Cal In', 'Protein', 'Cal Out', 'Steps', 'Net', 'Workout', 'Items']] })
+                    });
+                }
+                
+                // Append data
+                const appendResponse = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/A:H:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ values: [row] })
+                });
+                
+                if (appendResponse.ok) {
+                    updateSyncStatus('Saved to Sheets ✓');
+                } else {
+                    throw new Error('Save failed');
+                }
+            } catch (error) {
+                console.error(error);
+                updateSyncStatus('Save failed');
+            }
         }
         
-        // Load/Save State
+        function updateSyncStatus(status) { document.getElementById('syncStatus').textContent = status; }
+        
+        // State Management
         function loadState() {
             const saved = localStorage.getItem('hedTracker');
             if (saved) {
@@ -697,27 +702,17 @@
             updateUI();
         }
         
-        function saveState() {
-            localStorage.setItem('hedTracker', JSON.stringify(state));
-        }
+        function saveState() { localStorage.setItem('hedTracker', JSON.stringify(state)); }
         
         function saveToHistory(dayData) {
-            let history = JSON.parse(localStorage.getItem('hedHistory') || '[]');
             if (dayData.calIn === 0 && dayData.entries.length === 0) return;
-            history.unshift({
-                date: dayData.date,
-                calIn: dayData.calIn,
-                calOut: dayData.calOut,
-                protein: dayData.protein,
-                steps: dayData.steps,
-                workoutDone: dayData.workoutDone
-            });
-            history = history.slice(0, 10);
-            localStorage.setItem('hedHistory', JSON.stringify(history));
+            let history = JSON.parse(localStorage.getItem('hedHistory') || '[]');
+            history.unshift({ date: dayData.date, calIn: dayData.calIn, calOut: dayData.calOut, protein: dayData.protein, steps: dayData.steps, workoutDone: dayData.workoutDone });
+            localStorage.setItem('hedHistory', JSON.stringify(history.slice(0, 10)));
         }
         
         function updateUI() {
-            document.getElementById('currentDate').textContent = formatDate(new Date());
+            document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
             document.getElementById('calIn').textContent = state.calIn;
             document.getElementById('proteinIn').textContent = state.protein;
             document.getElementById('calOut').textContent = state.calOut;
@@ -732,38 +727,65 @@
             deficitEl.textContent = deficit;
             deficitEl.className = deficit <= 0 ? 'deficit' : 'over';
             
-            document.getElementById('workoutStatus').textContent = state.workoutDone ? 'Workout: ✅' : 'Workout: ⬜';
+            document.getElementById('workoutStatus').textContent = state.workoutDone ? '✅' : '⬜';
+            document.getElementById('calProgress').style.width = Math.min((state.calIn / targets.calories) * 100, 100) + '%';
+            document.getElementById('proteinProgress').style.width = Math.min((state.protein / targets.protein) * 100, 100) + '%';
             
-            const calPercent = Math.min((state.calIn / targets.calories) * 100, 100);
-            const proteinPercent = Math.min((state.protein / targets.protein) * 100, 100);
-            document.getElementById('calProgress').style.width = calPercent + '%';
-            document.getElementById('proteinProgress').style.width = proteinPercent + '%';
+            // Summary totals
+            document.getElementById('sumCalIn').textContent = state.calIn;
+            document.getElementById('sumProtein').textContent = state.protein + 'g';
+            document.getElementById('sumCalOut').textContent = state.calOut;
+            document.getElementById('sumNet').textContent = netCal;
             
-            renderEntries();
+            renderSummary();
             renderHistory();
         }
         
-        function formatDate(date) {
-            return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        function renderSummary() {
+            const list = document.getElementById('summaryList');
+            if (state.entries.length === 0) {
+                list.innerHTML = '<div class="no-data">No entries yet</div>';
+                return;
+            }
+            
+            list.innerHTML = state.entries.map((e, i) => `
+                <div class="summary-item ${e.type}">
+                    <span class="summary-item-name">${e.name}</span>
+                    <span class="summary-item-values">${e.type === 'food' ? e.cal + '/' + e.protein + 'g' : e.cal + ' cal'}</span>
+                    <button class="log-delete" onclick="deleteEntry(${i})" style="margin-left:8px;">×</button>
+                </div>
+            `).join('');
         }
         
-        function formatTime(date) {
-            return new Date(date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        function renderHistory() {
+            const area = document.getElementById('historyArea');
+            const history = JSON.parse(localStorage.getItem('hedHistory') || '[]');
+            
+            if (history.length === 0) {
+                area.innerHTML = '<div class="no-data">No history yet</div>';
+                return;
+            }
+            
+            area.innerHTML = history.map(day => `
+                <div class="history-day">
+                    <div class="history-date"><span>${day.date}</span><span>${day.workoutDone ? '✅' : '⬜'}</span></div>
+                    <div class="history-stats">
+                        <div class="history-stat ${day.calIn <= targets.calories ? 'good' : 'over'}"><div class="history-stat-value">${day.calIn}</div><div class="history-stat-label">Cal In</div></div>
+                        <div class="history-stat ${day.protein >= targets.protein ? 'good' : ''}"><div class="history-stat-value">${day.protein}g</div><div class="history-stat-label">Protein</div></div>
+                        <div class="history-stat"><div class="history-stat-value">${day.calOut}</div><div class="history-stat-label">Burned</div></div>
+                        <div class="history-stat"><div class="history-stat-value">${(day.steps || 0).toLocaleString()}</div><div class="history-stat-label">Steps</div></div>
+                    </div>
+                </div>
+            `).join('');
         }
         
         function switchTab(tab) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            
-            if (tab === 'today') {
-                document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
-                document.getElementById('todayTab').classList.add('active');
-                document.getElementById('quickAddSection').style.display = 'block';
-            } else {
-                document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
-                document.getElementById('historyTab').classList.add('active');
-                document.getElementById('quickAddSection').style.display = 'none';
-            }
+            document.querySelectorAll('.tab-btn').forEach((b, i) => {
+                b.classList.toggle('active', (tab === 'today' && i === 0) || (tab === 'add' && i === 1) || (tab === 'history' && i === 2));
+            });
+            document.getElementById('todayTab').classList.toggle('active', tab === 'today');
+            document.getElementById('addTab').classList.toggle('active', tab === 'add');
+            document.getElementById('historyTab').classList.toggle('active', tab === 'history');
         }
         
         function addQuickItem(name, cal, protein) {
@@ -772,6 +794,7 @@
             state.entries.push({ type: 'food', name, cal, protein, time: new Date().toISOString() });
             saveState();
             updateUI();
+            switchTab('today');
         }
         
         function addExercise(name, cal) {
@@ -779,6 +802,7 @@
             state.entries.push({ type: 'exercise', name, cal, time: new Date().toISOString() });
             saveState();
             updateUI();
+            switchTab('today');
         }
         
         function openPhotoCapture() { document.getElementById('cameraInput').click(); }
@@ -800,7 +824,7 @@
         }
         
         function savePhotoFood() {
-            const name = document.getElementById('photoFoodName').value || 'Meal (photo)';
+            const name = document.getElementById('photoFoodName').value || 'Meal';
             const cal = parseInt(document.getElementById('photoFoodCal').value) || 0;
             const protein = parseInt(document.getElementById('photoFoodProtein').value) || 0;
             
@@ -817,6 +841,7 @@
             document.getElementById('photoPreview').style.display = 'none';
             currentPhotoData = null;
             closeModal('photoModal');
+            switchTab('today');
         }
         
         function openCustomFood() { document.getElementById('foodModal').classList.add('active'); }
@@ -824,7 +849,7 @@
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
         
         function saveCustomFood() {
-            const name = document.getElementById('foodName').value || 'Custom food';
+            const name = document.getElementById('foodName').value || 'Custom';
             const cal = parseInt(document.getElementById('foodCal').value) || 0;
             const protein = parseInt(document.getElementById('foodProtein').value) || 0;
             addQuickItem(name, cal, protein);
@@ -837,17 +862,13 @@
         function saveSteps() {
             const newSteps = parseInt(document.getElementById('stepsInput').value) || 0;
             const stepsCal = Math.round(newSteps * 0.04);
-            const oldStepsCal = Math.round(state.steps * 0.04);
-            state.calOut -= oldStepsCal;
+            state.calOut -= Math.round(state.steps * 0.04);
             state.steps = newSteps;
             state.calOut += stepsCal;
             
-            const existingIdx = state.entries.findIndex(e => e.name === 'Steps' || e.name === 'Steps (Google Fit)');
-            if (existingIdx >= 0) {
-                state.entries[existingIdx].cal = stepsCal;
-                state.entries[existingIdx].steps = newSteps;
-                state.entries[existingIdx].name = 'Steps';
-                state.entries[existingIdx].time = new Date().toISOString();
+            const idx = state.entries.findIndex(e => e.name === 'Steps' || e.name === 'Steps (Google Fit)');
+            if (idx >= 0) {
+                state.entries[idx] = { type: 'exercise', name: 'Steps', cal: stepsCal, steps: newSteps, time: new Date().toISOString() };
             } else {
                 state.entries.push({ type: 'exercise', name: 'Steps', cal: stepsCal, steps: newSteps, time: new Date().toISOString() });
             }
@@ -856,10 +877,25 @@
             updateUI();
             document.getElementById('stepsInput').value = '';
             closeModal('stepsModal');
+            switchTab('today');
         }
         
         function markWorkout() {
             state.workoutDone = !state.workoutDone;
+            saveState();
+            updateUI();
+        }
+        
+        function deleteEntry(index) {
+            const entry = state.entries[index];
+            if (entry.type === 'food') {
+                state.calIn -= entry.cal;
+                state.protein -= entry.protein;
+            } else {
+                state.calOut -= entry.cal;
+                if (entry.steps) state.steps = 0;
+            }
+            state.entries.splice(index, 1);
             saveState();
             updateUI();
         }
@@ -893,111 +929,29 @@
             alert('Format: "chicken 300cal 25g" or "5000 steps"');
         }
         
-        function renderEntries() {
-            const logArea = document.getElementById('logArea');
-            logArea.innerHTML = '';
-            
-            const entries = [...state.entries].reverse();
-            entries.forEach((entry, index) => {
-                const realIndex = state.entries.length - 1 - index;
-                const div = document.createElement('div');
-                div.className = 'log-entry ' + entry.type;
-                
-                let photoHtml = entry.photo ? `<img src="${entry.photo}" class="log-photo">` : '';
-                
-                if (entry.type === 'food') {
-                    div.innerHTML = `
-                        <button class="log-delete" onclick="deleteEntry(${realIndex})">×</button>
-                        <div class="log-time">${formatTime(entry.time)}</div>
-                        <div class="log-item">${entry.name}</div>
-                        <div class="log-macros">${entry.cal} kcal · ${entry.protein}g protein</div>
-                        ${photoHtml}
-                    `;
-                } else {
-                    div.innerHTML = `
-                        <button class="log-delete" onclick="deleteEntry(${realIndex})">×</button>
-                        <div class="log-time">${formatTime(entry.time)}</div>
-                        <div class="log-item">${entry.name}</div>
-                        <div class="log-macros">${entry.cal} kcal burned${entry.steps ? ' · ' + entry.steps.toLocaleString() + ' steps' : ''}</div>
-                    `;
-                }
-                logArea.appendChild(div);
-            });
-            
-            if (entries.length === 0) {
-                logArea.innerHTML = '<div style="text-align: center; color: #999; padding: 40px;">No entries yet.<br>Sync steps or add food.</div>';
-            }
-        }
-        
-        function renderHistory() {
-            const historyArea = document.getElementById('historyArea');
-            const history = JSON.parse(localStorage.getItem('hedHistory') || '[]');
-            
-            if (history.length === 0) {
-                historyArea.innerHTML = '<div class="no-history">No history yet.</div>';
-                return;
-            }
-            
-            historyArea.innerHTML = history.map(day => `
-                <div class="history-day">
-                    <div class="history-date">
-                        <span>${day.date}</span>
-                        <span>${day.workoutDone ? '✅' : '⬜'}</span>
-                    </div>
-                    <div class="history-stats">
-                        <div class="history-stat ${day.calIn <= targets.calories ? 'good' : 'over'}">
-                            <div class="history-stat-value">${day.calIn}</div>
-                            <div class="history-stat-label">Cal In</div>
-                        </div>
-                        <div class="history-stat ${day.protein >= targets.protein ? 'good' : ''}">
-                            <div class="history-stat-value">${day.protein}g</div>
-                            <div class="history-stat-label">Protein</div>
-                        </div>
-                        <div class="history-stat">
-                            <div class="history-stat-value">${day.calOut}</div>
-                            <div class="history-stat-label">Burned</div>
-                        </div>
-                        <div class="history-stat">
-                            <div class="history-stat-value">${(day.steps || 0).toLocaleString()}</div>
-                            <div class="history-stat-label">Steps</div>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-        
-        function deleteEntry(index) {
-            const entry = state.entries[index];
-            if (entry.type === 'food') {
-                state.calIn -= entry.cal;
-                state.protein -= entry.protein;
-            } else {
-                state.calOut -= entry.cal;
-                if (entry.steps) state.steps = 0;
-            }
-            state.entries.splice(index, 1);
-            saveState();
-            updateUI();
-        }
-        
         function resetDay() {
-            if (confirm('Reset all data for today?')) {
+            if (confirm('Reset today?')) {
                 state = { date: new Date().toDateString(), calIn: 0, calOut: 0, protein: 0, steps: 0, workoutDone: false, entries: [] };
                 saveState();
                 updateUI();
             }
         }
         
-        document.getElementById('quickInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') { e.preventDefault(); parseInput(); }
-        });
+        document.getElementById('quickInput').addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); parseInput(); } });
         
-        // Initialize
+        function waitForGoogle() {
+            if (typeof google !== 'undefined' && google.accounts) {
+                initGoogleAuth();
+            } else {
+                setTimeout(waitForGoogle, 100);
+            }
+        }
+        
         window.onload = function() {
             loadState();
-            // Wait for Google Identity Services to load
-            setTimeout(initGoogleAuth, 500);
+            waitForGoogle();
         };
     </script>
+    <script src="https://accounts.google.com/gsi/client" async></script>
 </body>
 </html>
