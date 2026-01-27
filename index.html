@@ -381,7 +381,10 @@
             <div class="summary-card">
                 <div class="summary-header">
                     <span>Today's Log</span>
-                    <button class="qbtn action" onclick="syncSteps()" style="font-size:10px;padding:4px 8px;">🔄 Sync Steps</button>
+                    <div>
+                        <button class="qbtn action" onclick="refreshFromSheets()" style="font-size:10px;padding:4px 8px;">☁️ Refresh</button>
+                        <button class="qbtn action" onclick="syncSteps()" style="font-size:10px;padding:4px 8px;">🔄 Steps</button>
+                    </div>
                 </div>
                 <div class="summary-list" id="logList">
                     <div class="no-entries">No entries yet</div>
@@ -415,6 +418,7 @@
             <div class="section-title">💪 EXERCISE</div>
             <div class="quick-grid">
                 <button class="qbtn exercise" onclick="addExercise('Pilates',90)">🧘 Pilates <span class="qbtn-cal">90</span></button>
+                <button class="qbtn exercise" onclick="addExercise('Pilates Lesson',180)">🧘 Pilates Lesson <span class="qbtn-cal">180</span></button>
                 <button class="qbtn exercise" onclick="addExercise('Ab Circuit',200)">💪 Ab Circuit <span class="qbtn-cal">200</span></button>
                 <button class="qbtn exercise" onclick="addExercise('Bike',400)">🚴 Bike <span class="qbtn-cal">400</span></button>
                 <button class="qbtn exercise" onclick="addExercise('Resistance',180)">🏋️ Resistance <span class="qbtn-cal">180</span></button>
@@ -427,6 +431,7 @@
             <div class="section-title">🔄 SYNC</div>
             <div class="quick-grid">
                 <button class="qbtn action" onclick="syncSteps()">🔄 Sync Steps</button>
+                <button class="qbtn action" onclick="refreshFromSheets()">☁️ Refresh from Cloud</button>
                 <button class="qbtn action" onclick="googleSignIn()" id="signInBtn" style="display:none;">🔑 Sign In</button>
             </div>
         </div>
@@ -505,7 +510,8 @@
         let photoData = null;
         
         // Init
-        function init() {
+        async function init() {
+            state.date = new Date().toDateString();
             loadState();
             updateUI();
             initGoogle();
@@ -520,16 +526,33 @@
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: CLIENT_ID,
                 scope: SCOPES,
-                callback: (r) => {
+                callback: async (r) => {
                     if (r.access_token) {
                         accessToken = r.access_token;
                         localStorage.setItem('hed_token', accessToken);
                         document.getElementById('signInBtn').style.display = 'none';
+                        // Load from Sheets after sign-in
+                        const loaded = await loadFromLiveData();
+                        if (loaded) {
+                            updateUI();
+                            toast('Synced from cloud!');
+                        }
                         syncSteps();
                     }
                 }
             });
-            if (!accessToken) document.getElementById('signInBtn').style.display = 'inline-flex';
+            if (!accessToken) {
+                document.getElementById('signInBtn').style.display = 'inline-flex';
+            } else {
+                document.getElementById('signInBtn').style.display = 'none';
+                // Try to load from Sheets on startup
+                loadFromLiveData().then(loaded => {
+                    if (loaded) {
+                        updateUI();
+                        toast('Synced from cloud');
+                    }
+                });
+            }
         }
         
         function googleSignIn() { tokenClient.requestAccessToken(); }
@@ -555,6 +578,119 @@
         function saveState() {
             state.date = new Date().toDateString();
             localStorage.setItem('hed_state', JSON.stringify(state));
+            syncToLiveData(); // Sync to Sheets on every save
+        }
+        
+        // Sync current state to LiveData sheet
+        async function syncToLiveData() {
+            if (!accessToken) return;
+            const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
+            const row = [today, state.calIn, state.protein, state.calOut, state.steps, state.calIn - state.calOut, state.workout ? 'Yes' : 'No', JSON.stringify(state.entries)];
+            try {
+                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/LiveData!A2:H2?valueInputOption=RAW`, {
+                    method: 'PUT',
+                    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ values: [row] })
+                });
+                console.log('Synced to LiveData');
+            } catch (e) { 
+                console.error('LiveData sync error:', e); 
+            }
+        }
+        
+        // Load state from LiveData sheet
+        async function loadFromLiveData() {
+            if (!accessToken) return false;
+            try {
+                // First ensure headers exist
+                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/LiveData!A1:H1?valueInputOption=RAW`, {
+                    method: 'PUT',
+                    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ values: [['Date', 'Cal In', 'Protein', 'Cal Out', 'Steps', 'Net', 'Workout', 'Entries']] })
+                });
+                
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/LiveData!A2:H2`, {
+                    headers: { Authorization: `Bearer ${accessToken}` }
+                });
+                
+                if (res.status === 401) {
+                    localStorage.removeItem('hed_token');
+                    accessToken = null;
+                    return false;
+                }
+                
+                const data = await res.json();
+                const today = new Date().toLocaleDateString('en-CA');
+                
+                if (data.values && data.values[0] && data.values[0][0] === today) {
+                    const row = data.values[0];
+                    state.date = new Date().toDateString();
+                    state.calIn = parseInt(row[1]) || 0;
+                    state.protein = parseInt(row[2]) || 0;
+                    state.calOut = parseInt(row[3]) || 0;
+                    state.steps = parseInt(row[4]) || 0;
+                    state.workout = row[6] === 'Yes';
+                    try { 
+                        state.entries = JSON.parse(row[7] || '[]'); 
+                    } catch { 
+                        state.entries = []; 
+                    }
+                    localStorage.setItem('hed_state', JSON.stringify(state));
+                    console.log('Loaded from LiveData:', state);
+                    return true;
+                } else if (data.values && data.values[0] && data.values[0][0]) {
+                    // Different day - archive old data first
+                    console.log('New day detected, archiving old data');
+                    await archiveToDaily(data.values[0]);
+                }
+                return false;
+            } catch (e) { 
+                console.error('LoadFromLiveData error:', e);
+                return false; 
+            }
+        }
+        
+        // Archive a day's data to DailyLog
+        async function archiveToDaily(row) {
+            if (!accessToken) return;
+            try {
+                // Ensure headers
+                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog!A1:H1?valueInputOption=RAW`, {
+                    method: 'PUT',
+                    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ values: [['Date', 'Cal In', 'Protein', 'Cal Out', 'Steps', 'Net', 'Workout', 'Items']] })
+                });
+                
+                // Convert entries JSON to item names
+                let items = '';
+                try {
+                    const entries = JSON.parse(row[7] || '[]');
+                    items = entries.map(e => e.name).join(', ');
+                } catch {}
+                
+                const archiveRow = [row[0], row[1], row[2], row[3], row[4], row[5], row[6], items];
+                
+                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog!A:H:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ values: [archiveRow] })
+                });
+                console.log('Archived to DailyLog');
+            } catch (e) {
+                console.error('Archive error:', e);
+            }
+        }
+        
+        // Manual refresh button
+        async function refreshFromSheets() {
+            toast('Refreshing...');
+            const loaded = await loadFromLiveData();
+            if (loaded) {
+                updateUI();
+                toast('Synced from cloud!');
+            } else {
+                toast('No cloud data or not signed in');
+            }
         }
         
         function saveToHistory(data) {
@@ -747,155 +883,4 @@
                 }
                 const data = await res.json();
                 let steps = 0;
-                data.bucket?.forEach(b => b.dataset?.forEach(d => d.point?.forEach(p => { steps += p.value?.[0]?.intVal || 0; })));
-                
-                const oldCal = Math.round(state.steps * 0.04);
-                const newCal = Math.round(steps * 0.04);
-                state.calOut = state.calOut - oldCal + newCal;
-                state.steps = steps;
-                
-                const idx = state.entries.findIndex(e => e.name?.includes('Steps'));
-                if (idx >= 0) state.entries[idx] = { type: 'exercise', name: 'Steps (Synced)', cal: newCal, steps, time: Date.now() };
-                else state.entries.push({ type: 'exercise', name: 'Steps (Synced)', cal: newCal, steps, time: Date.now() });
-                
-                saveState();
-                updateUI();
-                toast(steps.toLocaleString() + ' steps synced');
-            } catch (e) {
-                console.error(e);
-                toast('Sync failed');
-            }
-        }
-        
-        function saveManualSteps() {
-            const steps = parseInt(document.getElementById('stepsInput').value) || 0;
-            const oldCal = Math.round(state.steps * 0.04);
-            const newCal = Math.round(steps * 0.04);
-            state.calOut = state.calOut - oldCal + newCal;
-            state.steps = steps;
-            
-            const idx = state.entries.findIndex(e => e.name?.includes('Steps'));
-            if (idx >= 0) state.entries[idx] = { type: 'exercise', name: 'Steps (Manual)', cal: newCal, steps, time: Date.now() };
-            else state.entries.push({ type: 'exercise', name: 'Steps (Manual)', cal: newCal, steps, time: Date.now() });
-            
-            saveState();
-            updateUI();
-            closeModal('stepsModal');
-            showPane('today');
-            toast(steps.toLocaleString() + ' steps logged');
-        }
-        
-        // Photo
-        function takePhoto() { document.getElementById('cameraInput').click(); }
-        function uploadPhoto() { document.getElementById('photoInput').click(); }
-        
-        function handlePhoto(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                photoData = ev.target.result;
-                document.getElementById('photoPreview').src = photoData;
-                document.getElementById('photoPreview').style.display = 'block';
-                document.getElementById('photoModal').classList.add('open');
-            };
-            reader.readAsDataURL(file);
-            e.target.value = '';
-        }
-        
-        function savePhoto() {
-            const name = document.getElementById('photoName').value || 'Meal';
-            const cal = parseInt(document.getElementById('photoCal').value) || 0;
-            const protein = parseInt(document.getElementById('photoPro').value) || 0;
-            state.calIn += cal;
-            state.protein += protein;
-            state.entries.push({ type: 'food', name, cal, protein, photo: photoData, time: Date.now() });
-            saveState();
-            updateUI();
-            closeModal('photoModal');
-            document.getElementById('photoName').value = '';
-            document.getElementById('photoCal').value = '';
-            document.getElementById('photoPro').value = '';
-            photoData = null;
-            showPane('today');
-            toast('Added ' + name);
-        }
-        
-        // Custom
-        function openCustom() { document.getElementById('customModal').classList.add('open'); }
-        
-        function saveCustom() {
-            const name = document.getElementById('customName').value || 'Custom';
-            const cal = parseInt(document.getElementById('customCal').value) || 0;
-            const protein = parseInt(document.getElementById('customPro').value) || 0;
-            addFood(name, cal, protein);
-            closeModal('customModal');
-            document.getElementById('customName').value = '';
-            document.getElementById('customCal').value = '';
-            document.getElementById('customPro').value = '';
-        }
-        
-        function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-        
-        // Input parsing
-        function parseInput() {
-            const input = document.getElementById('inputField').value.trim();
-            if (!input) return;
-            
-            // Match: Name 000cal 00g
-            const match = input.match(/^(.+?)\s+(\d+)\s*cal\s*(\d+)\s*g?$/i);
-            if (match) {
-                addFood(match[1].trim(), parseInt(match[2]), parseInt(match[3]));
-                document.getElementById('inputField').value = '';
-                return;
-            }
-            
-            // Match: Name 000cal
-            const match2 = input.match(/^(.+?)\s+(\d+)\s*cal$/i);
-            if (match2) {
-                addFood(match2[1].trim(), parseInt(match2[2]), 0);
-                document.getElementById('inputField').value = '';
-                return;
-            }
-            
-            // Match: 0000 steps
-            const match3 = input.match(/^(\d+)\s*steps?$/i);
-            if (match3) {
-                document.getElementById('stepsInput').value = match3[1];
-                saveManualSteps();
-                document.getElementById('inputField').value = '';
-                return;
-            }
-            
-            toast('Format: Saba Set 650cal 35g');
-        }
-        
-        document.getElementById('inputField').addEventListener('keypress', e => { if (e.key === 'Enter') parseInput(); });
-        
-        // Copy functions
-        function copySummary() {
-            const net = state.calIn - state.calOut;
-            const text = `Cal: ${state.calIn}/1600 | Protein: ${state.protein}/110g | Burned: ${state.calOut} | Net: ${net}`;
-            navigator.clipboard.writeText(text);
-            toast('Summary copied!');
-        }
-        
-        function copyFull() {
-            const date = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-            let text = `HED ${date}:\n`;
-            state.entries.forEach(e => {
-                if (e.type === 'food') text += `• ${e.name} (${e.cal}/${e.protein}g)\n`;
-                else text += `• ${e.name} (${e.cal} cal)\n`;
-            });
-            const net = state.calIn - state.calOut;
-            text += `---\nCal: ${state.calIn}/1600 | Protein: ${state.protein}/110g | Burned: ${state.calOut} | Net: ${net}`;
-            navigator.clipboard.writeText(text);
-            toast('Full log copied!');
-        }
-        
-        // Start
-        window.onload = init;
-    </script>
-    <script src="https://accounts.google.com/gsi/client" async></script>
-</body>
-</html>
+                data.bucket?.forEach(b => b.dataset?.forEach(d => d.point?.forEach(p => { steps += p.value?.[0]?.intVal ||
