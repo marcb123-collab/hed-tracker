@@ -596,18 +596,27 @@
         }
         
         function renderButtons() {
+            const foodEl = document.getElementById('foodButtons');
+            const exEl = document.getElementById('exerciseButtons');
+            if (!foodEl || !exEl) {
+                console.error('Button containers not found');
+                return;
+            }
+            
             // Sort foods by usage
             const sortedFoods = [...ALL_FOODS].sort((a, b) => (itemUsage[b.name] || 0) - (itemUsage[a.name] || 0));
             const foodHtml = sortedFoods.map(f => 
                 `<button class="qbtn food" onclick="addFood('${f.name}',${f.cal},${f.protein})">${f.icon} ${f.short || f.name} <span class="qbtn-cal">${f.cal}/${f.protein}g</span></button>`
             ).join('') + `<button class="qbtn food" onclick="openCustom()">➕ Custom</button>`;
-            document.getElementById('foodButtons').innerHTML = foodHtml;
+            foodEl.innerHTML = foodHtml;
             
             // Sort exercises by usage
             const sortedEx = [...ALL_EXERCISES].sort((a, b) => (itemUsage[b.name] || 0) - (itemUsage[a.name] || 0));
             const exHtml = sortedEx.map(e => 
                 `<button class="qbtn exercise" onclick="addExercise('${e.name}',${e.cal})">${e.icon} ${e.short || e.name} <span class="qbtn-cal">${e.cal}</span></button>`
             ).join('') + `<button class="qbtn exercise" onclick="toggleWorkout()">✅ Workout Done</button>`;
+            exEl.innerHTML = exHtml;
+        }
             document.getElementById('exerciseButtons').innerHTML = exHtml;
         }
         
@@ -869,11 +878,6 @@
             document.getElementById('worPct').textContent = worPct;
             document.getElementById('calBar').style.width = calPct + '%';
             document.getElementById('worBar').style.width = worPct + '%';
-            
-            const deficit = net - TARGETS.cal;
-            const defEl = document.getElementById('deficit');
-            defEl.textContent = deficit;
-            defEl.className = deficit <= 0 ? 'deficit' : 'over';
             
             document.getElementById('steps').textContent = state.steps.toLocaleString() + '/7500 steps';
             document.getElementById('workoutBtn').textContent = state.workout ? '✅ Workout' : '⬜ Workout';
