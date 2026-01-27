@@ -327,7 +327,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker</span>
+            <span class="dash-title">Marc's HED Tracker <span id="syncStatus" style="font-size:10px;">⚪</span></span>
             <span class="dash-date" id="dateDisplay"></span>
         </div>
         <div class="stats-row">
@@ -371,6 +371,7 @@
     <div class="tabs">
         <button class="tab active" onclick="showPane('today')">Today</button>
         <button class="tab" onclick="showPane('add')">Add</button>
+        <button class="tab" onclick="showPane('plan')">Plan</button>
         <button class="tab" onclick="showPane('history')">History</button>
     </div>
     
@@ -434,6 +435,15 @@
                 <button class="qbtn action" onclick="refreshFromSheets()">☁️ Refresh from Cloud</button>
                 <button class="qbtn action" onclick="googleSignIn()" id="signInBtn" style="display:none;">🔑 Sign In</button>
             </div>
+        </div>
+        
+        <!-- Plan Pane -->
+        <div class="pane" id="planPane">
+            <div class="summary-card">
+                <div class="summary-header">📅 Weekly Exercise Plan</div>
+                <p style="font-size:11px;color:#666;margin-bottom:10px;">6-day rotation. Workout 10-11am (8-9am if calls). Sunday rest.</p>
+            </div>
+            <div id="planList"></div>
         </div>
         
         <!-- History Pane -->
@@ -509,6 +519,28 @@
         let state = { date: '', calIn: 0, calOut: 0, protein: 0, steps: 0, workout: false, entries: [] };
         let photoData = null;
         
+        // Weekly plan data
+        const WEEKLY_PLAN = [
+            { day: 'Monday', workout: 'Ab Circuit', cal: 200, time: '10-11am', details: 'Pilates warmup (15-20 min) + GymFiesta belly routine. 9 exercises, 3-4 sets, 14-20 reps.' },
+            { day: 'Tuesday', workout: 'Bike', cal: 400, time: '10-11am', details: '35-40 min moderate pace, 350-450 kcal burn.' },
+            { day: 'Wednesday', workout: 'Resistance', cal: 180, time: '10-11am', details: 'Muscle bending bar + resistance bands. 5 exercises each, 3 sets.' },
+            { day: 'Thursday', workout: 'Ab Circuit', cal: 200, time: '10-11am', details: 'Pilates warmup (15-20 min) + GymFiesta belly routine. 9 exercises, 3-4 sets, 14-20 reps.' },
+            { day: 'Friday', workout: 'Bike', cal: 400, time: '10-11am', details: '35-40 min moderate pace, 350-450 kcal burn.' },
+            { day: 'Saturday', workout: 'Resistance', cal: 180, time: '10-11am', details: 'Muscle bending bar + resistance bands. 5 exercises each, 3 sets.' },
+            { day: 'Sunday', workout: 'Rest Day', cal: 0, time: '', details: '45-60 min walk recommended.' },
+        ];
+        
+        function updateSyncStatus() {
+            const el = document.getElementById('syncStatus');
+            if (accessToken) {
+                el.textContent = '🟢';
+                el.title = 'Signed in';
+            } else {
+                el.textContent = '⚪';
+                el.title = 'Not signed in';
+            }
+        }
+        
         // Init
         async function init() {
             state.date = new Date().toDateString();
@@ -531,6 +563,7 @@
                         accessToken = r.access_token;
                         localStorage.setItem('hed_token', accessToken);
                         document.getElementById('signInBtn').style.display = 'none';
+                        updateSyncStatus();
                         // Load from Sheets after sign-in
                         const loaded = await loadFromLiveData();
                         if (loaded) {
@@ -553,6 +586,7 @@
                     }
                 });
             }
+            updateSyncStatus();
         }
         
         function googleSignIn() { tokenClient.requestAccessToken(); }
@@ -762,6 +796,24 @@
             
             renderLog();
             renderHistory();
+            renderPlan();
+        }
+        
+        function renderPlan() {
+            const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+            const list = document.getElementById('planList');
+            if (!list) return;
+            
+            list.innerHTML = WEEKLY_PLAN.map(p => `
+                <div class="summary-card" style="${p.day === todayName ? 'border-left: 4px solid #667eea; background: #f8f9ff;' : ''}">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                        <span style="font-weight:600;font-size:13px;">${p.day}${p.day === todayName ? ' (TODAY)' : ''}</span>
+                        <span style="font-size:11px;color:#666;">${p.time}</span>
+                    </div>
+                    <div style="font-size:12px;color:#333;margin-bottom:4px;">💪 ${p.workout} ${p.cal ? `(${p.cal} cal)` : ''}</div>
+                    <div style="font-size:11px;color:#666;">${p.details}</div>
+                </div>
+            `).join('');
         }
         
         function renderLog() {
@@ -814,7 +866,8 @@
             // Add active to selected tab
             if (name === 'today') tabs[0].classList.add('active');
             else if (name === 'add') tabs[1].classList.add('active');
-            else if (name === 'history') tabs[2].classList.add('active');
+            else if (name === 'plan') tabs[2].classList.add('active');
+            else if (name === 'history') tabs[3].classList.add('active');
             
             // Add active to selected pane
             const pane = document.getElementById(name + 'Pane');
@@ -835,7 +888,6 @@
             state.entries.push({ type: 'food', name, cal, protein, time: Date.now() });
             saveState();
             updateUI();
-            showPane('today');
             toast('Added ' + name);
         }
         
@@ -844,7 +896,6 @@
             state.entries.push({ type: 'exercise', name, cal, time: Date.now() });
             saveState();
             updateUI();
-            showPane('today');
             toast('Added ' + name);
         }
         
@@ -890,6 +941,7 @@
                     localStorage.removeItem('hed_token');
                     accessToken = null;
                     document.getElementById('signInBtn').style.display = 'inline-flex';
+                    updateSyncStatus();
                     toast('Please sign in again');
                     return;
                 }
