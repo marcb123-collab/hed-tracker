@@ -402,32 +402,10 @@
             </div>
             
             <div class="section-title">🍽️ FOOD</div>
-            <div class="quick-grid">
-                <button class="qbtn food" onclick="addFood('Baseline',78,1)">📋 Baseline <span class="qbtn-cal">78/1g</span></button>
-                <button class="qbtn food" onclick="addFood('Rice Bread+Hummus',190,4)">🍞 Rice Bread <span class="qbtn-cal">190/4g</span></button>
-                <button class="qbtn food" onclick="addFood('Asahi Shake',194,27)">🥤 Asahi <span class="qbtn-cal">194/27g</span></button>
-                <button class="qbtn food" onclick="addFood('Oikos 18g',100,18)">🥛 Oikos 18 <span class="qbtn-cal">100/18g</span></button>
-                <button class="qbtn food" onclick="addFood('Oikos 13g',90,13)">🥛 Oikos 13 <span class="qbtn-cal">90/13g</span></button>
-                <button class="qbtn food" onclick="addFood('Protein Bar',200,15)">🍫 Protein Bar <span class="qbtn-cal">200/15g</span></button>
-                <button class="qbtn food" onclick="addFood('Matcha Tall',150,3)">🍵 Matcha T <span class="qbtn-cal">150/3g</span></button>
-                <button class="qbtn food" onclick="addFood('Matcha Grande',200,4)">🍵 Matcha G <span class="qbtn-cal">200/4g</span></button>
-                <button class="qbtn food" onclick="addFood('Green Tea Pudding',120,3)">🍮 Pudding <span class="qbtn-cal">120/3g</span></button>
-                <button class="qbtn food" onclick="addFood('Banana Bread',180,3)">🍌 Banana Bread <span class="qbtn-cal">180/3g</span></button>
-                <button class="qbtn food" onclick="openCustom()">➕ Custom</button>
-            </div>
+            <div class="quick-grid" id="foodButtons"></div>
             
             <div class="section-title">💪 EXERCISE</div>
-            <div class="quick-grid">
-                <button class="qbtn exercise" onclick="addExercise('Pilates',90)">🧘 Pilates <span class="qbtn-cal">90</span></button>
-                <button class="qbtn exercise" onclick="addExercise('Pilates Lesson',180)">🧘 Pilates Lesson <span class="qbtn-cal">180</span></button>
-                <button class="qbtn exercise" onclick="addExercise('Ab Circuit',200)">💪 Ab Circuit <span class="qbtn-cal">200</span></button>
-                <button class="qbtn exercise" onclick="addExercise('Bike',400)">🚴 Bike <span class="qbtn-cal">400</span></button>
-                <button class="qbtn exercise" onclick="addExercise('Resistance',180)">🏋️ Resistance <span class="qbtn-cal">180</span></button>
-                <button class="qbtn exercise" onclick="addExercise('Long Walk',150)">🚶 Walk <span class="qbtn-cal">150</span></button>
-                <button class="qbtn exercise" onclick="addExercise('Drums 1hr',175)">🥁 Drums 1h <span class="qbtn-cal">175</span></button>
-                <button class="qbtn exercise" onclick="addExercise('Drums 2hr',350)">🥁 Drums 2h <span class="qbtn-cal">350</span></button>
-                <button class="qbtn exercise" onclick="toggleWorkout()">✅ Workout Done</button>
-            </div>
+            <div class="quick-grid" id="exerciseButtons"></div>
             
             <div class="section-title">🔄 SYNC</div>
             <div class="quick-grid">
@@ -529,6 +507,55 @@
             { day: 'Saturday', workout: 'Resistance', cal: 180, time: '10-11am', details: 'Muscle bending bar + resistance bands. 5 exercises each, 3 sets.' },
             { day: 'Sunday', workout: 'Rest Day', cal: 0, time: '', details: '45-60 min walk recommended.' },
         ];
+        
+        // Food and exercise items
+        const ALL_FOODS = [
+            { name: 'Baseline', cal: 78, protein: 1, icon: '📋' },
+            { name: 'Rice Bread+Hummus', cal: 190, protein: 4, icon: '🍞', short: 'Rice Bread' },
+            { name: 'Asahi Shake', cal: 194, protein: 27, icon: '🥤', short: 'Asahi' },
+            { name: 'Oikos 18g', cal: 100, protein: 18, icon: '🥛', short: 'Oikos 18' },
+            { name: 'Oikos 13g', cal: 90, protein: 13, icon: '🥛', short: 'Oikos 13' },
+            { name: 'Protein Bar', cal: 200, protein: 15, icon: '🍫' },
+            { name: 'Matcha Tall', cal: 150, protein: 3, icon: '🍵', short: 'Matcha T' },
+            { name: 'Matcha Grande', cal: 200, protein: 4, icon: '🍵', short: 'Matcha G' },
+            { name: 'Green Tea Pudding', cal: 120, protein: 3, icon: '🍮', short: 'Pudding' },
+            { name: 'Banana Bread', cal: 180, protein: 3, icon: '🍌' },
+        ];
+        
+        const ALL_EXERCISES = [
+            { name: 'Pilates', cal: 90, icon: '🧘' },
+            { name: 'Pilates Lesson', cal: 180, icon: '🧘' },
+            { name: 'Ab Circuit', cal: 200, icon: '💪' },
+            { name: 'Bike', cal: 400, icon: '🚴' },
+            { name: 'Resistance', cal: 180, icon: '🏋️' },
+            { name: 'Long Walk', cal: 150, icon: '🚶', short: 'Walk' },
+            { name: 'Drums 1hr', cal: 175, icon: '🥁', short: 'Drums 1h' },
+            { name: 'Drums 2hr', cal: 350, icon: '🥁', short: 'Drums 2h' },
+        ];
+        
+        // Usage tracking
+        let itemUsage = JSON.parse(localStorage.getItem('hed_usage') || '{}');
+        
+        function trackUsage(name) {
+            itemUsage[name] = (itemUsage[name] || 0) + 1;
+            localStorage.setItem('hed_usage', JSON.stringify(itemUsage));
+        }
+        
+        function renderButtons() {
+            // Sort foods by usage
+            const sortedFoods = [...ALL_FOODS].sort((a, b) => (itemUsage[b.name] || 0) - (itemUsage[a.name] || 0));
+            const foodHtml = sortedFoods.map(f => 
+                `<button class="qbtn food" onclick="addFood('${f.name}',${f.cal},${f.protein})">${f.icon} ${f.short || f.name} <span class="qbtn-cal">${f.cal}/${f.protein}g</span></button>`
+            ).join('') + `<button class="qbtn food" onclick="openCustom()">➕ Custom</button>`;
+            document.getElementById('foodButtons').innerHTML = foodHtml;
+            
+            // Sort exercises by usage
+            const sortedEx = [...ALL_EXERCISES].sort((a, b) => (itemUsage[b.name] || 0) - (itemUsage[a.name] || 0));
+            const exHtml = sortedEx.map(e => 
+                `<button class="qbtn exercise" onclick="addExercise('${e.name}',${e.cal})">${e.icon} ${e.short || e.name} <span class="qbtn-cal">${e.cal}</span></button>`
+            ).join('') + `<button class="qbtn exercise" onclick="toggleWorkout()">✅ Workout Done</button>`;
+            document.getElementById('exerciseButtons').innerHTML = exHtml;
+        }
         
         function updateSyncStatus() {
             const el = document.getElementById('syncStatus');
@@ -797,6 +824,7 @@
             renderLog();
             renderHistory();
             renderPlan();
+            renderButtons();
         }
         
         function renderPlan() {
@@ -835,23 +863,83 @@
         }
         
         function renderHistory() {
+            // First show local history
             const history = JSON.parse(localStorage.getItem('hed_history') || '[]');
             const list = document.getElementById('historyList');
             if (!history.length) {
                 list.innerHTML = '<div class="no-entries">No history yet</div>';
-                return;
-            }
-            list.innerHTML = history.map(d => `
-                <div class="history-card">
-                    <div class="history-date"><span>${d.date}</span><span>${d.workout ? '✅' : '⬜'}</span></div>
-                    <div class="history-stats">
-                        <div class="history-stat ${d.calIn <= TARGETS.cal ? 'good' : 'bad'}"><div class="history-stat-value">${d.calIn}</div><div class="history-stat-label">Cal In</div></div>
-                        <div class="history-stat ${d.protein >= TARGETS.protein ? 'good' : ''}"><div class="history-stat-value">${d.protein}g</div><div class="history-stat-label">Protein</div></div>
-                        <div class="history-stat"><div class="history-stat-value">${d.calOut}</div><div class="history-stat-label">Burned</div></div>
-                        <div class="history-stat"><div class="history-stat-value">${(d.steps||0).toLocaleString()}</div><div class="history-stat-label">Steps</div></div>
+            } else {
+                list.innerHTML = history.map(d => `
+                    <div class="history-card">
+                        <div class="history-date"><span>${d.date}</span><span>${d.workout ? '✅' : '⬜'}</span></div>
+                        <div class="history-stats">
+                            <div class="history-stat ${d.calIn <= TARGETS.cal ? 'good' : 'bad'}"><div class="history-stat-value">${d.calIn}</div><div class="history-stat-label">Cal In</div></div>
+                            <div class="history-stat ${d.protein >= TARGETS.protein ? 'good' : ''}"><div class="history-stat-value">${d.protein}g</div><div class="history-stat-label">Protein</div></div>
+                            <div class="history-stat"><div class="history-stat-value">${d.calOut}</div><div class="history-stat-label">Burned</div></div>
+                            <div class="history-stat"><div class="history-stat-value">${(d.steps||0).toLocaleString()}</div><div class="history-stat-label">Steps</div></div>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `).join('');
+            }
+            
+            // Then try to load from Sheets if we don't have much local history
+            if (history.length < 5 && accessToken) {
+                loadHistoryFromSheets();
+            }
+        }
+        
+        async function loadHistoryFromSheets() {
+            if (!accessToken) return;
+            try {
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog!A2:H100`, {
+                    headers: { Authorization: `Bearer ${accessToken}` }
+                });
+                if (res.status !== 200) return;
+                
+                const data = await res.json();
+                if (!data.values || !data.values.length) return;
+                
+                // Convert sheet rows to history format
+                const sheetHistory = data.values.map(row => ({
+                    date: row[0],
+                    calIn: parseInt(row[1]) || 0,
+                    protein: parseInt(row[2]) || 0,
+                    calOut: parseInt(row[3]) || 0,
+                    steps: parseInt(row[4]) || 0,
+                    workout: row[6] === 'Yes'
+                })).reverse(); // Most recent first
+                
+                // Merge with local history (dedupe by date)
+                const localHistory = JSON.parse(localStorage.getItem('hed_history') || '[]');
+                const localDates = new Set(localHistory.map(h => h.date));
+                const merged = [...localHistory];
+                
+                sheetHistory.forEach(h => {
+                    if (!localDates.has(h.date)) {
+                        merged.push(h);
+                    }
+                });
+                
+                // Sort by date descending and save
+                merged.sort((a, b) => new Date(b.date) - new Date(a.date));
+                localStorage.setItem('hed_history', JSON.stringify(merged.slice(0, 30)));
+                
+                // Re-render
+                const list = document.getElementById('historyList');
+                list.innerHTML = merged.slice(0, 30).map(d => `
+                    <div class="history-card">
+                        <div class="history-date"><span>${d.date}</span><span>${d.workout ? '✅' : '⬜'}</span></div>
+                        <div class="history-stats">
+                            <div class="history-stat ${d.calIn <= TARGETS.cal ? 'good' : 'bad'}"><div class="history-stat-value">${d.calIn}</div><div class="history-stat-label">Cal In</div></div>
+                            <div class="history-stat ${d.protein >= TARGETS.protein ? 'good' : ''}"><div class="history-stat-value">${d.protein}g</div><div class="history-stat-label">Protein</div></div>
+                            <div class="history-stat"><div class="history-stat-value">${d.calOut}</div><div class="history-stat-label">Burned</div></div>
+                            <div class="history-stat"><div class="history-stat-value">${(d.steps||0).toLocaleString()}</div><div class="history-stat-label">Steps</div></div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('Load history error:', e);
+            }
         }
         
         function showPane(name) {
@@ -886,6 +974,7 @@
             state.calIn += cal;
             state.protein += protein;
             state.entries.push({ type: 'food', name, cal, protein, time: Date.now() });
+            trackUsage(name);
             saveState();
             updateUI();
             toast('Added ' + name);
@@ -894,6 +983,7 @@
         function addExercise(name, cal) {
             state.calOut += cal;
             state.entries.push({ type: 'exercise', name, cal, time: Date.now() });
+            trackUsage(name);
             saveState();
             updateUI();
             toast('Added ' + name);
