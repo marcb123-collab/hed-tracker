@@ -337,8 +337,11 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span id="syncStatus" style="font-size:10px;cursor:pointer;" onclick="googleSignIn()">⚪</span></span>
-            <span class="dash-date" id="dateDisplay"></span>
+            <span class="dash-title">Marc's HED Tracker</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
+                <span class="dash-date" id="dateDisplay"></span>
+            </div>
         </div>
         <div class="stats-row">
             <div class="stat">
@@ -631,11 +634,13 @@
         function updateSyncStatus() {
             const el = document.getElementById('syncStatus');
             if (accessToken) {
-                el.textContent = '🟢';
-                el.title = 'Signed in';
+                el.textContent = '✓';
+                el.style.background = 'rgba(76,175,80,0.8)';
+                el.title = 'Signed in - tap to refresh';
             } else {
-                el.textContent = '⚪';
-                el.title = 'Not signed in';
+                el.textContent = '👤';
+                el.style.background = 'rgba(255,255,255,0.3)';
+                el.title = 'Tap to sign in';
             }
         }
         
@@ -755,6 +760,7 @@
                 if (res.status === 401) {
                     localStorage.removeItem('hed_token');
                     accessToken = null;
+                    updateSyncStatus();
                     return false;
                 }
                 
@@ -762,6 +768,7 @@
                 const today = new Date().toLocaleDateString('en-CA');
                 
                 if (data.values && data.values[0] && data.values[0][0] === today) {
+                    // Sheet has today's data - load it
                     const row = data.values[0];
                     state.date = new Date().toDateString();
                     state.calIn = parseInt(row[1]) || 0;
@@ -778,10 +785,20 @@
                     console.log('Loaded from LiveData:', state);
                     return true;
                 } else if (data.values && data.values[0] && data.values[0][0]) {
-                    // Different day - archive old data first
-                    console.log('New day detected, archiving old data');
+                    // Different day - archive old data, but keep local state
+                    console.log('New day detected, archiving old LiveData');
                     await archiveToDaily(data.values[0]);
+                    // Clear LiveData row (will be filled by syncToLiveData when user adds items)
+                    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/LiveData!A2:H2:clear`, {
+                        method: 'POST',
+                        headers: { Authorization: `Bearer ${accessToken}` }
+                    });
+                    // Sync current local state to LiveData
+                    if (state.entries.length > 0) {
+                        await syncToLiveData();
+                    }
                 }
+                // No data for today in sheet - keep local state, don't overwrite
                 return false;
             } catch (e) { 
                 console.error('LoadFromLiveData error:', e);
@@ -884,7 +901,9 @@
         function saveToHistory(data) {
             if (!data.calIn && !data.entries.length) return;
             let history = JSON.parse(localStorage.getItem('hed_history') || '[]');
-            history.unshift({ date: data.date, calIn: data.calIn, calOut: data.calOut, protein: data.protein, steps: data.steps, workout: data.workout });
+            // Use YYYY-MM-DD format for consistency
+            const dateStr = new Date().toLocaleDateString('en-CA');
+            history.unshift({ date: dateStr, calIn: data.calIn, calOut: data.calOut, protein: data.protein, steps: data.steps, workout: data.workout });
             localStorage.setItem('hed_history', JSON.stringify(history.slice(0, 30)));
         }
         
