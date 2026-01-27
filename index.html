@@ -360,10 +360,10 @@
         </div>
         <div class="status-row">
             <span class="status-chip">vs Target: <span id="deficit" class="deficit">0</span></span>
-            <span class="status-chip" id="steps">0 steps</span>
-            <span class="status-chip" id="workout">⬜</span>
+            <span class="status-chip" id="steps">0/7500 steps</span>
+            <button class="copy-btn" id="workoutBtn" onclick="toggleWorkout()">⬜ Workout</button>
             <button class="copy-btn" onclick="copySummary()">📋 Summary</button>
-            <button class="copy-btn" onclick="copyFull()">📋 Full</button>
+            <button class="copy-btn" onclick="copyFull()">📋 Today</button>
         </div>
     </div>
     
@@ -791,8 +791,8 @@
             defEl.textContent = deficit;
             defEl.className = deficit <= 0 ? 'deficit' : 'over';
             
-            document.getElementById('steps').textContent = state.steps.toLocaleString() + ' steps';
-            document.getElementById('workout').textContent = state.workout ? '✅' : '⬜';
+            document.getElementById('steps').textContent = state.steps.toLocaleString() + '/7500 steps';
+            document.getElementById('workoutBtn').textContent = state.workout ? '✅ Workout' : '⬜ Workout';
             
             renderLog();
             renderHistory();
