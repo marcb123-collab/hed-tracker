@@ -634,12 +634,14 @@
         function updateSyncStatus() {
             const el = document.getElementById('syncStatus');
             if (accessToken) {
-                el.textContent = '✓';
-                el.style.background = 'rgba(76,175,80,0.8)';
+                el.textContent = 'MB';
+                el.style.background = '#4CAF50';
+                el.style.fontSize = '10px';
+                el.style.fontWeight = 'bold';
                 el.title = 'Signed in - tap to refresh';
             } else {
-                el.textContent = '👤';
-                el.style.background = 'rgba(255,255,255,0.3)';
+                el.textContent = '';
+                el.style.background = 'rgba(255,255,255,0.4)';
                 el.title = 'Tap to sign in';
             }
         }
@@ -1061,34 +1063,46 @@
                 const data = await res.json();
                 if (!data.values || !data.values.length) return;
                 
-                // Convert sheet rows to history format
-                const sheetHistory = data.values.map(row => ({
-                    date: row[0],
-                    calIn: parseInt(row[1]) || 0,
-                    protein: parseInt(row[2]) || 0,
-                    calOut: parseInt(row[3]) || 0,
-                    steps: parseInt(row[4]) || 0,
-                    workout: row[6] === 'Yes'
-                })).reverse(); // Most recent first
-                
-                // Merge with local history (dedupe by date)
-                const localHistory = JSON.parse(localStorage.getItem('hed_history') || '[]');
-                const localDates = new Set(localHistory.map(h => h.date));
-                const merged = [...localHistory];
-                
-                sheetHistory.forEach(h => {
-                    if (!localDates.has(h.date)) {
-                        merged.push(h);
+                // Convert sheet rows to history format, dedupe by date
+                const seenDates = new Set();
+                const sheetHistory = [];
+                data.values.forEach(row => {
+                    const date = row[0];
+                    if (date && !seenDates.has(date)) {
+                        seenDates.add(date);
+                        sheetHistory.push({
+                            date: date,
+                            calIn: parseInt(row[1]) || 0,
+                            protein: parseInt(row[2]) || 0,
+                            calOut: parseInt(row[3]) || 0,
+                            steps: parseInt(row[4]) || 0,
+                            workout: row[6] === 'Yes'
+                        });
                     }
                 });
                 
-                // Sort by date descending and save
-                merged.sort((a, b) => new Date(b.date) - new Date(a.date));
-                localStorage.setItem('hed_history', JSON.stringify(merged.slice(0, 30)));
+                // Merge with local history (dedupe by date)
+                const localHistory = JSON.parse(localStorage.getItem('hed_history') || '[]');
+                localHistory.forEach(h => {
+                    if (!seenDates.has(h.date)) {
+                        seenDates.add(h.date);
+                        sheetHistory.push(h);
+                    }
+                });
+                
+                // Sort by date descending
+                sheetHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
+                
+                // Save and render
+                localStorage.setItem('hed_history', JSON.stringify(sheetHistory.slice(0, 30)));
                 
                 // Re-render
                 const list = document.getElementById('historyList');
-                list.innerHTML = merged.slice(0, 30).map(d => `
+                if (sheetHistory.length === 0) {
+                    list.innerHTML = '<div class="no-entries">No history yet</div>';
+                    return;
+                }
+                list.innerHTML = sheetHistory.slice(0, 30).map(d => `
                     <div class="history-card">
                         <div class="history-date"><span>${d.date}</span><span>${d.workout ? '✅' : '⬜'}</span></div>
                         <div class="history-stats">
