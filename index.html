@@ -4,6 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Marc's HED Tracker</title>
+    
+    <!-- PWA / iOS Standalone App -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="HED">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#667eea">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -327,7 +337,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span id="syncStatus" style="font-size:10px;">⚪</span></span>
+            <span class="dash-title">Marc's HED Tracker <span id="syncStatus" style="font-size:10px;cursor:pointer;" onclick="googleSignIn()">⚪</span></span>
             <span class="dash-date" id="dateDisplay"></span>
         </div>
         <div class="stats-row">
@@ -659,6 +669,8 @@
                             updateUI();
                             toast('Synced from cloud!');
                         }
+                        // Auto-sync any unsynced history to DailyLog
+                        await syncHistoryToSheets(true);
                         seedUsageFromSheets();
                         syncSteps();
                     }
@@ -675,6 +687,8 @@
                         toast('Synced from cloud');
                     }
                 });
+                // Auto-sync any unsynced history to DailyLog
+                syncHistoryToSheets(true);
                 seedUsageFromSheets();
             }
             updateSyncStatus();
@@ -815,6 +829,55 @@
                 toast('Synced from cloud!');
             } else {
                 toast('No cloud data or not signed in');
+            }
+        }
+        
+        // Sync local history to DailyLog sheet
+        async function syncHistoryToSheets(silent = false) {
+            if (!accessToken) { 
+                if (!silent) toast('Please sign in first');
+                return; 
+            }
+            if (!silent) toast('Syncing history...');
+            const history = JSON.parse(localStorage.getItem('hed_history') || '[]');
+            if (!history.length) {
+                if (!silent) toast('No history to sync');
+                return;
+            }
+            
+            try {
+                // Get existing dates in DailyLog
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog!A:A`, {
+                    headers: { Authorization: `Bearer ${accessToken}` }
+                });
+                const data = await res.json();
+                const existingDates = new Set((data.values || []).flat());
+                
+                // Filter history to only new dates
+                const newEntries = history.filter(h => !existingDates.has(h.date));
+                
+                if (!newEntries.length) {
+                    if (!silent) toast('History already synced');
+                    return;
+                }
+                
+                // Append new entries
+                const rows = newEntries.map(h => [
+                    h.date, h.calIn, h.protein, h.calOut, h.steps || 0, 
+                    h.calIn - h.calOut, h.workout ? 'Yes' : 'No', ''
+                ]);
+                
+                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog!A:H:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ values: rows })
+                });
+                
+                if (!silent) toast(`Synced ${newEntries.length} day(s) to Sheets`);
+                console.log(`Auto-synced ${newEntries.length} day(s) to DailyLog`);
+            } catch (e) {
+                console.error('Sync history error:', e);
+                if (!silent) toast('Sync failed');
             }
         }
         
