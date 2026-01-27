@@ -359,7 +359,8 @@
             </div>
         </div>
         <div class="status-row">
-            <span class="status-chip">vs Target: <span id="deficit" class="deficit">0</span></span>
+            <span class="status-chip" id="weightDisplay">⚖️ --kg (Goal: 80kg)</span>
+            <span class="status-chip">Cal: <span id="calTarget">0/1600</span></span>
             <span class="status-chip" id="steps">0/7500 steps</span>
             <button class="copy-btn" id="workoutBtn" onclick="toggleWorkout()">⬜ Workout</button>
             <button class="copy-btn" onclick="copySummary()">📋 Summary</button>
@@ -371,7 +372,7 @@
     <div class="tabs">
         <button class="tab active" onclick="showPane('today')">Today</button>
         <button class="tab" onclick="showPane('add')">Add</button>
-        <button class="tab" onclick="showPane('plan')">Plan</button>
+        <button class="tab" onclick="showPane('plan')">Exercise</button>
         <button class="tab" onclick="showPane('history')">History</button>
     </div>
     
@@ -411,6 +412,7 @@
             <div class="quick-grid">
                 <button class="qbtn action" onclick="syncSteps()">🔄 Sync Steps</button>
                 <button class="qbtn action" onclick="refreshFromSheets()">☁️ Refresh from Cloud</button>
+                <button class="qbtn action" onclick="syncWeight()">⚖️ Sync Weight</button>
                 <button class="qbtn action" onclick="googleSignIn()" id="signInBtn" style="display:none;">🔑 Sign In</button>
             </div>
         </div>
@@ -489,7 +491,7 @@
     <script>
         // Config
         const CLIENT_ID = '163799557992-hgstjj16f2d587jjicjonmlulaqsh552.apps.googleusercontent.com';
-        const SCOPES = 'https://www.googleapis.com/auth/fitness.activity.read https://www.googleapis.com/auth/spreadsheets';
+        const SCOPES = 'https://www.googleapis.com/auth/fitness.activity.read https://www.googleapis.com/auth/fitness.body.read https://www.googleapis.com/auth/spreadsheets';
         const SHEET_ID = '13jRxb7mOAZUyi1mO3z005W6gtG5Kh4X5PZPM4FTwNMY';
         const TARGETS = { cal: 1600, protein: 110 };
         
@@ -497,15 +499,29 @@
         let state = { date: '', calIn: 0, calOut: 0, protein: 0, steps: 0, workout: false, entries: [] };
         let photoData = null;
         
-        // Weekly plan data
+        // Weekly plan data with exercise details
         const WEEKLY_PLAN = [
-            { day: 'Monday', workout: 'Ab Circuit', cal: 200, time: '10-11am', details: 'Pilates warmup (15-20 min) + GymFiesta belly routine. 9 exercises, 3-4 sets, 14-20 reps.' },
-            { day: 'Tuesday', workout: 'Bike', cal: 400, time: '10-11am', details: '35-40 min moderate pace, 350-450 kcal burn.' },
-            { day: 'Wednesday', workout: 'Resistance', cal: 180, time: '10-11am', details: 'Muscle bending bar + resistance bands. 5 exercises each, 3 sets.' },
-            { day: 'Thursday', workout: 'Ab Circuit', cal: 200, time: '10-11am', details: 'Pilates warmup (15-20 min) + GymFiesta belly routine. 9 exercises, 3-4 sets, 14-20 reps.' },
-            { day: 'Friday', workout: 'Bike', cal: 400, time: '10-11am', details: '35-40 min moderate pace, 350-450 kcal burn.' },
-            { day: 'Saturday', workout: 'Resistance', cal: 180, time: '10-11am', details: 'Muscle bending bar + resistance bands. 5 exercises each, 3 sets.' },
-            { day: 'Sunday', workout: 'Rest Day', cal: 0, time: '', details: '45-60 min walk recommended.' },
+            { day: 'Monday', workout: 'Ab Circuit', cal: 200, time: '10-11am', 
+              details: 'Pilates warmup (15-20 min) + GymFiesta belly routine.',
+              exercises: ['Crunches 3x20', 'Leg Raises 3x15', 'Bicycle Crunches 3x20', 'Plank 3x45s', 'Mountain Climbers 3x20', 'Russian Twists 3x20', 'Dead Bug 3x15', 'Flutter Kicks 3x20', 'Reverse Crunches 3x15'] },
+            { day: 'Tuesday', workout: 'Bike', cal: 400, time: '10-11am', 
+              details: '35-40 min moderate pace.',
+              exercises: ['Warm up 5 min', 'Moderate pace 30-35 min', 'Cool down 5 min'] },
+            { day: 'Wednesday', workout: 'Resistance', cal: 180, time: '10-11am', 
+              details: 'Muscle bending bar + resistance bands.',
+              exercises: ['Bicep Curls 3x12', 'Tricep Extensions 3x12', 'Shoulder Press 3x12', 'Chest Press 3x12', 'Rows 3x12', 'Lat Pulldowns 3x12', 'Leg Press 3x12', 'Squats 3x15', 'Lunges 3x12 each'] },
+            { day: 'Thursday', workout: 'Ab Circuit', cal: 200, time: '10-11am', 
+              details: 'Pilates warmup (15-20 min) + GymFiesta belly routine.',
+              exercises: ['Crunches 3x20', 'Leg Raises 3x15', 'Bicycle Crunches 3x20', 'Plank 3x45s', 'Mountain Climbers 3x20', 'Russian Twists 3x20', 'Dead Bug 3x15', 'Flutter Kicks 3x20', 'Reverse Crunches 3x15'] },
+            { day: 'Friday', workout: 'Bike', cal: 400, time: '10-11am', 
+              details: '35-40 min moderate pace.',
+              exercises: ['Warm up 5 min', 'Moderate pace 30-35 min', 'Cool down 5 min'] },
+            { day: 'Saturday', workout: 'Resistance', cal: 180, time: '10-11am', 
+              details: 'Muscle bending bar + resistance bands.',
+              exercises: ['Bicep Curls 3x12', 'Tricep Extensions 3x12', 'Shoulder Press 3x12', 'Chest Press 3x12', 'Rows 3x12', 'Lat Pulldowns 3x12', 'Leg Press 3x12', 'Squats 3x15', 'Lunges 3x12 each'] },
+            { day: 'Sunday', workout: 'Rest Day', cal: 0, time: '', 
+              details: 'Active recovery.',
+              exercises: ['45-60 min walk', 'Stretching', 'Foam rolling (optional)'] },
         ];
         
         // Food and exercise items
@@ -861,6 +877,12 @@
             
             document.getElementById('steps').textContent = state.steps.toLocaleString() + '/7500 steps';
             document.getElementById('workoutBtn').textContent = state.workout ? '✅ Workout' : '⬜ Workout';
+            document.getElementById('calTarget').textContent = state.calIn + '/1600';
+            
+            // Weight display
+            const weight = localStorage.getItem('hed_weight') || '--';
+            const weightDate = localStorage.getItem('hed_weight_date') || '';
+            document.getElementById('weightDisplay').textContent = '⚖️ ' + weight + 'kg' + (weightDate ? ' (' + weightDate + ')' : '') + ' → 80kg';
             
             renderLog();
             renderHistory();
@@ -873,16 +895,31 @@
             const list = document.getElementById('planList');
             if (!list) return;
             
-            list.innerHTML = WEEKLY_PLAN.map(p => `
+            list.innerHTML = WEEKLY_PLAN.map((p, i) => `
                 <div class="summary-card" style="${p.day === todayName ? 'border-left: 4px solid #667eea; background: #f8f9ff;' : ''}">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="togglePlanDay(${i})">
                         <span style="font-weight:600;font-size:13px;">${p.day}${p.day === todayName ? ' (TODAY)' : ''}</span>
-                        <span style="font-size:11px;color:#666;">${p.time}</span>
+                        <span style="font-size:11px;color:#666;">${p.time} <span id="planArrow${i}">▶</span></span>
                     </div>
-                    <div style="font-size:12px;color:#333;margin-bottom:4px;">💪 ${p.workout} ${p.cal ? `(${p.cal} cal)` : ''}</div>
-                    <div style="font-size:11px;color:#666;">${p.details}</div>
+                    <div style="font-size:12px;color:#333;margin-top:6px;">💪 ${p.workout} ${p.cal ? `(${p.cal} cal)` : ''}</div>
+                    <div style="font-size:11px;color:#666;margin-top:4px;">${p.details}</div>
+                    <div id="planExercises${i}" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid #eee;">
+                        ${p.exercises.map(ex => `<div style="font-size:11px;color:#444;padding:3px 0;">• ${ex}</div>`).join('')}
+                    </div>
                 </div>
             `).join('');
+        }
+        
+        function togglePlanDay(i) {
+            const el = document.getElementById('planExercises' + i);
+            const arrow = document.getElementById('planArrow' + i);
+            if (el.style.display === 'none') {
+                el.style.display = 'block';
+                arrow.textContent = '▼';
+            } else {
+                el.style.display = 'none';
+                arrow.textContent = '▶';
+            }
         }
         
         function renderLog() {
@@ -1164,6 +1201,49 @@
             document.getElementById('customName').value = '';
             document.getElementById('customCal').value = '';
             document.getElementById('customPro').value = '';
+        }
+        
+        function promptWeight() {
+            const weight = prompt('Enter weight in kg:', localStorage.getItem('hed_weight') || '');
+            if (weight && !isNaN(parseFloat(weight))) {
+                localStorage.setItem('hed_weight', parseFloat(weight).toFixed(1));
+                localStorage.setItem('hed_weight_date', new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                updateUI();
+                toast('Weight logged: ' + weight + 'kg');
+            }
+        }
+        
+        async function syncWeight() {
+            if (!accessToken) { googleSignIn(); return; }
+            toast('Syncing weight...');
+            const now = new Date();
+            const start = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate()).getTime(); // Last 30 days
+            try {
+                const res = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataSources/derived:com.google.weight:com.google.android.gms:merge_weight/datasets/' + start + '000000-' + now.getTime() + '000000', {
+                    headers: { Authorization: `Bearer ${accessToken}` }
+                });
+                if (res.status === 401) {
+                    toast('Please sign in again');
+                    return;
+                }
+                const data = await res.json();
+                if (data.point && data.point.length > 0) {
+                    // Get most recent weight
+                    const latest = data.point[data.point.length - 1];
+                    const weightKg = latest.value[0].fpVal;
+                    const weightDate = new Date(parseInt(latest.startTimeNanos) / 1000000);
+                    
+                    localStorage.setItem('hed_weight', weightKg.toFixed(1));
+                    localStorage.setItem('hed_weight_date', weightDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                    updateUI();
+                    toast('Weight: ' + weightKg.toFixed(1) + 'kg');
+                } else {
+                    toast('No weight data found');
+                }
+            } catch (e) {
+                console.error('Weight sync error:', e);
+                toast('Weight sync failed');
+            }
         }
         
         function closeModal(id) { document.getElementById(id).classList.remove('open'); }
