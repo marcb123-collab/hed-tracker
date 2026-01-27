@@ -1170,13 +1170,25 @@
         
         // Input parsing
         function parseInput() {
-            const input = document.getElementById('inputField').value.trim();
+            let input = document.getElementById('inputField').value.trim();
             if (!input) return;
             
-            // Match: Name 000cal 00g
+            // Remove quotes and invisible characters
+            input = input.replace(/^['"""']+|['"""']+$/g, '');
+            input = input.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, ''); // zero-width chars, nbsp
+            
+            // Match: Name 000cal 00g (with or without space, g optional)
             const match = input.match(/^(.+?)\s+(\d+)\s*cal\s*(\d+)\s*g?$/i);
             if (match) {
                 addFood(match[1].trim(), parseInt(match[2]), parseInt(match[3]));
+                document.getElementById('inputField').value = '';
+                return;
+            }
+            
+            // Match: Name 000cal00g (no space between cal and protein)
+            const match1b = input.match(/^(.+?)\s+(\d+)\s*cal(\d+)\s*g?$/i);
+            if (match1b) {
+                addFood(match1b[1].trim(), parseInt(match1b[2]), parseInt(match1b[3]));
                 document.getElementById('inputField').value = '';
                 return;
             }
