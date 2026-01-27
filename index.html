@@ -879,7 +879,7 @@
             
             document.getElementById('steps').textContent = state.steps.toLocaleString() + '/7500 steps';
             document.getElementById('workoutBtn').textContent = state.workout ? '✅ Workout' : '⬜ Workout';
-            document.getElementById('calTarget').textContent = state.calIn + '/1600';
+            document.getElementById('calTarget').textContent = (state.calIn - state.calOut) + '/1600';
             
             // Weight display
             const weight = localStorage.getItem('hed_weight') || '--';
