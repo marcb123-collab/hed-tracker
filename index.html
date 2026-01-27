@@ -446,7 +446,7 @@
     <div class="input-bar">
         <input type="text" class="input-field" id="inputField" placeholder="Paste: Saba Set 650cal 35g">
         <button class="input-btn photo" onclick="takePhoto()">📷</button>
-        <button class="input-btn add" onclick="parseInput()">+</button>
+        <button class="input-btn add" onclick="parseInput()">▶</button>
     </div>
     
     <!-- Hidden inputs -->
@@ -803,10 +803,22 @@
         }
         
         function showPane(name) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
-            document.querySelector(`.tab:nth-child(${name==='today'?1:name==='add'?2:3})`).classList.add('active');
-            document.getElementById(name + 'Pane').classList.add('active');
+            // Remove active from all tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(t => t.classList.remove('active'));
+            
+            // Remove active from all panes
+            const panes = document.querySelectorAll('.pane');
+            panes.forEach(p => p.classList.remove('active'));
+            
+            // Add active to selected tab
+            if (name === 'today') tabs[0].classList.add('active');
+            else if (name === 'add') tabs[1].classList.add('active');
+            else if (name === 'history') tabs[2].classList.add('active');
+            
+            // Add active to selected pane
+            const pane = document.getElementById(name + 'Pane');
+            if (pane) pane.classList.add('active');
         }
         
         function toast(msg) {
@@ -883,4 +895,155 @@
                 }
                 const data = await res.json();
                 let steps = 0;
-                data.bucket?.forEach(b => b.dataset?.forEach(d => d.point?.forEach(p => { steps += p.value?.[0]?.intVal ||
+                data.bucket?.forEach(b => b.dataset?.forEach(d => d.point?.forEach(p => { steps += p.value?.[0]?.intVal || 0; })));
+                
+                const oldCal = Math.round(state.steps * 0.04);
+                const newCal = Math.round(steps * 0.04);
+                state.calOut = state.calOut - oldCal + newCal;
+                state.steps = steps;
+                
+                const idx = state.entries.findIndex(e => e.name?.includes('Steps'));
+                if (idx >= 0) state.entries[idx] = { type: 'exercise', name: 'Steps (Synced)', cal: newCal, steps, time: Date.now() };
+                else state.entries.push({ type: 'exercise', name: 'Steps (Synced)', cal: newCal, steps, time: Date.now() });
+                
+                saveState();
+                updateUI();
+                toast(steps.toLocaleString() + ' steps synced');
+            } catch (e) {
+                console.error(e);
+                toast('Sync failed');
+            }
+        }
+        
+        function saveManualSteps() {
+            const steps = parseInt(document.getElementById('stepsInput').value) || 0;
+            const oldCal = Math.round(state.steps * 0.04);
+            const newCal = Math.round(steps * 0.04);
+            state.calOut = state.calOut - oldCal + newCal;
+            state.steps = steps;
+            
+            const idx = state.entries.findIndex(e => e.name?.includes('Steps'));
+            if (idx >= 0) state.entries[idx] = { type: 'exercise', name: 'Steps (Manual)', cal: newCal, steps, time: Date.now() };
+            else state.entries.push({ type: 'exercise', name: 'Steps (Manual)', cal: newCal, steps, time: Date.now() });
+            
+            saveState();
+            updateUI();
+            closeModal('stepsModal');
+            showPane('today');
+            toast(steps.toLocaleString() + ' steps logged');
+        }
+        
+        // Photo
+        function takePhoto() { document.getElementById('cameraInput').click(); }
+        function uploadPhoto() { document.getElementById('photoInput').click(); }
+        
+        function handlePhoto(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                photoData = ev.target.result;
+                document.getElementById('photoPreview').src = photoData;
+                document.getElementById('photoPreview').style.display = 'block';
+                document.getElementById('photoModal').classList.add('open');
+            };
+            reader.readAsDataURL(file);
+            e.target.value = '';
+        }
+        
+        function savePhoto() {
+            const name = document.getElementById('photoName').value || 'Meal';
+            const cal = parseInt(document.getElementById('photoCal').value) || 0;
+            const protein = parseInt(document.getElementById('photoPro').value) || 0;
+            state.calIn += cal;
+            state.protein += protein;
+            state.entries.push({ type: 'food', name, cal, protein, photo: photoData, time: Date.now() });
+            saveState();
+            updateUI();
+            closeModal('photoModal');
+            document.getElementById('photoName').value = '';
+            document.getElementById('photoCal').value = '';
+            document.getElementById('photoPro').value = '';
+            photoData = null;
+            showPane('today');
+            toast('Added ' + name);
+        }
+        
+        // Custom
+        function openCustom() { document.getElementById('customModal').classList.add('open'); }
+        
+        function saveCustom() {
+            const name = document.getElementById('customName').value || 'Custom';
+            const cal = parseInt(document.getElementById('customCal').value) || 0;
+            const protein = parseInt(document.getElementById('customPro').value) || 0;
+            addFood(name, cal, protein);
+            closeModal('customModal');
+            document.getElementById('customName').value = '';
+            document.getElementById('customCal').value = '';
+            document.getElementById('customPro').value = '';
+        }
+        
+        function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+        
+        // Input parsing
+        function parseInput() {
+            const input = document.getElementById('inputField').value.trim();
+            if (!input) return;
+            
+            // Match: Name 000cal 00g
+            const match = input.match(/^(.+?)\s+(\d+)\s*cal\s*(\d+)\s*g?$/i);
+            if (match) {
+                addFood(match[1].trim(), parseInt(match[2]), parseInt(match[3]));
+                document.getElementById('inputField').value = '';
+                return;
+            }
+            
+            // Match: Name 000cal
+            const match2 = input.match(/^(.+?)\s+(\d+)\s*cal$/i);
+            if (match2) {
+                addFood(match2[1].trim(), parseInt(match2[2]), 0);
+                document.getElementById('inputField').value = '';
+                return;
+            }
+            
+            // Match: 0000 steps
+            const match3 = input.match(/^(\d+)\s*steps?$/i);
+            if (match3) {
+                document.getElementById('stepsInput').value = match3[1];
+                saveManualSteps();
+                document.getElementById('inputField').value = '';
+                return;
+            }
+            
+            toast('Format: Saba Set 650cal 35g');
+        }
+        
+        document.getElementById('inputField').addEventListener('keypress', e => { if (e.key === 'Enter') parseInput(); });
+        
+        // Copy functions
+        function copySummary() {
+            const net = state.calIn - state.calOut;
+            const text = `Cal: ${state.calIn}/1600 | Protein: ${state.protein}/110g | Burned: ${state.calOut} | Net: ${net}`;
+            navigator.clipboard.writeText(text);
+            toast('Summary copied!');
+        }
+        
+        function copyFull() {
+            const date = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            let text = `HED ${date}:\n`;
+            state.entries.forEach(e => {
+                if (e.type === 'food') text += `• ${e.name} (${e.cal}/${e.protein}g)\n`;
+                else text += `• ${e.name} (${e.cal} cal)\n`;
+            });
+            const net = state.calIn - state.calOut;
+            text += `---\nCal: ${state.calIn}/1600 | Protein: ${state.protein}/110g | Burned: ${state.calOut} | Net: ${net}`;
+            navigator.clipboard.writeText(text);
+            toast('Full log copied!');
+        }
+        
+        // Start
+        window.onload = init;
+    </script>
+    <script src="https://accounts.google.com/gsi/client" async></script>
+</body>
+</html>
