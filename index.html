@@ -541,6 +541,44 @@
             localStorage.setItem('hed_usage', JSON.stringify(itemUsage));
         }
         
+        function seedUsageFromState() {
+            // Count from today's entries
+            state.entries.forEach(e => {
+                itemUsage[e.name] = (itemUsage[e.name] || 0) + 1;
+            });
+            localStorage.setItem('hed_usage', JSON.stringify(itemUsage));
+        }
+        
+        async function seedUsageFromSheets() {
+            if (!accessToken) return;
+            try {
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog!H2:H100`, {
+                    headers: { Authorization: `Bearer ${accessToken}` }
+                });
+                if (res.status !== 200) return;
+                
+                const data = await res.json();
+                if (!data.values) return;
+                
+                // Count item occurrences from Items column
+                data.values.forEach(row => {
+                    if (row[0]) {
+                        row[0].split(', ').forEach(item => {
+                            const name = item.trim();
+                            if (name) {
+                                itemUsage[name] = (itemUsage[name] || 0) + 1;
+                            }
+                        });
+                    }
+                });
+                localStorage.setItem('hed_usage', JSON.stringify(itemUsage));
+                renderButtons();
+                console.log('Seeded usage from sheets:', itemUsage);
+            } catch (e) {
+                console.error('Seed usage error:', e);
+            }
+        }
+        
         function renderButtons() {
             // Sort foods by usage
             const sortedFoods = [...ALL_FOODS].sort((a, b) => (itemUsage[b.name] || 0) - (itemUsage[a.name] || 0));
@@ -572,6 +610,7 @@
         async function init() {
             state.date = new Date().toDateString();
             loadState();
+            seedUsageFromState();
             updateUI();
             initGoogle();
             scheduleMidnightSave();
@@ -597,6 +636,7 @@
                             updateUI();
                             toast('Synced from cloud!');
                         }
+                        seedUsageFromSheets();
                         syncSteps();
                     }
                 }
@@ -612,6 +652,7 @@
                         toast('Synced from cloud');
                     }
                 });
+                seedUsageFromSheets();
             }
             updateSyncStatus();
         }
