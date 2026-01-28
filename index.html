@@ -870,19 +870,33 @@
                     headers: { Authorization: `Bearer ${accessToken}` }
                 });
                 const data = await res.json();
-                const existingDates = new Set((data.values || []).flat());
                 
-                // Filter history to only new dates
-                const newEntries = history.filter(h => !existingDates.has(h.date));
+                // Normalize all dates to YYYY-MM-DD for comparison
+                const normalizeDate = (d) => {
+                    if (!d) return '';
+                    // If already YYYY-MM-DD format
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+                    // Try to parse and convert
+                    try {
+                        const parsed = new Date(d);
+                        if (!isNaN(parsed)) return parsed.toLocaleDateString('en-CA');
+                    } catch {}
+                    return d;
+                };
+                
+                const existingDates = new Set((data.values || []).flat().map(normalizeDate));
+                
+                // Filter history to only new dates (normalize for comparison)
+                const newEntries = history.filter(h => !existingDates.has(normalizeDate(h.date)));
                 
                 if (!newEntries.length) {
                     if (!silent) toast('History already synced');
                     return;
                 }
                 
-                // Append new entries
+                // Append new entries with normalized dates
                 const rows = newEntries.map(h => [
-                    h.date, h.calIn, h.protein, h.calOut, h.steps || 0, 
+                    normalizeDate(h.date), h.calIn, h.protein, h.calOut, h.steps || 0, 
                     h.calIn - h.calOut, h.workout ? 'Yes' : 'No', ''
                 ]);
                 
