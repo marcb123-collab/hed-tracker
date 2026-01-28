@@ -874,12 +874,10 @@
                 // Normalize all dates to YYYY-MM-DD for comparison
                 const normalizeDate = (d) => {
                     if (!d) return '';
-                    // If already YYYY-MM-DD format
                     if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
-                    // Try to parse and convert
                     try {
                         const parsed = new Date(d);
-                        if (!isNaN(parsed)) return parsed.toLocaleDateString('en-CA');
+                        if (!isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0];
                     } catch {}
                     return d;
                 };
@@ -1050,7 +1048,7 @@
                 if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
                 try {
                     const parsed = new Date(d);
-                    if (!isNaN(parsed)) return parsed.toLocaleDateString('en-CA');
+                    if (!isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0];
                 } catch {}
                 return d;
             };
