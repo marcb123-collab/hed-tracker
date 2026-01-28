@@ -900,6 +900,30 @@
         async function archiveToDaily(row) {
             if (!accessToken) return;
             try {
+                // Normalize date function
+                const normalizeDate = (d) => {
+                    if (!d) return '';
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+                    try {
+                        const parsed = new Date(d);
+                        if (!isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0];
+                    } catch {}
+                    return d;
+                };
+                
+                // Check if date already exists in DailyLog
+                const checkRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog!A:A`, {
+                    headers: { Authorization: `Bearer ${accessToken}` }
+                });
+                const checkData = await checkRes.json();
+                const existingDates = new Set((checkData.values || []).flat().map(normalizeDate));
+                const rowDate = normalizeDate(row[0]);
+                
+                if (existingDates.has(rowDate)) {
+                    console.log('Date already archived:', rowDate);
+                    return;
+                }
+                
                 // Ensure headers
                 await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog!A1:H1?valueInputOption=RAW`, {
                     method: 'PUT',
@@ -914,14 +938,14 @@
                     items = entries.map(e => e.name).join(', ');
                 } catch {}
                 
-                const archiveRow = [row[0], row[1], row[2], row[3], row[4], row[5], row[6], items];
+                const archiveRow = [rowDate, row[1], row[2], row[3], row[4], row[5], row[6], items];
                 
                 await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog!A:H:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
                     method: 'POST',
                     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ values: [archiveRow] })
                 });
-                console.log('Archived to DailyLog');
+                console.log('Archived to DailyLog:', rowDate);
             } catch (e) {
                 console.error('Archive error:', e);
             }
