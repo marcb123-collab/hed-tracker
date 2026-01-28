@@ -997,7 +997,14 @@
                 const existingDates = new Set((data.values || []).flat().map(normalizeDate));
                 
                 // Filter history to only new dates (normalize for comparison)
-                const newEntries = history.filter(h => !existingDates.has(normalizeDate(h.date)));
+                const newEntries = history.filter(h => {
+                    const normDate = normalizeDate(h.date);
+                    // Skip if no date or already exists
+                    if (!normDate || existingDates.has(normDate)) return false;
+                    // Skip if no actual data
+                    if (!h.calIn && !h.protein) return false;
+                    return true;
+                });
                 
                 if (!newEntries.length) {
                     if (!silent) toast('History already synced');
@@ -1006,8 +1013,8 @@
                 
                 // Append new entries with normalized dates
                 const rows = newEntries.map(h => [
-                    normalizeDate(h.date), h.calIn, h.protein, h.calOut, h.steps || 0, 
-                    h.calIn - h.calOut, h.workout ? 'Yes' : 'No', ''
+                    normalizeDate(h.date), h.calIn || 0, h.protein || 0, h.calOut || 0, h.steps || 0, 
+                    (h.calIn || 0) - (h.calOut || 0), h.workout ? 'Yes' : 'No', ''
                 ]);
                 
                 await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog!A:H:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
@@ -1027,9 +1034,30 @@
         function saveToHistory(data) {
             if (!data.calIn && !data.entries.length) return;
             let history = JSON.parse(localStorage.getItem('hed_history') || '[]');
-            // Use YYYY-MM-DD format for consistency
-            const dateStr = new Date().toLocaleDateString('en-CA');
-            history.unshift({ date: dateStr, calIn: data.calIn, calOut: data.calOut, protein: data.protein, steps: data.steps, workout: data.workout });
+            
+            // Normalize date function
+            const normalizeDate = (d) => {
+                if (!d) return new Date().toLocaleDateString('en-CA');
+                if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+                try {
+                    const parsed = new Date(d);
+                    if (!isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0];
+                } catch {}
+                return new Date().toLocaleDateString('en-CA');
+            };
+            
+            // Use the data's date, normalized to YYYY-MM-DD
+            const dateStr = normalizeDate(data.date);
+            
+            // Check if this date already exists in history
+            const existingIndex = history.findIndex(h => normalizeDate(h.date) === dateStr);
+            if (existingIndex >= 0) {
+                // Update existing entry
+                history[existingIndex] = { date: dateStr, calIn: data.calIn, calOut: data.calOut, protein: data.protein, steps: data.steps, workout: data.workout };
+            } else {
+                // Add new entry
+                history.unshift({ date: dateStr, calIn: data.calIn, calOut: data.calOut, protein: data.protein, steps: data.steps, workout: data.workout });
+            }
             localStorage.setItem('hed_history', JSON.stringify(history.slice(0, 30)));
         }
         
