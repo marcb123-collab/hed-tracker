@@ -207,7 +207,9 @@
             border-top: 1px solid #e0e0e0;
             display: flex;
             gap: 8px;
-            padding-bottom: max(10px, env(safe-area-inset-bottom));
+            padding-bottom: max(20px, calc(env(safe-area-inset-bottom) + 10px));
+            position: sticky;
+            bottom: 0;
         }
         
         .input-field {
@@ -339,6 +341,7 @@
         <div class="dash-header">
             <span class="dash-title">Marc's HED Tracker</span>
             <div style="display:flex;align-items:center;gap:8px;">
+                <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
                 <span class="dash-date" id="dateDisplay"></span>
             </div>
@@ -770,19 +773,31 @@
                 const today = new Date().toLocaleDateString('en-CA');
                 
                 if (data.values && data.values[0] && data.values[0][0] === today) {
-                    // Sheet has today's data - load it
+                    // Sheet has today's data - merge with local (prefer the one with more entries)
                     const row = data.values[0];
+                    const sheetCalIn = parseInt(row[1]) || 0;
+                    let sheetEntries = [];
+                    try { 
+                        sheetEntries = JSON.parse(row[7] || '[]'); 
+                    } catch { 
+                        sheetEntries = []; 
+                    }
+                    
+                    // If local has more data, push local to sheet instead
+                    if (state.calIn > sheetCalIn || state.entries.length > sheetEntries.length) {
+                        console.log('Local has more data, syncing to sheet');
+                        await syncToLiveData();
+                        return false;
+                    }
+                    
+                    // Sheet has more data, load it
                     state.date = new Date().toDateString();
-                    state.calIn = parseInt(row[1]) || 0;
+                    state.calIn = sheetCalIn;
                     state.protein = parseInt(row[2]) || 0;
                     state.calOut = parseInt(row[3]) || 0;
                     state.steps = parseInt(row[4]) || 0;
                     state.workout = row[6] === 'Yes';
-                    try { 
-                        state.entries = JSON.parse(row[7] || '[]'); 
-                    } catch { 
-                        state.entries = []; 
-                    }
+                    state.entries = sheetEntries;
                     localStorage.setItem('hed_state', JSON.stringify(state));
                     console.log('Loaded from LiveData:', state);
                     return true;
@@ -797,6 +812,12 @@
                     });
                     // Sync current local state to LiveData
                     if (state.entries.length > 0) {
+                        await syncToLiveData();
+                    }
+                } else {
+                    // No data in sheet for today - sync local to sheet
+                    if (state.entries.length > 0) {
+                        console.log('Sheet empty, syncing local to sheet');
                         await syncToLiveData();
                     }
                 }
@@ -1097,11 +1118,23 @@
                 const data = await res.json();
                 if (!data.values || !data.values.length) return;
                 
-                // Convert sheet rows to history format, dedupe by date
+                // Normalize date function
+                const normalizeDate = (d) => {
+                    if (!d) return '';
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+                    try {
+                        const parsed = new Date(d);
+                        if (!isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0];
+                    } catch {}
+                    return d;
+                };
+                
+                // Convert sheet rows to history format, dedupe by normalized date
                 const seenDates = new Set();
                 const sheetHistory = [];
                 data.values.forEach(row => {
-                    const date = row[0];
+                    const rawDate = row[0];
+                    const date = normalizeDate(rawDate);
                     if (date && !seenDates.has(date)) {
                         seenDates.add(date);
                         sheetHistory.push({
@@ -1115,11 +1148,13 @@
                     }
                 });
                 
-                // Merge with local history (dedupe by date)
+                // Merge with local history (dedupe by normalized date)
                 const localHistory = JSON.parse(localStorage.getItem('hed_history') || '[]');
                 localHistory.forEach(h => {
-                    if (!seenDates.has(h.date)) {
-                        seenDates.add(h.date);
+                    const normDate = normalizeDate(h.date);
+                    if (!seenDates.has(normDate)) {
+                        seenDates.add(normDate);
+                        h.date = normDate;
                         sheetHistory.push(h);
                     }
                 });
