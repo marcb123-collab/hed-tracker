@@ -1033,9 +1033,9 @@
             if (!history.length) {
                 list.innerHTML = '<div class="no-entries">No history yet</div>';
             } else {
-                list.innerHTML = history.map(d => `
+                list.innerHTML = history.map((d, i) => `
                     <div class="history-card">
-                        <div class="history-date"><span>${d.date}</span><span>${d.workout ? '✅' : '⬜'}</span></div>
+                        <div class="history-date"><span>${d.date}</span><span>${d.workout ? '✅' : '⬜'} <button onclick="deleteHistoryItem(${i})" style="background:none;border:none;color:#ccc;font-size:14px;cursor:pointer;">×</button></span></div>
                         <div class="history-stats">
                             <div class="history-stat ${d.calIn <= TARGETS.cal ? 'good' : 'bad'}"><div class="history-stat-value">${d.calIn}</div><div class="history-stat-label">Cal In</div></div>
                             <div class="history-stat ${d.protein >= TARGETS.protein ? 'good' : ''}"><div class="history-stat-value">${d.protein}g</div><div class="history-stat-label">Protein</div></div>
@@ -1102,9 +1102,9 @@
                     list.innerHTML = '<div class="no-entries">No history yet</div>';
                     return;
                 }
-                list.innerHTML = sheetHistory.slice(0, 30).map(d => `
+                list.innerHTML = sheetHistory.slice(0, 30).map((d, i) => `
                     <div class="history-card">
-                        <div class="history-date"><span>${d.date}</span><span>${d.workout ? '✅' : '⬜'}</span></div>
+                        <div class="history-date"><span>${d.date}</span><span>${d.workout ? '✅' : '⬜'} <button onclick="deleteHistoryItem(${i})" style="background:none;border:none;color:#ccc;font-size:14px;cursor:pointer;">×</button></span></div>
                         <div class="history-stats">
                             <div class="history-stat ${d.calIn <= TARGETS.cal ? 'good' : 'bad'}"><div class="history-stat-value">${d.calIn}</div><div class="history-stat-label">Cal In</div></div>
                             <div class="history-stat ${d.protein >= TARGETS.protein ? 'good' : ''}"><div class="history-stat-value">${d.protein}g</div><div class="history-stat-label">Protein</div></div>
@@ -1115,6 +1115,16 @@
                 `).join('');
             } catch (e) {
                 console.error('Load history error:', e);
+            }
+        }
+        
+        function deleteHistoryItem(index) {
+            let history = JSON.parse(localStorage.getItem('hed_history') || '[]');
+            if (index >= 0 && index < history.length) {
+                history.splice(index, 1);
+                localStorage.setItem('hed_history', JSON.stringify(history));
+                renderHistory();
+                toast('Deleted from history');
             }
         }
         
