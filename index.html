@@ -100,6 +100,22 @@
         
         .copy-btn:active { background: rgba(255,255,255,0.4); }
         
+        .workout-btn {
+            background: rgba(255,255,255,0.3);
+            border: 2px solid rgba(255,255,255,0.6);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .workout-btn.done {
+            background: rgba(76,175,80,0.8);
+            border-color: rgba(76,175,80,1);
+        }
+        
         /* Tabs */
         .tabs {
             display: flex;
@@ -378,7 +394,7 @@
             <span class="status-chip" id="weightDisplay">⚖️ --kg (Goal: 80kg)</span>
             <span class="status-chip">Cal: <span id="calTarget">0/1600</span></span>
             <span class="status-chip" id="steps">0/7500 steps</span>
-            <button class="copy-btn" id="workoutBtn" onclick="toggleWorkout()">⬜ Workout</button>
+            <button class="workout-btn" id="workoutBtn" onclick="toggleWorkout()">☐ Workout</button>
             <button class="copy-btn" onclick="copySummary()">📋 Summary</button>
             <button class="copy-btn" onclick="copyFull()">📋 Today</button>
         </div>
@@ -512,8 +528,34 @@
         const TARGETS = { cal: 1600, protein: 110 };
         
         let tokenClient, accessToken = localStorage.getItem('hed_token');
+        let tokenExpiry = parseInt(localStorage.getItem('hed_token_expiry')) || 0;
         let state = { date: '', calIn: 0, calOut: 0, protein: 0, steps: 0, workout: false, entries: [] };
         let photoData = null;
+        
+        // Check if token needs refresh (less than 5 min left)
+        function tokenNeedsRefresh() {
+            return !accessToken || Date.now() > tokenExpiry - 300000; // 5 min buffer
+        }
+        
+        // Silently refresh token
+        async function refreshTokenSilently() {
+            return new Promise((resolve) => {
+                if (!tokenClient) { resolve(false); return; }
+                tokenClient.requestAccessToken({ prompt: '' });
+                // The callback in initGoogle will handle the response
+                // Give it 3 seconds to complete
+                setTimeout(() => resolve(!!accessToken), 3000);
+            });
+        }
+        
+        // Ensure valid token before API calls
+        async function ensureValidToken() {
+            if (tokenNeedsRefresh()) {
+                console.log('Token expired or expiring soon, refreshing...');
+                await refreshTokenSilently();
+            }
+            return !!accessToken;
+        }
         
         // Weekly plan data with exercise details
         const WEEKLY_PLAN = [
@@ -524,8 +566,8 @@
               details: '35-40 min moderate pace.',
               exercises: ['Warm up 5 min', 'Moderate pace 30-35 min', 'Cool down 5 min'] },
             { day: 'Wednesday', workout: 'Resistance', cal: 180, time: '10-11am', 
-              details: 'Muscle bending bar + resistance bands.',
-              exercises: ['Bicep Curls 3x12', 'Tricep Extensions 3x12', 'Shoulder Press 3x12', 'Chest Press 3x12', 'Rows 3x12', 'Lat Pulldowns 3x12', 'Leg Press 3x12', 'Squats 3x15', 'Lunges 3x12 each'] },
+              details: '~35-40 min. Chest, shoulders, and core.',
+              exercises: ['— Muscle Bending Bar —', 'Front Chest Press 3x15 (hold 2 sec)', 'Overhead Press & Bend 3x12', 'Behind-the-Back Squeeze 3x15', 'Abdominal Crunch with Bar 3x15', 'Rotational Twists 3x10 each side', '— Resistance Bands —', 'Standing Chest Press 3x15', 'Band Pull-Aparts 3x20', 'Woodchops 3x12 each side', 'Pallof Press 3x10 each side', 'Face Pulls 3x15'] },
             { day: 'Thursday', workout: 'Ab Circuit', cal: 200, time: '10-11am', 
               details: 'Pilates warmup (15-20 min) + GymFiesta belly routine.',
               exercises: ['Crunches 3x20', 'Leg Raises 3x15', 'Bicycle Crunches 3x20', 'Plank 3x45s', 'Mountain Climbers 3x20', 'Russian Twists 3x20', 'Dead Bug 3x15', 'Flutter Kicks 3x20', 'Reverse Crunches 3x15'] },
@@ -533,8 +575,8 @@
               details: '35-40 min moderate pace.',
               exercises: ['Warm up 5 min', 'Moderate pace 30-35 min', 'Cool down 5 min'] },
             { day: 'Saturday', workout: 'Resistance', cal: 180, time: '10-11am', 
-              details: 'Muscle bending bar + resistance bands.',
-              exercises: ['Bicep Curls 3x12', 'Tricep Extensions 3x12', 'Shoulder Press 3x12', 'Chest Press 3x12', 'Rows 3x12', 'Lat Pulldowns 3x12', 'Leg Press 3x12', 'Squats 3x15', 'Lunges 3x12 each'] },
+              details: '~35-40 min. Chest, shoulders, and core.',
+              exercises: ['— Muscle Bending Bar —', 'Front Chest Press 3x15 (hold 2 sec)', 'Overhead Press & Bend 3x12', 'Behind-the-Back Squeeze 3x15', 'Abdominal Crunch with Bar 3x15', 'Rotational Twists 3x10 each side', '— Resistance Bands —', 'Standing Chest Press 3x15', 'Band Pull-Aparts 3x20', 'Woodchops 3x12 each side', 'Pallof Press 3x10 each side', 'Face Pulls 3x15'] },
             { day: 'Sunday', workout: 'Rest Day', cal: 0, time: '', 
               details: 'Active recovery.',
               exercises: ['45-60 min walk', 'Stretching', 'Foam rolling (optional)'] },
@@ -641,12 +683,32 @@
                 el.style.background = '#4CAF50';
                 el.style.fontSize = '10px';
                 el.style.fontWeight = 'bold';
-                el.title = 'Signed in - tap to refresh';
+                el.title = 'Signed in - tap to refresh token';
             } else {
                 el.textContent = '';
                 el.style.background = 'rgba(255,255,255,0.4)';
                 el.title = 'Tap to sign in';
             }
+        }
+        
+        // Handle 401 errors by clearing token and prompting re-auth
+        function handleAuthError() {
+            localStorage.removeItem('hed_token');
+            accessToken = null;
+            updateSyncStatus();
+            toast('Session expired - tap MB to sign in');
+        }
+        
+        // Wrapper for authenticated fetch that handles 401
+        async function authFetch(url, options = {}) {
+            if (!accessToken) return null;
+            options.headers = { ...options.headers, Authorization: `Bearer ${accessToken}` };
+            const res = await fetch(url, options);
+            if (res.status === 401) {
+                handleAuthError();
+                return null;
+            }
+            return res;
         }
         
         // Init
@@ -670,7 +732,10 @@
                 callback: async (r) => {
                     if (r.access_token) {
                         accessToken = r.access_token;
+                        // Token expires in ~1 hour (3600 seconds)
+                        tokenExpiry = Date.now() + (r.expires_in || 3600) * 1000;
                         localStorage.setItem('hed_token', accessToken);
+                        localStorage.setItem('hed_token_expiry', tokenExpiry.toString());
                         document.getElementById('signInBtn').style.display = 'none';
                         updateSyncStatus();
                         // Load from Sheets after sign-in
@@ -732,6 +797,7 @@
         
         // Sync current state to LiveData sheet
         async function syncToLiveData() {
+            await ensureValidToken();
             if (!accessToken) return;
             const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
             const row = [today, state.calIn, state.protein, state.calOut, state.steps, state.calIn - state.calOut, state.workout ? 'Yes' : 'No', JSON.stringify(state.entries)];
@@ -749,6 +815,7 @@
         
         // Load state from LiveData sheet
         async function loadFromLiveData() {
+            await ensureValidToken();
             if (!accessToken) return false;
             try {
                 // First ensure headers exist
@@ -763,9 +830,7 @@
                 });
                 
                 if (res.status === 401) {
-                    localStorage.removeItem('hed_token');
-                    accessToken = null;
-                    updateSyncStatus();
+                    handleAuthError();
                     return false;
                 }
                 
@@ -995,7 +1060,9 @@
             document.getElementById('worBar').style.width = worPct + '%';
             
             document.getElementById('steps').textContent = state.steps.toLocaleString() + '/7500 steps';
-            document.getElementById('workoutBtn').textContent = state.workout ? '✅ Workout' : '⬜ Workout';
+            const workoutBtn = document.getElementById('workoutBtn');
+            workoutBtn.textContent = state.workout ? '☑ Workout' : '☐ Workout';
+            workoutBtn.className = state.workout ? 'workout-btn done' : 'workout-btn';
             document.getElementById('calTarget').textContent = (state.calIn - state.calOut) + '/1600';
             
             // Weight display
@@ -1267,6 +1334,7 @@
         
         // Steps
         async function syncSteps() {
+            await ensureValidToken();
             if (!accessToken) { googleSignIn(); return; }
             toast('Syncing steps...');
             const now = new Date();
@@ -1283,11 +1351,7 @@
                     })
                 });
                 if (res.status === 401) {
-                    localStorage.removeItem('hed_token');
-                    accessToken = null;
-                    document.getElementById('signInBtn').style.display = 'inline-flex';
-                    updateSyncStatus();
-                    toast('Please sign in again');
+                    handleAuthError();
                     return;
                 }
                 const data = await res.json();
