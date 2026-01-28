@@ -1415,7 +1415,15 @@
         }
         
         // Start
-        window.onload = init;
+        window.onload = function() {
+            // Check for clear parameter
+            if (window.location.search.includes('clear=1')) {
+                localStorage.clear();
+                window.location.href = window.location.pathname;
+                return;
+            }
+            init();
+        };
     </script>
     <script src="https://accounts.google.com/gsi/client" async></script>
 </body>
