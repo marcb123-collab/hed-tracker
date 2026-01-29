@@ -427,12 +427,6 @@
         
         <!-- Add Pane -->
         <div class="pane" id="addPane">
-            <div class="section-title">📸 PHOTO</div>
-            <div class="quick-grid">
-                <button class="qbtn photo" onclick="takePhoto()">📷 Camera</button>
-                <button class="qbtn photo" onclick="uploadPhoto()">🖼️ Upload</button>
-            </div>
-            
             <div class="section-title">🍽️ FOOD</div>
             <div class="quick-grid" id="foodButtons"></div>
             
@@ -469,13 +463,12 @@
     <!-- Input Bar -->
     <div class="input-bar">
         <input type="text" class="input-field" id="inputField" placeholder="Paste: Saba Set 650cal 35g">
-        <button class="input-btn photo" onclick="takePhoto()">📷</button>
         <button class="input-btn add" onclick="parseInput()">▶</button>
     </div>
     
     <!-- Hidden inputs -->
-    <input type="file" id="photoInput" accept="image/*" onchange="handlePhoto(event)">
-    <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handlePhoto(event)">
+    <input type="file" id="photoInput" accept="image/*" onchange="handlePhoto(event)" style="display:none;">
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handlePhoto(event)" style="display:none;">
     
     <!-- Toast -->
     <div class="toast" id="toast"></div>
@@ -880,7 +873,7 @@
                 const today = new Date().toLocaleDateString('en-CA');
                 
                 if (data.values && data.values[0] && data.values[0][0] === today) {
-                    // Sheet has today's data - merge with local (prefer the one with more entries)
+                    // Sheet has today's data - compare with local
                     const row = data.values[0];
                     const sheetCalIn = parseInt(row[1]) || 0;
                     let sheetEntries = [];
@@ -890,24 +883,38 @@
                         sheetEntries = []; 
                     }
                     
-                    // If local has more data, push local to sheet instead
-                    if (state.calIn > sheetCalIn || state.entries.length > sheetEntries.length) {
-                        console.log('Local has more data, syncing to sheet');
+                    // Get most recent timestamp from each
+                    const getLatestTime = (entries) => {
+                        if (!entries || !entries.length) return 0;
+                        return Math.max(...entries.map(e => e.time || 0));
+                    };
+                    
+                    const localLatest = getLatestTime(state.entries);
+                    const sheetLatest = getLatestTime(sheetEntries);
+                    
+                    console.log('Merge check - Local latest:', localLatest, 'Sheet latest:', sheetLatest);
+                    
+                    // Use the one with the most recent entry
+                    if (localLatest > sheetLatest && state.entries.length > 0) {
+                        console.log('Local has newer data, syncing to sheet');
                         await syncToLiveData();
                         return false;
                     }
                     
-                    // Sheet has more data, load it
-                    state.date = new Date().toDateString();
-                    state.calIn = sheetCalIn;
-                    state.protein = parseInt(row[2]) || 0;
-                    state.calOut = parseInt(row[3]) || 0;
-                    state.steps = parseInt(row[4]) || 0;
-                    state.workout = row[6] === 'Yes';
-                    state.entries = sheetEntries;
-                    localStorage.setItem('hed_state', JSON.stringify(state));
-                    console.log('Loaded from LiveData:', state);
-                    return true;
+                    // Sheet has newer data (or local is empty), load it
+                    if (sheetEntries.length > 0) {
+                        state.date = new Date().toDateString();
+                        state.calIn = sheetCalIn;
+                        state.protein = parseInt(row[2]) || 0;
+                        state.calOut = parseInt(row[3]) || 0;
+                        state.steps = parseInt(row[4]) || 0;
+                        state.workout = row[6] === 'Yes';
+                        state.entries = sheetEntries;
+                        localStorage.setItem('hed_state', JSON.stringify(state));
+                        console.log('Loaded from LiveData:', state);
+                        return true;
+                    }
+                    return false;
                 } else if (data.values && data.values[0] && data.values[0][0]) {
                     // Different day - archive old data, but keep local state
                     console.log('New day detected, archiving old LiveData');
