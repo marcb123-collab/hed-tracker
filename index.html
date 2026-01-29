@@ -534,29 +534,51 @@
         let state = { date: '', calIn: 0, calOut: 0, protein: 0, steps: 0, workout: false, entries: [] };
         let photoData = null;
         
-        // Check if token needs refresh (less than 5 min left)
+        // Check if token needs refresh (expired or missing)
         function tokenNeedsRefresh() {
-            return !accessToken || Date.now() > tokenExpiry - 300000; // 5 min buffer
+            if (!accessToken) return true;
+            // Only refresh if actually expired (not just close to expiry)
+            return Date.now() > tokenExpiry;
         }
         
-        // Silently refresh token
+        // Check if token is likely still valid (within 1 hour of last use)
+        function tokenLikelyValid() {
+            if (!accessToken) return false;
+            // Token is valid for 1 hour, but we stored the expiry
+            // If expiry is in the future, token is valid
+            return Date.now() < tokenExpiry;
+        }
+        
+        // Silently refresh token - returns true if successful
         async function refreshTokenSilently() {
             return new Promise((resolve) => {
                 if (!tokenClient) { resolve(false); return; }
-                tokenClient.requestAccessToken({ prompt: '' });
-                // The callback in initGoogle will handle the response
-                // Give it 3 seconds to complete
-                setTimeout(() => resolve(!!accessToken), 3000);
+                try {
+                    tokenClient.requestAccessToken({ prompt: '' });
+                    // The callback in initGoogle will handle the response
+                    setTimeout(() => resolve(!!accessToken), 3000);
+                } catch (e) {
+                    console.log('Silent refresh failed:', e);
+                    resolve(false);
+                }
             });
         }
         
-        // Ensure valid token before API calls
+        // Ensure valid token before API calls - only prompt if actually needed
         async function ensureValidToken() {
-            if (tokenNeedsRefresh()) {
-                console.log('Token expired or expiring soon, refreshing...');
-                await refreshTokenSilently();
+            // If token looks valid, just use it
+            if (tokenLikelyValid()) {
+                return true;
             }
-            return !!accessToken;
+            // Token expired - try silent refresh first
+            if (accessToken && tokenClient) {
+                console.log('Token expired, attempting silent refresh...');
+                const refreshed = await refreshTokenSilently();
+                if (refreshed) return true;
+            }
+            // No valid token - user needs to sign in manually
+            console.log('No valid token, manual sign-in required');
+            return false;
         }
         
         // Weekly plan data with exercise details
@@ -596,6 +618,17 @@
             { name: 'Matcha Grande', cal: 200, protein: 4, icon: '🍵', short: 'Matcha G' },
             { name: 'Green Tea Pudding', cal: 120, protein: 3, icon: '🍮', short: 'Pudding' },
             { name: 'Banana Bread', cal: 180, protein: 3, icon: '🍌' },
+            { name: 'Pork Saute Teishoku', cal: 650, protein: 28, icon: '🍖', short: 'Pork Saute' },
+            { name: 'Ootoya Chicken and Sides', cal: 520, protein: 41, icon: '🍗', short: 'Ootoya Chkn' },
+            { name: 'Beni Imo 3 Slices', cal: 150, protein: 1, icon: '🍠', short: 'Beni Imo' },
+            { name: 'Mozuku', cal: 20, protein: 0, icon: '🥗' },
+            { name: 'Komeko Bread Rolls 2pc', cal: 220, protein: 4, icon: '🥖', short: 'Komeko Rolls' },
+            { name: 'Cherry Tomatoes 3pc', cal: 10, protein: 0, icon: '🍅', short: 'Tomatoes' },
+            { name: 'Sushi Set Lunch', cal: 580, protein: 38, icon: '🍣', short: 'Sushi Set' },
+            { name: 'Chicken Bento with Sides', cal: 650, protein: 32, icon: '🍱', short: 'Chkn Bento' },
+            { name: 'Tangerine Medium', cal: 45, protein: 1, icon: '🍊', short: 'Tangerine' },
+            { name: 'Banana Walnut Bread', cal: 300, protein: 5, icon: '🍞', short: 'Banana Walnut' },
+            { name: 'Romaine Chicken Salad with Miso and Imo', cal: 480, protein: 24, icon: '🥗', short: 'Chkn Salad' },
         ];
         
         const ALL_EXERCISES = [
@@ -753,20 +786,27 @@
                     }
                 }
             });
-            if (!accessToken) {
-                document.getElementById('signInBtn').style.display = 'inline-flex';
-            } else {
+            
+            // Check if we have a potentially valid token
+            if (tokenLikelyValid()) {
+                // Token looks valid, try to use it
                 document.getElementById('signInBtn').style.display = 'none';
-                // Try to load from Sheets on startup
                 loadFromLiveData().then(loaded => {
                     if (loaded) {
                         updateUI();
                         toast('Synced from cloud');
                     }
                 });
-                // Auto-sync any unsynced history to DailyLog
                 syncHistoryToSheets(true);
                 seedUsageFromSheets();
+            } else if (accessToken) {
+                // Have a token but it's expired - show sign in button but don't auto-prompt
+                document.getElementById('signInBtn').style.display = 'none';
+                updateSyncStatus(); // Will show gray since token invalid
+                console.log('Token expired - tap MB to sign in');
+            } else {
+                // No token at all
+                document.getElementById('signInBtn').style.display = 'inline-flex';
             }
             updateSyncStatus();
         }
