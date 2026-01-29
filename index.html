@@ -835,7 +835,12 @@
             await ensureValidToken();
             if (!accessToken) return;
             const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
-            const row = [today, state.calIn, state.protein, state.calOut, state.steps, state.calIn - state.calOut, state.workout ? 'Yes' : 'No', JSON.stringify(state.entries)];
+            // Store entries with lastModified for proper sync
+            const entriesData = JSON.stringify({
+                entries: state.entries,
+                lastModified: state.lastModified || Date.now()
+            });
+            const row = [today, state.calIn, state.protein, state.calOut, state.steps, state.calIn - state.calOut, state.workout ? 'Yes' : 'No', entriesData];
             try {
                 await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/LiveData!A2:H2?valueInputOption=RAW`, {
                     method: 'PUT',
@@ -877,32 +882,45 @@
                     const row = data.values[0];
                     const sheetCalIn = parseInt(row[1]) || 0;
                     let sheetEntries = [];
+                    let sheetLastModified = 0;
                     try { 
-                        sheetEntries = JSON.parse(row[7] || '[]'); 
+                        const parsed = JSON.parse(row[7] || '[]');
+                        // Check if it's the new format with lastModified
+                        if (parsed.lastModified) {
+                            sheetEntries = parsed.entries || [];
+                            sheetLastModified = parsed.lastModified || 0;
+                        } else {
+                            // Old format - just entries array
+                            sheetEntries = parsed;
+                        }
                     } catch { 
                         sheetEntries = []; 
                     }
                     
-                    // Get most recent timestamp from each
-                    const getLatestTime = (entries) => {
-                        if (!entries || !entries.length) return 0;
-                        return Math.max(...entries.map(e => e.time || 0));
+                    // Get most recent timestamp from each (including lastModified for deletions)
+                    const getLatestTime = (entries, lastMod = 0) => {
+                        let latest = lastMod;
+                        if (entries && entries.length) {
+                            const entryMax = Math.max(...entries.map(e => e.time || 0));
+                            latest = Math.max(latest, entryMax);
+                        }
+                        return latest;
                     };
                     
-                    const localLatest = getLatestTime(state.entries);
-                    const sheetLatest = getLatestTime(sheetEntries);
+                    const localLatest = getLatestTime(state.entries, state.lastModified || 0);
+                    const sheetLatest = getLatestTime(sheetEntries, sheetLastModified);
                     
                     console.log('Merge check - Local latest:', localLatest, 'Sheet latest:', sheetLatest);
                     
-                    // Use the one with the most recent entry
-                    if (localLatest > sheetLatest && state.entries.length > 0) {
+                    // Use the one with the most recent modification
+                    if (localLatest > sheetLatest) {
                         console.log('Local has newer data, syncing to sheet');
                         await syncToLiveData();
                         return false;
                     }
                     
-                    // Sheet has newer data (or local is empty), load it
-                    if (sheetEntries.length > 0) {
+                    // Sheet has newer data, load it
+                    if (sheetLatest > 0) {
                         state.date = new Date().toDateString();
                         state.calIn = sheetCalIn;
                         state.protein = parseInt(row[2]) || 0;
@@ -910,6 +928,7 @@
                         state.steps = parseInt(row[4]) || 0;
                         state.workout = row[6] === 'Yes';
                         state.entries = sheetEntries;
+                        state.lastModified = sheetLastModified;
                         localStorage.setItem('hed_state', JSON.stringify(state));
                         console.log('Loaded from LiveData:', state);
                         return true;
@@ -1424,8 +1443,10 @@
                 if (e.steps) state.steps = 0;
             }
             state.entries.splice(i, 1);
+            state.lastModified = Date.now(); // Track deletion time
             saveState();
             updateUI();
+            toast('Deleted ' + e.name);
         }
         
         function toggleWorkout() {
