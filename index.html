@@ -574,7 +574,38 @@
             return false;
         }
         
-        // Weekly plan data with exercise details
+        // Weekly plan data with exercise details and hints
+        const EXERCISE_HINTS = {
+            // Ab Circuit
+            'Mountain Climbers 3x30': 'Plank position, drive knees to chest alternating fast',
+            'Bicycle Crunches 3x20': 'On back, alternate elbow to opposite knee',
+            'Flutter Kicks 3x30': 'On back, legs straight, small fast up/down kicks',
+            'Russian Twists 3x20': 'Seated, lean back, rotate torso side to side',
+            'Leg Raises 3x15': 'On back, legs straight, lift to ceiling, lower slow',
+            'Hollow Body Hold 3x30sec': 'On back, arms/legs lifted, hold banana shape',
+            'Plank 3x45sec': 'Forearms and toes, body straight, hold tight',
+            // Bike
+            'Warm up 5 min': 'Light pace to get blood flowing',
+            'Moderate pace 30-35 min': 'Steady effort, can still talk',
+            'Cool down 5 min': 'Slow pace, let heart rate drop',
+            // Resistance - Bending Bar
+            'Front Chest Press 3x15 (hold 2 sec)': 'Hold bar in front, squeeze inward, hold 2 sec',
+            'Overhead Press & Bend 3x12': 'Bar overhead, bend/squeeze down',
+            'Behind-the-Back Squeeze 3x15': 'Bar behind lower back, squeeze handles together',
+            'Abdominal Crunch with Bar 3x15': 'Squeeze bar while crunching abs',
+            'Rotational Twists 3x10 each side': 'Hold squeezed bar, rotate torso left/right',
+            // Resistance - Bands
+            'Push-Ups 3x5-15': 'Hands on floor, lower chest, push up (start with wall/knees)',
+            'Band Pull-Aparts 3x20': 'Hold band in front, pull hands apart stretching band',
+            'Rapid Punches with Band 3x50': 'Band behind back, punch forward fast alternating',
+            'Cross Curls 3x12 each side': 'Band under feet, curl across body to opposite shoulder',
+            'Band Chest Fly 3x15': 'Band behind back, arms wide, squeeze together in front',
+            // Sunday
+            '45-60 min walk': '45-60 min comfortable pace',
+            'Stretching': 'Gentle stretches for major muscle groups',
+            'Foam rolling (optional)': 'Roll out tight spots, especially legs and back'
+        };
+        
         const WEEKLY_PLAN = [
             { day: 'Monday', workout: 'Ab Circuit', cal: 200, time: '10-11am', 
               details: '~20-25 min circuit-style. 30-60 sec rest after each round. 3 rounds.',
@@ -1212,7 +1243,20 @@
                     <div style="font-size:12px;color:#333;margin-top:6px;">💪 ${p.workout} ${p.cal ? `(${p.cal} cal)` : ''}</div>
                     <div style="font-size:11px;color:#666;margin-top:4px;">${p.details}</div>
                     <div id="planExercises${i}" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid #eee;">
-                        ${p.exercises.map(ex => `<div style="font-size:11px;color:#444;padding:3px 0;">• ${ex}</div>`).join('')}
+                        ${p.exercises.map((ex, j) => {
+                            const hint = EXERCISE_HINTS[ex];
+                            const isHeader = ex.startsWith('—');
+                            if (isHeader) {
+                                return `<div style="font-size:11px;color:#667eea;font-weight:600;padding:8px 0 4px 0;">${ex}</div>`;
+                            }
+                            return `<div style="font-size:11px;color:#444;padding:3px 0;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;cursor:${hint ? 'pointer' : 'default'};" onclick="${hint ? `toggleExHint(${i},${j})` : ''}">
+                                    <span>• ${ex}</span>
+                                    ${hint ? `<span id="exArrow${i}_${j}" style="color:#999;font-size:10px;">ℹ️</span>` : ''}
+                                </div>
+                                ${hint ? `<div id="exHint${i}_${j}" style="display:none;font-size:10px;color:#888;padding:4px 0 4px 12px;font-style:italic;">→ ${hint}</div>` : ''}
+                            </div>`;
+                        }).join('')}
                     </div>
                 </div>
             `).join('');
@@ -1227,6 +1271,13 @@
             } else {
                 el.style.display = 'none';
                 arrow.textContent = '▶';
+            }
+        }
+        
+        function toggleExHint(dayIdx, exIdx) {
+            const el = document.getElementById(`exHint${dayIdx}_${exIdx}`);
+            if (el) {
+                el.style.display = el.style.display === 'none' ? 'block' : 'none';
             }
         }
         
