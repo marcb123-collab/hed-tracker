@@ -833,10 +833,10 @@
             ).join('') + `<button class="qbtn food" onclick="openCustom()">➕ Custom</button>`;
             quickEl.innerHTML = quickHtml;
             
-            // Full view - alphabetically sorted
+            // Full view - alphabetically sorted, show FULL names
             const alphaSorted = [...ALL_FOODS].sort((a, b) => a.name.localeCompare(b.name));
             const fullHtml = alphaSorted.map(f => 
-                `<button class="qbtn food" onclick="addFoodByName('${f.name}')">${f.icon} ${f.short || f.name} <span class="qbtn-cal">${f.cal}/${f.protein}g/${f.sodium || 0}mg</span></button>`
+                `<button class="qbtn food" onclick="addFoodByName('${f.name}')">${f.icon} ${f.name} <span class="qbtn-cal">${f.cal}/${f.protein}g/${f.sodium || 0}mg</span></button>`
             ).join('') + `<button class="qbtn food" onclick="openCustom()">➕ Custom</button>`;
             fullEl.innerHTML = fullHtml;
             
@@ -964,14 +964,16 @@
                         toast('Synced from cloud');
                     }
                 });
-                loadFoodDB(); // Load food database
+                loadFoodDB().then(() => renderButtons());
                 syncHistoryToSheets(true);
                 seedUsageFromSheets();
+                updateSyncStatus();
             } else if (accessToken) {
-                // Have a token but it's expired - show sign in button but don't auto-prompt
+                // Have a token but it might be expired - try anyway
                 document.getElementById('signInBtn').style.display = 'none';
-                updateSyncStatus(); // Will show gray since token invalid
-                console.log('Token expired - tap MB to sign in');
+                loadFoodDB().then(() => renderButtons()); // Try to load foods
+                updateSyncStatus();
+                console.log('Token may be expired - tap MB to refresh if needed');
             } else {
                 // No token at all
                 document.getElementById('signInBtn').style.display = 'inline-flex';
