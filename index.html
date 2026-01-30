@@ -940,8 +940,15 @@
                     
                     const localLatest = getLatestTime(state.entries, state.lastModified || 0);
                     const sheetLatest = getLatestTime(sheetEntries, sheetLastModified);
+                    const sheetWorkout = row[6] === 'Yes';
                     
                     console.log('Merge check - Local latest:', localLatest, 'Sheet latest:', sheetLatest);
+                    
+                    // Preserve workout flag if either has it true
+                    if (sheetWorkout && !state.workout) {
+                        state.workout = true;
+                        console.log('Preserving workout flag from sheet');
+                    }
                     
                     // Use the one with the most recent modification
                     if (localLatest > sheetLatest) {
@@ -952,12 +959,15 @@
                     
                     // Sheet has newer data, load it
                     if (sheetLatest > 0) {
+                        // Preserve local workout flag if true
+                        const preserveWorkout = state.workout || sheetWorkout;
+                        
                         state.date = new Date().toDateString();
                         state.calIn = sheetCalIn;
                         state.protein = parseInt(row[2]) || 0;
                         state.calOut = parseInt(row[3]) || 0;
                         state.steps = parseInt(row[4]) || 0;
-                        state.workout = row[6] === 'Yes';
+                        state.workout = preserveWorkout;
                         state.entries = sheetEntries;
                         state.lastModified = sheetLastModified;
                         localStorage.setItem('hed_state', JSON.stringify(state));
