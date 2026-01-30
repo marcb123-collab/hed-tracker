@@ -70,6 +70,8 @@
         .progress-label { font-size: 9px; opacity: 0.8; margin-bottom: 2px; }
         .progress-bar { height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; }
         .progress-fill { height: 100%; background: white; border-radius: 2px; transition: width 0.3s; }
+        .progress-fill.protein { background: #90EE90; }
+        .progress-fill.sodium { background: #FFB6C1; }
         
         .status-row {
             display: flex;
@@ -261,6 +263,7 @@
             padding: 12px;
             margin-bottom: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            position: relative;
         }
         
         .history-date {
@@ -365,19 +368,19 @@
         <div class="stats-row">
             <div class="stat">
                 <div class="stat-value" id="calIn">0</div>
-                <div class="stat-label">Cal In</div>
+                <div class="stat-label">CAL IN</div>
             </div>
             <div class="stat">
-                <div class="stat-value" id="protein">0</div>
-                <div class="stat-label">Protein</div>
+                <div class="stat-value" id="protein">0g</div>
+                <div class="stat-label">PROTEIN</div>
             </div>
             <div class="stat">
                 <div class="stat-value" id="burned">0</div>
-                <div class="stat-label">Burned</div>
+                <div class="stat-label">BURNED</div>
             </div>
             <div class="stat">
                 <div class="stat-value" id="net">0</div>
-                <div class="stat-label">Net</div>
+                <div class="stat-label">NET</div>
             </div>
         </div>
         <div class="progress-row">
@@ -387,15 +390,12 @@
             </div>
             <div class="progress-item">
                 <div class="progress-label">Protein <span id="worPct">0</span>%</div>
-                <div class="progress-bar"><div class="progress-fill" id="worBar" style="width:0%"></div></div>
+                <div class="progress-bar"><div class="progress-fill protein" id="worBar" style="width:0%"></div></div>
             </div>
-        </div>
-        <div class="status-row">
-            <span class="status-chip" id="weightDisplay">⚖️ --kg (Goal: 80kg)</span>
-            <span class="status-chip">Cal: <span id="calTarget">0/1600</span></span>
-            <span class="status-chip" id="steps">0/7500 steps</span>
-            <button class="copy-btn" onclick="copySummary()">📋 Summary</button>
-            <button class="copy-btn" onclick="copyFull()">📋 Today</button>
+            <div class="progress-item">
+                <div class="progress-label">Sodium <span id="sodiumPct">0</span>%</div>
+                <div class="progress-bar"><div class="progress-fill sodium" id="sodiumBar" style="width:0%"></div></div>
+            </div>
         </div>
     </div>
     
@@ -411,37 +411,108 @@
     <div class="content">
         <!-- Today Pane -->
         <div class="pane active" id="todayPane">
+            <!-- Goals Section -->
+            <div class="summary-card" style="margin-bottom:10px;">
+                <div class="summary-header">🎯 Daily Goals</div>
+                <div style="display:flex;justify-content:space-around;padding:8px 0;font-size:12px;">
+                    <div style="text-align:center;">
+                        <div style="font-weight:600;" id="goalCal">0/1600</div>
+                        <div style="color:#666;font-size:10px;">Net Cal</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <div style="font-weight:600;" id="goalProtein">0/110g</div>
+                        <div style="color:#666;font-size:10px;">Protein</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <div style="font-weight:600;" id="goalSodium">0/2300mg</div>
+                        <div style="color:#666;font-size:10px;">Sodium</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <div style="font-weight:600;" id="goalSteps">0/7500</div>
+                        <div style="color:#666;font-size:10px;">Steps</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Today's Log -->
             <div class="summary-card">
                 <div class="summary-header">
                     <span>Today's Log</span>
-                    <div>
-                        <button class="qbtn action" onclick="refreshFromSheets()" style="font-size:10px;padding:4px 8px;">☁️ Refresh</button>
-                        <button class="qbtn action" onclick="syncSteps()" style="font-size:10px;padding:4px 8px;">🔄 Steps</button>
+                    <div style="display:flex;gap:4px;">
+                        <button class="qbtn action" onclick="copySummary()" style="font-size:10px;padding:4px 8px;">📋 Summary</button>
+                        <button class="qbtn action" onclick="copyFull()" style="font-size:10px;padding:4px 8px;">📋 Full</button>
                     </div>
                 </div>
                 <div class="summary-list" id="logList">
                     <div class="no-entries">No entries yet</div>
                 </div>
             </div>
+            
+            <!-- Nutrition Summary -->
+            <div class="summary-card" style="margin-top:10px;">
+                <div class="summary-header">📊 Summary</div>
+                <div id="nutritionSummary" style="font-size:12px;padding:8px 0;">
+                    <!-- Weight Section -->
+                    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee;background:#f8f9ff;margin:-8px -12px 8px -12px;padding:8px 12px;">
+                        <span style="font-weight:600;">⚖️ Current Weight</span>
+                        <span id="weightDisplay" style="font-weight:600;color:#667eea;">--</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;">
+                        <span>Weight Trend (7 days)</span>
+                        <span id="weightTrend">--</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;">
+                        <span>Avg Daily Deficit</span>
+                        <span id="avgDeficit">--</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;">
+                        <span>Workout Streak</span>
+                        <span id="workoutStreak">--</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;">
+                        <span>Protein Avg (7 days)</span>
+                        <span id="proteinAvg">--</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;">
+                        <span>Sodium Avg (7 days)</span>
+                        <span id="sodiumAvg">--</span>
+                    </div>
+                    
+                    <!-- Today's Nutrients -->
+                    <div style="margin-top:10px;padding-top:8px;border-top:2px solid #eee;">
+                        <div style="font-weight:600;margin-bottom:6px;">Today's Nutrients*</div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px;">
+                            <div style="display:flex;justify-content:space-between;"><span>Fiber</span><span id="fiberToday">0/28g</span></div>
+                            <div style="display:flex;justify-content:space-between;"><span>Sugar</span><span id="sugarToday">0/25g</span></div>
+                            <div style="display:flex;justify-content:space-between;"><span>Potassium</span><span id="potassiumToday">0/3500mg</span></div>
+                            <div style="display:flex;justify-content:space-between;"><span>Calcium</span><span id="calciumToday">0/1000mg</span></div>
+                            <div style="display:flex;justify-content:space-between;"><span>Iron</span><span id="ironToday">0/8mg</span></div>
+                            <div style="display:flex;justify-content:space-between;"><span>Vitamin D</span><span id="vitDToday">0/800IU</span></div>
+                            <div style="display:flex;justify-content:space-between;"><span>Magnesium</span><span id="magnesiumToday">0/420mg</span></div>
+                        </div>
+                        <div style="font-size:9px;color:#999;margin-top:6px;">*Estimates based on visual/textual food analysis</div>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <!-- Add Pane -->
         <div class="pane" id="addPane">
-            <div class="section-title">🍽️ FOOD</div>
-            <div class="quick-grid" id="foodButtons"></div>
+            <!-- Sync buttons at top -->
+            <div class="quick-grid" style="margin-bottom:12px;">
+                <button class="qbtn action" onclick="refreshFromSheets()">☁️ Refresh</button>
+                <button class="qbtn action" onclick="syncSteps()">🔄 Sync Steps</button>
+                <button class="qbtn action" onclick="syncWeight()">⚖️ Sync Weight</button>
+            </div>
+            
+            <div class="section-title">🍽️ FOOD <span id="foodToggle" onclick="toggleFoodList()" style="font-size:10px;color:#667eea;cursor:pointer;float:right;">Show All ▼</span></div>
+            <div class="quick-grid" id="foodButtonsQuick"></div>
+            <div class="quick-grid" id="foodButtonsFull" style="display:none;"></div>
             
             <div class="section-title">💪 EXERCISE</div>
             <div class="quick-grid" id="exerciseButtons"></div>
             <div style="margin: 10px 0;">
                 <button class="workout-btn" id="workoutBtn" onclick="toggleWorkout()" style="width:100%;padding:12px;font-size:14px;">☐ Workout Done</button>
-            </div>
-            
-            <div class="section-title">🔄 SYNC</div>
-            <div class="quick-grid">
-                <button class="qbtn action" onclick="syncSteps()">🔄 Sync Steps</button>
-                <button class="qbtn action" onclick="refreshFromSheets()">☁️ Refresh from Cloud</button>
-                <button class="qbtn action" onclick="syncWeight()">⚖️ Sync Weight</button>
-                <button class="qbtn action" onclick="googleSignIn()" id="signInBtn" style="display:none;">🔑 Sign In</button>
             </div>
         </div>
         
@@ -520,12 +591,21 @@
         const CLIENT_ID = '163799557992-hgstjj16f2d587jjicjonmlulaqsh552.apps.googleusercontent.com';
         const SCOPES = 'https://www.googleapis.com/auth/fitness.activity.read https://www.googleapis.com/auth/fitness.body.read https://www.googleapis.com/auth/spreadsheets';
         const SHEET_ID = '13jRxb7mOAZUyi1mO3z005W6gtG5Kh4X5PZPM4FTwNMY';
-        const TARGETS = { cal: 1600, protein: 110 };
+        const TARGETS = { 
+            cal: 1600, protein: 110, sodium: 2300, 
+            fiber: 28, sugar: 25, potassium: 3500, 
+            calcium: 1000, iron: 8, vitD: 800, magnesium: 420 
+        };
         
         let tokenClient, accessToken = localStorage.getItem('hed_token');
         let tokenExpiry = parseInt(localStorage.getItem('hed_token_expiry')) || 0;
-        let state = { date: '', calIn: 0, calOut: 0, protein: 0, steps: 0, workout: false, entries: [] };
+        let state = { 
+            date: '', calIn: 0, calOut: 0, protein: 0, sodium: 0, 
+            fiber: 0, sugar: 0, potassium: 0, calcium: 0, iron: 0, vitD: 0, magnesium: 0,
+            steps: 0, workout: false, entries: [] 
+        };
         let photoData = null;
+        let showAllFoods = false;
         
         // Check if token needs refresh (expired or missing)
         function tokenNeedsRefresh() {
@@ -630,29 +710,31 @@
               exercises: ['45-60 min walk', 'Stretching', 'Foam rolling (optional)'] },
         ];
         
-        // Food and exercise items
+        // Food and exercise items - all nutrients estimated
+        // { cal, protein, sodium(mg), fiber(g), sugar(g), potassium(mg), calcium(mg), iron(mg), vitD(IU), magnesium(mg) }
         const ALL_FOODS = [
-            { name: 'Baseline', cal: 78, protein: 1, icon: '📋' },
-            { name: 'Rice Bread+Hummus', cal: 190, protein: 4, icon: '🍞', short: 'Rice Bread' },
-            { name: 'Asahi Shake', cal: 194, protein: 27, icon: '🥤', short: 'Asahi' },
-            { name: 'Oikos 18g', cal: 100, protein: 18, icon: '🥛', short: 'Oikos 18' },
-            { name: 'Oikos 13g', cal: 90, protein: 13, icon: '🥛', short: 'Oikos 13' },
-            { name: 'Protein Bar', cal: 200, protein: 15, icon: '🍫' },
-            { name: 'Matcha Tall', cal: 150, protein: 3, icon: '🍵', short: 'Matcha T' },
-            { name: 'Matcha Grande', cal: 200, protein: 4, icon: '🍵', short: 'Matcha G' },
-            { name: 'Green Tea Pudding', cal: 120, protein: 3, icon: '🍮', short: 'Pudding' },
-            { name: 'Banana Bread', cal: 180, protein: 3, icon: '🍌' },
-            { name: 'Pork Saute Teishoku', cal: 650, protein: 28, icon: '🍖', short: 'Pork Saute' },
-            { name: 'Ootoya Chicken and Sides', cal: 520, protein: 41, icon: '🍗', short: 'Ootoya Chkn' },
-            { name: 'Beni Imo 3 Slices', cal: 150, protein: 1, icon: '🍠', short: 'Beni Imo' },
-            { name: 'Mozuku', cal: 20, protein: 0, icon: '🥗' },
-            { name: 'Komeko Bread Rolls 2pc', cal: 220, protein: 4, icon: '🥖', short: 'Komeko Rolls' },
-            { name: 'Cherry Tomatoes 3pc', cal: 10, protein: 0, icon: '🍅', short: 'Tomatoes' },
-            { name: 'Sushi Set Lunch', cal: 580, protein: 38, icon: '🍣', short: 'Sushi Set' },
-            { name: 'Chicken Bento with Sides', cal: 650, protein: 32, icon: '🍱', short: 'Chkn Bento' },
-            { name: 'Tangerine Medium', cal: 45, protein: 1, icon: '🍊', short: 'Tangerine' },
-            { name: 'Banana Walnut Bread', cal: 300, protein: 5, icon: '🍞', short: 'Banana Walnut' },
-            { name: 'Romaine Chicken Salad with Miso and Imo', cal: 480, protein: 24, icon: '🥗', short: 'Chkn Salad' },
+            { name: 'Baseline', cal: 78, protein: 1, sodium: 0, fiber: 0, sugar: 0, potassium: 0, calcium: 200, iron: 0, vitD: 400, magnesium: 100, icon: '📋' },
+            { name: 'Rice Bread+Hummus', cal: 190, protein: 4, sodium: 350, fiber: 2, sugar: 2, potassium: 120, calcium: 30, iron: 1, vitD: 0, magnesium: 20, icon: '🍞', short: 'Rice Bread' },
+            { name: 'Asahi Shake', cal: 194, protein: 27, sodium: 150, fiber: 1, sugar: 8, potassium: 400, calcium: 350, iron: 2, vitD: 100, magnesium: 50, icon: '🥤', short: 'Asahi' },
+            { name: 'Oikos 18g', cal: 100, protein: 18, sodium: 50, fiber: 0, sugar: 4, potassium: 180, calcium: 150, iron: 0, vitD: 0, magnesium: 15, icon: '🥛', short: 'Oikos 18' },
+            { name: 'Oikos 13g', cal: 90, protein: 13, sodium: 45, fiber: 0, sugar: 5, potassium: 150, calcium: 130, iron: 0, vitD: 0, magnesium: 12, icon: '🥛', short: 'Oikos 13' },
+            { name: 'Protein Bar', cal: 200, protein: 15, sodium: 200, fiber: 3, sugar: 8, potassium: 150, calcium: 100, iron: 2, vitD: 0, magnesium: 40, icon: '🍫' },
+            { name: 'Matcha Tall', cal: 150, protein: 3, sodium: 75, fiber: 0, sugar: 18, potassium: 200, calcium: 150, iron: 0, vitD: 50, magnesium: 15, icon: '🍵', short: 'Matcha T' },
+            { name: 'Matcha Grande', cal: 200, protein: 4, sodium: 100, fiber: 0, sugar: 24, potassium: 270, calcium: 200, iron: 0, vitD: 70, magnesium: 20, icon: '🍵', short: 'Matcha G' },
+            { name: 'Green Tea Pudding', cal: 120, protein: 3, sodium: 60, fiber: 0, sugar: 15, potassium: 80, calcium: 50, iron: 0, vitD: 0, magnesium: 8, icon: '🍮', short: 'Pudding' },
+            { name: 'Banana Bread', cal: 180, protein: 3, sodium: 150, fiber: 1, sugar: 12, potassium: 100, calcium: 20, iron: 1, vitD: 0, magnesium: 15, icon: '🍌' },
+            { name: 'Pork Saute Teishoku', cal: 650, protein: 28, sodium: 1200, fiber: 4, sugar: 6, potassium: 600, calcium: 60, iron: 2, vitD: 20, magnesium: 45, icon: '🍖', short: 'Pork Saute' },
+            { name: 'Ootoya Chicken and Sides', cal: 520, protein: 41, sodium: 900, fiber: 5, sugar: 4, potassium: 550, calcium: 80, iron: 2, vitD: 10, magnesium: 50, icon: '🍗', short: 'Ootoya Chkn' },
+            { name: 'Beni Imo 3 Slices', cal: 150, protein: 1, sodium: 20, fiber: 3, sugar: 8, potassium: 300, calcium: 30, iron: 0, vitD: 0, magnesium: 20, icon: '🍠', short: 'Beni Imo' },
+            { name: 'Mozuku', cal: 20, protein: 0, sodium: 400, fiber: 2, sugar: 0, potassium: 50, calcium: 20, iron: 1, vitD: 0, magnesium: 30, icon: '🥗' },
+            { name: 'Komeko Bread Rolls 2pc', cal: 220, protein: 4, sodium: 300, fiber: 1, sugar: 3, potassium: 60, calcium: 20, iron: 1, vitD: 0, magnesium: 15, icon: '🥖', short: 'Komeko Rolls' },
+            { name: 'Cherry Tomatoes 3pc', cal: 10, protein: 0, sodium: 5, fiber: 1, sugar: 2, potassium: 80, calcium: 5, iron: 0, vitD: 0, magnesium: 5, icon: '🍅', short: 'Tomatoes' },
+            { name: 'Sushi Set Lunch', cal: 580, protein: 38, sodium: 1100, fiber: 2, sugar: 8, potassium: 400, calcium: 50, iron: 2, vitD: 100, magnesium: 40, icon: '🍣', short: 'Sushi Set' },
+            { name: 'Chicken Bento with Sides', cal: 650, protein: 32, sodium: 1000, fiber: 4, sugar: 6, potassium: 450, calcium: 60, iron: 2, vitD: 10, magnesium: 40, icon: '🍱', short: 'Chkn Bento' },
+            { name: 'Tangerine Medium', cal: 45, protein: 1, sodium: 0, fiber: 2, sugar: 9, potassium: 150, calcium: 30, iron: 0, vitD: 0, magnesium: 10, icon: '🍊', short: 'Tangerine' },
+            { name: 'Banana Walnut Bread', cal: 300, protein: 5, sodium: 250, fiber: 2, sugar: 18, potassium: 150, calcium: 30, iron: 1, vitD: 0, magnesium: 25, icon: '🍞', short: 'Banana Walnut' },
+            { name: 'Romaine Chicken Salad with Miso and Imo', cal: 480, protein: 24, sodium: 800, fiber: 6, sugar: 5, potassium: 700, calcium: 80, iron: 2, vitD: 10, magnesium: 50, icon: '🥗', short: 'Chkn Salad' },
+            { name: 'Crab Fried Rice with Veggie Sides', cal: 550, protein: 18, sodium: 950, fiber: 3, sugar: 4, potassium: 350, calcium: 70, iron: 2, vitD: 20, magnesium: 35, icon: '🍚', short: 'Crab Rice' },
         ];
         
         const ALL_EXERCISES = [
@@ -713,26 +795,72 @@
         }
         
         function renderButtons() {
-            const foodEl = document.getElementById('foodButtons');
+            const quickEl = document.getElementById('foodButtonsQuick');
+            const fullEl = document.getElementById('foodButtonsFull');
             const exEl = document.getElementById('exerciseButtons');
-            if (!foodEl || !exEl) {
+            if (!quickEl || !fullEl || !exEl) {
                 console.error('Button containers not found');
                 return;
             }
             
-            // Sort foods by usage
+            // Helper to create nutrient object string for onclick
+            const getNutrients = (f) => JSON.stringify({
+                sodium: f.sodium || 0, fiber: f.fiber || 0, sugar: f.sugar || 0,
+                potassium: f.potassium || 0, calcium: f.calcium || 0, iron: f.iron || 0,
+                vitD: f.vitD || 0, magnesium: f.magnesium || 0
+            }).replace(/"/g, "'");
+            
+            // Sort foods by usage (most used first)
             const sortedFoods = [...ALL_FOODS].sort((a, b) => (itemUsage[b.name] || 0) - (itemUsage[a.name] || 0));
-            const foodHtml = sortedFoods.map(f => 
-                `<button class="qbtn food" onclick="addFood('${f.name}',${f.cal},${f.protein})">${f.icon} ${f.short || f.name} <span class="qbtn-cal">${f.cal}/${f.protein}g</span></button>`
+            
+            // Quick view - top 6 most used
+            const quickFoods = sortedFoods.slice(0, 6);
+            const quickHtml = quickFoods.map(f => 
+                `<button class="qbtn food" onclick="addFoodByName('${f.name}')">${f.icon} ${f.short || f.name} <span class="qbtn-cal">${f.cal}/${f.protein}g</span></button>`
             ).join('') + `<button class="qbtn food" onclick="openCustom()">➕ Custom</button>`;
-            foodEl.innerHTML = foodHtml;
+            quickEl.innerHTML = quickHtml;
+            
+            // Full view - alphabetically sorted
+            const alphaSorted = [...ALL_FOODS].sort((a, b) => a.name.localeCompare(b.name));
+            const fullHtml = alphaSorted.map(f => 
+                `<button class="qbtn food" onclick="addFoodByName('${f.name}')">${f.icon} ${f.short || f.name} <span class="qbtn-cal">${f.cal}/${f.protein}g</span></button>`
+            ).join('') + `<button class="qbtn food" onclick="openCustom()">➕ Custom</button>`;
+            fullEl.innerHTML = fullHtml;
             
             // Sort exercises by usage
             const sortedEx = [...ALL_EXERCISES].sort((a, b) => (itemUsage[b.name] || 0) - (itemUsage[a.name] || 0));
             const exHtml = sortedEx.map(e => 
                 `<button class="qbtn exercise" onclick="addExercise('${e.name}',${e.cal})">${e.icon} ${e.short || e.name} <span class="qbtn-cal">${e.cal}</span></button>`
-            ).join('') + `<button class="qbtn exercise" onclick="toggleWorkout()">✅ Workout Done</button>`;
+            ).join('');
             exEl.innerHTML = exHtml;
+        }
+        
+        // Helper to add food by name (looks up all nutrients)
+        function addFoodByName(name) {
+            const food = ALL_FOODS.find(f => f.name === name);
+            if (food) {
+                addFood(food.name, food.cal, food.protein, {
+                    sodium: food.sodium || 0, fiber: food.fiber || 0, sugar: food.sugar || 0,
+                    potassium: food.potassium || 0, calcium: food.calcium || 0, iron: food.iron || 0,
+                    vitD: food.vitD || 0, magnesium: food.magnesium || 0
+                });
+            }
+        }
+        
+        function toggleFoodList() {
+            const quickEl = document.getElementById('foodButtonsQuick');
+            const fullEl = document.getElementById('foodButtonsFull');
+            const toggleEl = document.getElementById('foodToggle');
+            showAllFoods = !showAllFoods;
+            if (showAllFoods) {
+                quickEl.style.display = 'none';
+                fullEl.style.display = 'flex';
+                toggleEl.textContent = 'Show Less ▲';
+            } else {
+                quickEl.style.display = 'flex';
+                fullEl.style.display = 'none';
+                toggleEl.textContent = 'Show All ▼';
+            }
         }
         
         function updateSyncStatus() {
@@ -1141,6 +1269,7 @@
         function saveToHistory(data) {
             if (!data.calIn && !data.entries.length) return;
             let history = JSON.parse(localStorage.getItem('hed_history') || '[]');
+            const weightHistory = JSON.parse(localStorage.getItem('hed_weight_history') || '[]');
             
             // Normalize date function
             const normalizeDate = (d) => {
@@ -1156,14 +1285,30 @@
             // Use the data's date, normalized to YYYY-MM-DD
             const dateStr = normalizeDate(data.date);
             
+            // Get weight for this date (first weight of day)
+            const dayWeight = weightHistory.find(w => w.date === dateStr);
+            
+            // Build history entry with entries array for detail view
+            const historyEntry = { 
+                date: dateStr, 
+                calIn: data.calIn, 
+                calOut: data.calOut, 
+                protein: data.protein, 
+                sodium: data.sodium || 0,
+                steps: data.steps, 
+                workout: data.workout,
+                weight: dayWeight ? dayWeight.weight : null,
+                entries: data.entries || []
+            };
+            
             // Check if this date already exists in history
             const existingIndex = history.findIndex(h => normalizeDate(h.date) === dateStr);
             if (existingIndex >= 0) {
                 // Update existing entry
-                history[existingIndex] = { date: dateStr, calIn: data.calIn, calOut: data.calOut, protein: data.protein, steps: data.steps, workout: data.workout };
+                history[existingIndex] = historyEntry;
             } else {
                 // Add new entry
-                history.unshift({ date: dateStr, calIn: data.calIn, calOut: data.calOut, protein: data.protein, steps: data.steps, workout: data.workout });
+                history.unshift(historyEntry);
             }
             localStorage.setItem('hed_history', JSON.stringify(history.slice(0, 30)));
         }
@@ -1197,7 +1342,11 @@
             setTimeout(() => {
                 saveToHistory(state);
                 saveToSheets(state);
-                state = { date: new Date().toDateString(), calIn: 0, calOut: 0, protein: 0, steps: 0, workout: false, entries: [] };
+                state = { 
+                    date: new Date().toDateString(), calIn: 0, calOut: 0, protein: 0, 
+                    sodium: 0, fiber: 0, sugar: 0, potassium: 0, calcium: 0, iron: 0, vitD: 0, magnesium: 0,
+                    steps: 0, workout: false, entries: [] 
+                };
                 saveState();
                 updateUI();
                 scheduleMidnightSave();
@@ -1215,28 +1364,88 @@
             
             const calPct = Math.min(Math.round((net / TARGETS.cal) * 100), 100);
             const worPct = Math.min(Math.round((state.protein / TARGETS.protein) * 100), 100);
+            const sodiumPct = Math.min(Math.round(((state.sodium || 0) / TARGETS.sodium) * 100), 100);
             document.getElementById('calPct').textContent = calPct;
             document.getElementById('worPct').textContent = worPct;
+            document.getElementById('sodiumPct').textContent = sodiumPct;
             document.getElementById('calBar').style.width = calPct + '%';
             document.getElementById('worBar').style.width = worPct + '%';
+            document.getElementById('sodiumBar').style.width = sodiumPct + '%';
             
-            document.getElementById('steps').textContent = state.steps.toLocaleString() + '/7500 steps';
-            document.getElementById('calTarget').textContent = net + '/1600';
+            // Goals section
+            document.getElementById('goalCal').textContent = net + '/1600';
+            document.getElementById('goalProtein').textContent = state.protein + '/110g';
+            document.getElementById('goalSodium').textContent = (state.sodium || 0) + '/2300mg';
+            document.getElementById('goalSteps').textContent = state.steps.toLocaleString() + '/7500';
             
             // Workout button
             const workoutBtn = document.getElementById('workoutBtn');
             workoutBtn.textContent = state.workout ? '☑ Workout Done' : '☐ Workout Done';
             workoutBtn.className = state.workout ? 'workout-btn done' : 'workout-btn';
             
-            // Weight display
+            // Weight display in Summary section
             const weight = localStorage.getItem('hed_weight') || '--';
-            const weightDate = localStorage.getItem('hed_weight_date') || '';
-            document.getElementById('weightDisplay').textContent = '⚖️ ' + weight + 'kg' + (weightDate ? ' (' + weightDate + ')' : '') + ' → 80kg';
+            document.getElementById('weightDisplay').textContent = weight + 'kg';
+            
+            // Today's nutrients in Summary
+            document.getElementById('fiberToday').textContent = (state.fiber || 0) + '/' + TARGETS.fiber + 'g';
+            document.getElementById('sugarToday').textContent = (state.sugar || 0) + '/' + TARGETS.sugar + 'g';
+            document.getElementById('potassiumToday').textContent = (state.potassium || 0) + '/' + TARGETS.potassium + 'mg';
+            document.getElementById('calciumToday').textContent = (state.calcium || 0) + '/' + TARGETS.calcium + 'mg';
+            document.getElementById('ironToday').textContent = (state.iron || 0) + '/' + TARGETS.iron + 'mg';
+            document.getElementById('vitDToday').textContent = (state.vitD || 0) + '/' + TARGETS.vitD + 'IU';
+            document.getElementById('magnesiumToday').textContent = (state.magnesium || 0) + '/' + TARGETS.magnesium + 'mg';
+            
+            // Update nutrition summary
+            updateNutritionSummary();
             
             renderLog();
             renderHistory();
             renderPlan();
             renderButtons();
+        }
+        
+        function updateNutritionSummary() {
+            const history = JSON.parse(localStorage.getItem('hed_history') || '[]');
+            const weightHistory = JSON.parse(localStorage.getItem('hed_weight_history') || '[]');
+            
+            // Weight trend (last 7 days)
+            if (weightHistory.length >= 2) {
+                const recent = weightHistory.slice(0, 7);
+                const oldest = recent[recent.length - 1]?.weight || 0;
+                const newest = recent[0]?.weight || 0;
+                const diff = (newest - oldest).toFixed(1);
+                const trend = diff > 0 ? `+${diff}kg ↑` : diff < 0 ? `${diff}kg ↓` : '0kg →';
+                document.getElementById('weightTrend').textContent = trend;
+                document.getElementById('weightTrend').style.color = diff <= 0 ? '#4CAF50' : '#f44336';
+            } else {
+                document.getElementById('weightTrend').textContent = 'Need more data';
+            }
+            
+            // Average daily deficit (last 7 days)
+            if (history.length > 0) {
+                const recent = history.slice(0, 7);
+                const avgDeficit = Math.round(recent.reduce((sum, d) => sum + (d.calIn - d.calOut), 0) / recent.length);
+                document.getElementById('avgDeficit').textContent = avgDeficit + ' cal/day';
+                document.getElementById('avgDeficit').style.color = avgDeficit <= 1600 ? '#4CAF50' : '#f44336';
+                
+                // Protein average
+                const avgProtein = Math.round(recent.reduce((sum, d) => sum + d.protein, 0) / recent.length);
+                document.getElementById('proteinAvg').textContent = avgProtein + 'g/day';
+                document.getElementById('proteinAvg').style.color = avgProtein >= 100 ? '#4CAF50' : '#f44336';
+                
+                // Workout streak
+                let streak = 0;
+                for (const d of recent) {
+                    if (d.workout) streak++;
+                    else break;
+                }
+                document.getElementById('workoutStreak').textContent = streak + ' days';
+            } else {
+                document.getElementById('avgDeficit').textContent = 'No data';
+                document.getElementById('proteinAvg').textContent = 'No data';
+                document.getElementById('workoutStreak').textContent = '0 days';
+            }
         }
         
         function renderPlan() {
@@ -1312,6 +1521,7 @@
         function renderHistory() {
             // First show local history - auto dedupe by normalized date
             let history = JSON.parse(localStorage.getItem('hed_history') || '[]');
+            const weightHistory = JSON.parse(localStorage.getItem('hed_weight_history') || '[]');
             
             // Normalize and dedupe
             const normalizeDate = (d) => {
@@ -1324,12 +1534,20 @@
                 return d;
             };
             
+            // Create weight lookup by date
+            const weightByDate = {};
+            weightHistory.forEach(w => { weightByDate[w.date] = w.weight; });
+            
             const seen = new Set();
             history = history.filter(h => {
                 const norm = normalizeDate(h.date);
                 if (seen.has(norm)) return false;
                 seen.add(norm);
                 h.date = norm; // Normalize the date
+                // Add weight from weightHistory if available
+                if (weightByDate[norm]) {
+                    h.weight = weightByDate[norm];
+                }
                 return true;
             });
             localStorage.setItem('hed_history', JSON.stringify(history));
@@ -1340,13 +1558,25 @@
             } else {
                 list.innerHTML = history.map((d, i) => `
                     <div class="history-card">
-                        <div class="history-date"><span>${d.date}</span><span>${d.workout ? '✅' : '⬜'} <button onclick="deleteHistoryItem(${i})" style="background:none;border:none;color:#ccc;font-size:14px;cursor:pointer;">×</button></span></div>
+                        <div class="history-date" onclick="toggleHistoryDetail(${i})" style="cursor:pointer;">
+                            <span>${d.date} ${d.weight ? '<span style="color:#667eea;">⚖️' + d.weight + 'kg</span>' : ''}</span>
+                            <span>${d.workout ? '✅' : '⬜'} <span id="histArrowLocal${i}">▶</span></span>
+                        </div>
                         <div class="history-stats">
                             <div class="history-stat ${d.calIn <= TARGETS.cal ? 'good' : 'bad'}"><div class="history-stat-value">${d.calIn}</div><div class="history-stat-label">Cal In</div></div>
                             <div class="history-stat ${d.protein >= TARGETS.protein ? 'good' : ''}"><div class="history-stat-value">${d.protein}g</div><div class="history-stat-label">Protein</div></div>
                             <div class="history-stat"><div class="history-stat-value">${d.calOut}</div><div class="history-stat-label">Burned</div></div>
                             <div class="history-stat"><div class="history-stat-value">${(d.steps||0).toLocaleString()}</div><div class="history-stat-label">Steps</div></div>
                         </div>
+                        <div id="histDetailLocal${i}" style="display:none;padding:10px 0;border-top:1px solid #eee;margin-top:8px;font-size:11px;">
+                            ${d.entries && d.entries.length > 0 ? d.entries.map(e => 
+                                `<div style="display:flex;justify-content:space-between;padding:2px 0;">
+                                    <span>${e.type === 'food' ? '🍽️' : '💪'} ${e.name}</span>
+                                    <span>${e.type === 'food' ? e.cal + 'cal / ' + e.protein + 'g' : e.cal + ' burned'}</span>
+                                </div>`
+                            ).join('') : '<div style="color:#999;">No detailed entries</div>'}
+                        </div>
+                        <button onclick="deleteHistoryItem(${i})" style="position:absolute;top:8px;right:8px;background:none;border:none;color:#ccc;font-size:14px;cursor:pointer;">×</button>
                     </div>
                 `).join('');
             }
@@ -1354,6 +1584,25 @@
             // Then try to load from Sheets if we don't have much local history
             if (history.length < 5 && accessToken) {
                 loadHistoryFromSheets();
+            }
+        }
+        
+        function toggleHistoryDetail(i) {
+            // Try both local and sheet detail elements
+            let el = document.getElementById('histDetailLocal' + i);
+            let arrow = document.getElementById('histArrowLocal' + i);
+            if (!el) {
+                el = document.getElementById('histDetail' + i);
+                arrow = document.getElementById('histArrow' + i);
+            }
+            if (!el) return;
+            
+            if (el.style.display === 'none') {
+                el.style.display = 'block';
+                if (arrow) arrow.textContent = '▼';
+            } else {
+                el.style.display = 'none';
+                if (arrow) arrow.textContent = '▶';
             }
         }
         
@@ -1412,6 +1661,16 @@
                 // Sort by date descending
                 sheetHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
                 
+                // Merge weight history
+                const weightHistory = JSON.parse(localStorage.getItem('hed_weight_history') || '[]');
+                const weightByDate = {};
+                weightHistory.forEach(w => { weightByDate[w.date] = w.weight; });
+                sheetHistory.forEach(h => {
+                    if (weightByDate[h.date]) {
+                        h.weight = weightByDate[h.date];
+                    }
+                });
+                
                 // Save and render
                 localStorage.setItem('hed_history', JSON.stringify(sheetHistory.slice(0, 30)));
                 
@@ -1423,17 +1682,70 @@
                 }
                 list.innerHTML = sheetHistory.slice(0, 30).map((d, i) => `
                     <div class="history-card">
-                        <div class="history-date"><span>${d.date}</span><span>${d.workout ? '✅' : '⬜'} <button onclick="deleteHistoryItem(${i})" style="background:none;border:none;color:#ccc;font-size:14px;cursor:pointer;">×</button></span></div>
+                        <div class="history-date" onclick="toggleHistoryDetail(${i})" style="cursor:pointer;">
+                            <span>${d.date} ${d.weight ? '⚖️' + d.weight + 'kg' : ''}</span>
+                            <span>${d.workout ? '✅' : '⬜'} <span id="histArrow${i}">▶</span></span>
+                        </div>
                         <div class="history-stats">
                             <div class="history-stat ${d.calIn <= TARGETS.cal ? 'good' : 'bad'}"><div class="history-stat-value">${d.calIn}</div><div class="history-stat-label">Cal In</div></div>
                             <div class="history-stat ${d.protein >= TARGETS.protein ? 'good' : ''}"><div class="history-stat-value">${d.protein}g</div><div class="history-stat-label">Protein</div></div>
                             <div class="history-stat"><div class="history-stat-value">${d.calOut}</div><div class="history-stat-label">Burned</div></div>
                             <div class="history-stat"><div class="history-stat-value">${(d.steps||0).toLocaleString()}</div><div class="history-stat-label">Steps</div></div>
                         </div>
+                        <div id="histDetail${i}" style="display:none;padding:10px 0;border-top:1px solid #eee;margin-top:8px;font-size:11px;">
+                            ${d.entries && d.entries.length > 0 ? d.entries.map(e => 
+                                `<div style="display:flex;justify-content:space-between;padding:2px 0;">
+                                    <span>${e.type === 'food' ? '🍽️' : '💪'} ${e.name}</span>
+                                    <span>${e.type === 'food' ? e.cal + 'cal / ' + e.protein + 'g' : e.cal + ' burned'}</span>
+                                </div>`
+                            ).join('') : '<div style="color:#999;">No detailed entries</div>'}
+                            <div style="margin-top:8px;text-align:right;">
+                                <button onclick="deleteHistoryItem(${i})" style="background:#ff6b6b;color:white;border:none;padding:4px 8px;border-radius:4px;font-size:10px;cursor:pointer;">Delete Day</button>
+                            </div>
+                        </div>
                     </div>
                 `).join('');
             } catch (e) {
                 console.error('Load history error:', e);
+            }
+        }
+        
+        function updateNutritionSummary() {
+            const history = JSON.parse(localStorage.getItem('hed_history') || '[]');
+            const weightHistory = JSON.parse(localStorage.getItem('hed_weight_history') || '[]');
+            
+            // Weight trend (last 7 days)
+            if (weightHistory.length >= 2) {
+                const recent = weightHistory.slice(0, 7);
+                const first = recent[recent.length - 1].weight;
+                const last = recent[0].weight;
+                const diff = (last - first).toFixed(1);
+                const trend = diff > 0 ? `+${diff}kg ↑` : `${diff}kg ↓`;
+                document.getElementById('weightTrend').textContent = trend;
+                document.getElementById('weightTrend').style.color = diff <= 0 ? '#4CAF50' : '#ff6b6b';
+            } else {
+                document.getElementById('weightTrend').textContent = 'Need more data';
+            }
+            
+            // Average deficit (last 7 days)
+            if (history.length > 0) {
+                const recent = history.slice(0, 7);
+                const avgDeficit = Math.round(recent.reduce((sum, d) => sum + (TARGETS.cal - (d.calIn - d.calOut)), 0) / recent.length);
+                document.getElementById('avgDeficit').textContent = avgDeficit > 0 ? `-${avgDeficit} cal` : `+${Math.abs(avgDeficit)} cal`;
+                document.getElementById('avgDeficit').style.color = avgDeficit > 0 ? '#4CAF50' : '#ff6b6b';
+                
+                // Protein average
+                const avgProtein = Math.round(recent.reduce((sum, d) => sum + d.protein, 0) / recent.length);
+                document.getElementById('proteinAvg').textContent = avgProtein + 'g';
+                document.getElementById('proteinAvg').style.color = avgProtein >= TARGETS.protein ? '#4CAF50' : '#ff6b6b';
+                
+                // Workout streak
+                let streak = 0;
+                for (const d of history) {
+                    if (d.workout) streak++;
+                    else break;
+                }
+                document.getElementById('workoutStreak').textContent = streak + ' days';
             }
         }
         
@@ -1475,10 +1787,18 @@
         }
         
         // Actions
-        function addFood(name, cal, protein) {
+        function addFood(name, cal, protein, nutrients = {}) {
             state.calIn += cal;
             state.protein += protein;
-            state.entries.push({ type: 'food', name, cal, protein, time: Date.now() });
+            state.sodium = (state.sodium || 0) + (nutrients.sodium || 0);
+            state.fiber = (state.fiber || 0) + (nutrients.fiber || 0);
+            state.sugar = (state.sugar || 0) + (nutrients.sugar || 0);
+            state.potassium = (state.potassium || 0) + (nutrients.potassium || 0);
+            state.calcium = (state.calcium || 0) + (nutrients.calcium || 0);
+            state.iron = (state.iron || 0) + (nutrients.iron || 0);
+            state.vitD = (state.vitD || 0) + (nutrients.vitD || 0);
+            state.magnesium = (state.magnesium || 0) + (nutrients.magnesium || 0);
+            state.entries.push({ type: 'food', name, cal, protein, ...nutrients, time: Date.now() });
             trackUsage(name);
             saveState();
             updateUI();
@@ -1654,13 +1974,34 @@
                 }
                 const data = await res.json();
                 if (data.point && data.point.length > 0) {
-                    // Get most recent weight
+                    // Get most recent weight for display
                     const latest = data.point[data.point.length - 1];
                     const weightKg = latest.value[0].fpVal;
                     const weightDate = new Date(parseInt(latest.startTimeNanos) / 1000000);
                     
                     localStorage.setItem('hed_weight', weightKg.toFixed(1));
                     localStorage.setItem('hed_weight_date', weightDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                    
+                    // Build weight history - first weight of each day
+                    const weightByDay = {};
+                    for (const point of data.point) {
+                        const date = new Date(parseInt(point.startTimeNanos) / 1000000);
+                        const dateStr = date.toLocaleDateString('en-CA'); // YYYY-MM-DD
+                        const weight = point.value[0].fpVal;
+                        // Only store first weight of day
+                        if (!weightByDay[dateStr]) {
+                            weightByDay[dateStr] = weight;
+                        }
+                    }
+                    
+                    // Convert to sorted array (newest first)
+                    const weightHistory = Object.entries(weightByDay)
+                        .map(([date, weight]) => ({ date, weight: parseFloat(weight.toFixed(1)) }))
+                        .sort((a, b) => b.date.localeCompare(a.date))
+                        .slice(0, 30); // Keep last 30 days
+                    
+                    localStorage.setItem('hed_weight_history', JSON.stringify(weightHistory));
+                    
                     updateUI();
                     toast('Weight: ' + weightKg.toFixed(1) + 'kg');
                 } else {
