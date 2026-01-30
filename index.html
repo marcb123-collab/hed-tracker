@@ -710,32 +710,45 @@
               exercises: ['45-60 min walk', 'Stretching', 'Foam rolling (optional)'] },
         ];
         
-        // Food and exercise items - all nutrients estimated
-        // { cal, protein, sodium(mg), fiber(g), sugar(g), potassium(mg), calcium(mg), iron(mg), vitD(IU), magnesium(mg) }
-        const ALL_FOODS = [
+        // Food database - loaded from FoodDB sheet, with fallback
+        let ALL_FOODS = [
             { name: 'Baseline', cal: 78, protein: 1, sodium: 0, fiber: 0, sugar: 0, potassium: 0, calcium: 200, iron: 0, vitD: 400, magnesium: 100, icon: '📋' },
-            { name: 'Rice Bread+Hummus', cal: 190, protein: 4, sodium: 350, fiber: 2, sugar: 2, potassium: 120, calcium: 30, iron: 1, vitD: 0, magnesium: 20, icon: '🍞', short: 'Rice Bread' },
-            { name: 'Asahi Shake', cal: 194, protein: 27, sodium: 150, fiber: 1, sugar: 8, potassium: 400, calcium: 350, iron: 2, vitD: 100, magnesium: 50, icon: '🥤', short: 'Asahi' },
-            { name: 'Oikos 18g', cal: 100, protein: 18, sodium: 50, fiber: 0, sugar: 4, potassium: 180, calcium: 150, iron: 0, vitD: 0, magnesium: 15, icon: '🥛', short: 'Oikos 18' },
-            { name: 'Oikos 13g', cal: 90, protein: 13, sodium: 45, fiber: 0, sugar: 5, potassium: 150, calcium: 130, iron: 0, vitD: 0, magnesium: 12, icon: '🥛', short: 'Oikos 13' },
-            { name: 'Protein Bar', cal: 200, protein: 15, sodium: 200, fiber: 3, sugar: 8, potassium: 150, calcium: 100, iron: 2, vitD: 0, magnesium: 40, icon: '🍫' },
-            { name: 'Matcha Tall', cal: 150, protein: 3, sodium: 75, fiber: 0, sugar: 18, potassium: 200, calcium: 150, iron: 0, vitD: 50, magnesium: 15, icon: '🍵', short: 'Matcha T' },
-            { name: 'Matcha Grande', cal: 200, protein: 4, sodium: 100, fiber: 0, sugar: 24, potassium: 270, calcium: 200, iron: 0, vitD: 70, magnesium: 20, icon: '🍵', short: 'Matcha G' },
-            { name: 'Green Tea Pudding', cal: 120, protein: 3, sodium: 60, fiber: 0, sugar: 15, potassium: 80, calcium: 50, iron: 0, vitD: 0, magnesium: 8, icon: '🍮', short: 'Pudding' },
-            { name: 'Banana Bread', cal: 180, protein: 3, sodium: 150, fiber: 1, sugar: 12, potassium: 100, calcium: 20, iron: 1, vitD: 0, magnesium: 15, icon: '🍌' },
-            { name: 'Pork Saute Teishoku', cal: 650, protein: 28, sodium: 1200, fiber: 4, sugar: 6, potassium: 600, calcium: 60, iron: 2, vitD: 20, magnesium: 45, icon: '🍖', short: 'Pork Saute' },
-            { name: 'Ootoya Chicken and Sides', cal: 520, protein: 41, sodium: 900, fiber: 5, sugar: 4, potassium: 550, calcium: 80, iron: 2, vitD: 10, magnesium: 50, icon: '🍗', short: 'Ootoya Chkn' },
-            { name: 'Beni Imo 3 Slices', cal: 150, protein: 1, sodium: 20, fiber: 3, sugar: 8, potassium: 300, calcium: 30, iron: 0, vitD: 0, magnesium: 20, icon: '🍠', short: 'Beni Imo' },
-            { name: 'Mozuku', cal: 20, protein: 0, sodium: 400, fiber: 2, sugar: 0, potassium: 50, calcium: 20, iron: 1, vitD: 0, magnesium: 30, icon: '🥗' },
-            { name: 'Komeko Bread Rolls 2pc', cal: 220, protein: 4, sodium: 300, fiber: 1, sugar: 3, potassium: 60, calcium: 20, iron: 1, vitD: 0, magnesium: 15, icon: '🥖', short: 'Komeko Rolls' },
-            { name: 'Cherry Tomatoes 3pc', cal: 10, protein: 0, sodium: 5, fiber: 1, sugar: 2, potassium: 80, calcium: 5, iron: 0, vitD: 0, magnesium: 5, icon: '🍅', short: 'Tomatoes' },
-            { name: 'Sushi Set Lunch', cal: 580, protein: 38, sodium: 1100, fiber: 2, sugar: 8, potassium: 400, calcium: 50, iron: 2, vitD: 100, magnesium: 40, icon: '🍣', short: 'Sushi Set' },
-            { name: 'Chicken Bento with Sides', cal: 650, protein: 32, sodium: 1000, fiber: 4, sugar: 6, potassium: 450, calcium: 60, iron: 2, vitD: 10, magnesium: 40, icon: '🍱', short: 'Chkn Bento' },
-            { name: 'Tangerine Medium', cal: 45, protein: 1, sodium: 0, fiber: 2, sugar: 9, potassium: 150, calcium: 30, iron: 0, vitD: 0, magnesium: 10, icon: '🍊', short: 'Tangerine' },
-            { name: 'Banana Walnut Bread', cal: 300, protein: 5, sodium: 250, fiber: 2, sugar: 18, potassium: 150, calcium: 30, iron: 1, vitD: 0, magnesium: 25, icon: '🍞', short: 'Banana Walnut' },
-            { name: 'Romaine Chicken Salad with Miso and Imo', cal: 480, protein: 24, sodium: 800, fiber: 6, sugar: 5, potassium: 700, calcium: 80, iron: 2, vitD: 10, magnesium: 50, icon: '🥗', short: 'Chkn Salad' },
-            { name: 'Crab Fried Rice with Veggie Sides', cal: 550, protein: 18, sodium: 950, fiber: 3, sugar: 4, potassium: 350, calcium: 70, iron: 2, vitD: 20, magnesium: 35, icon: '🍚', short: 'Crab Rice' },
         ];
+        
+        // Load foods from FoodDB sheet
+        async function loadFoodDB() {
+            if (!accessToken) return;
+            try {
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/FoodDB!A2:M200`, {
+                    headers: { Authorization: `Bearer ${accessToken}` }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (!data.values || data.values.length === 0) return;
+                
+                // Parse sheet data: Name, Cal, Protein, Sodium, Fiber, Sugar, Potassium, Calcium, Iron, VitD, Magnesium, Icon, Short
+                ALL_FOODS = data.values.map(row => ({
+                    name: row[0] || '',
+                    cal: parseInt(row[1]) || 0,
+                    protein: parseInt(row[2]) || 0,
+                    sodium: parseInt(row[3]) || 0,
+                    fiber: parseInt(row[4]) || 0,
+                    sugar: parseInt(row[5]) || 0,
+                    potassium: parseInt(row[6]) || 0,
+                    calcium: parseInt(row[7]) || 0,
+                    iron: parseInt(row[8]) || 0,
+                    vitD: parseInt(row[9]) || 0,
+                    magnesium: parseInt(row[10]) || 0,
+                    icon: row[11] || '🍽️',
+                    short: row[12] || ''
+                })).filter(f => f.name); // Filter out empty rows
+                
+                console.log('Loaded ' + ALL_FOODS.length + ' foods from FoodDB');
+                renderButtons(); // Re-render with new foods
+            } catch (e) {
+                console.error('Load FoodDB error:', e);
+            }
+        }
         
         const ALL_EXERCISES = [
             { name: 'Pilates', cal: 90, icon: '🧘' },
@@ -816,14 +829,14 @@
             // Quick view - top 6 most used
             const quickFoods = sortedFoods.slice(0, 6);
             const quickHtml = quickFoods.map(f => 
-                `<button class="qbtn food" onclick="addFoodByName('${f.name}')">${f.icon} ${f.short || f.name} <span class="qbtn-cal">${f.cal}/${f.protein}g</span></button>`
+                `<button class="qbtn food" onclick="addFoodByName('${f.name}')">${f.icon} ${f.short || f.name} <span class="qbtn-cal">${f.cal}/${f.protein}g/${f.sodium || 0}mg</span></button>`
             ).join('') + `<button class="qbtn food" onclick="openCustom()">➕ Custom</button>`;
             quickEl.innerHTML = quickHtml;
             
             // Full view - alphabetically sorted
             const alphaSorted = [...ALL_FOODS].sort((a, b) => a.name.localeCompare(b.name));
             const fullHtml = alphaSorted.map(f => 
-                `<button class="qbtn food" onclick="addFoodByName('${f.name}')">${f.icon} ${f.short || f.name} <span class="qbtn-cal">${f.cal}/${f.protein}g</span></button>`
+                `<button class="qbtn food" onclick="addFoodByName('${f.name}')">${f.icon} ${f.short || f.name} <span class="qbtn-cal">${f.cal}/${f.protein}g/${f.sodium || 0}mg</span></button>`
             ).join('') + `<button class="qbtn food" onclick="openCustom()">➕ Custom</button>`;
             fullEl.innerHTML = fullHtml;
             
@@ -931,6 +944,8 @@
                             updateUI();
                             toast('Synced from cloud!');
                         }
+                        // Load food database from sheet
+                        await loadFoodDB();
                         // Auto-sync any unsynced history to DailyLog
                         await syncHistoryToSheets(true);
                         seedUsageFromSheets();
@@ -949,6 +964,7 @@
                         toast('Synced from cloud');
                     }
                 });
+                loadFoodDB(); // Load food database
                 syncHistoryToSheets(true);
                 seedUsageFromSheets();
             } else if (accessToken) {
@@ -1512,7 +1528,7 @@
                         <div class="item-dot ${e.type}"></div>
                         <span class="item-name">${e.name}</span>
                     </div>
-                    <span class="item-values">${e.type === 'food' ? e.cal + '/' + e.protein + 'g' : e.cal + ' cal'}</span>
+                    <span class="item-values">${e.type === 'food' ? e.cal + '/' + e.protein + 'g' + (e.sodium ? '/' + e.sodium + 'mg' : '') : e.cal + ' cal'}</span>
                     <button class="item-delete" onclick="deleteEntry(${i})">×</button>
                 </div>
             `).join('');
@@ -2015,6 +2031,77 @@
         
         function closeModal(id) { document.getElementById(id).classList.remove('open'); }
         
+        // Save food to FoodDB sheet if not already there
+        async function saveToFoodDB(name, cal, protein, sodium) {
+            if (!accessToken) return;
+            // Check if already in database
+            const exists = ALL_FOODS.some(f => f.name.toLowerCase() === name.toLowerCase());
+            if (exists) return;
+            
+            try {
+                // Append new row: Name, Cal, Protein, Sodium, Fiber, Sugar, Potassium, Calcium, Iron, VitD, Magnesium, Icon, Short
+                // Estimate other nutrients based on cal/protein ratio
+                const fiber = Math.round(cal / 200); // rough estimate
+                const sugar = Math.round(cal / 50);
+                const potassium = Math.round(cal * 0.5);
+                const calcium = Math.round(protein * 3);
+                const iron = Math.round(protein / 15);
+                const vitD = 0;
+                const magnesium = Math.round(cal / 20);
+                const icon = '🍽️';
+                const short = name.length > 12 ? name.substring(0, 10) + '..' : '';
+                
+                const row = [[name, cal, protein, sodium, fiber, sugar, potassium, calcium, iron, vitD, magnesium, icon, short]];
+                
+                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/FoodDB!A:M:append?valueInputOption=USER_ENTERED`, {
+                    method: 'POST',
+                    headers: { 
+                        Authorization: `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ values: row })
+                });
+                
+                // Add to local array
+                ALL_FOODS.push({ name, cal, protein, sodium, fiber, sugar, potassium, calcium, iron, vitD, magnesium, icon, short });
+                renderButtons();
+                console.log('Saved to FoodDB:', name);
+            } catch (e) {
+                console.error('Save to FoodDB error:', e);
+            }
+        }
+        
+        // Save food with FULL nutrients to FoodDB sheet
+        async function saveToFoodDBFull(name, cal, protein, nutrients) {
+            if (!accessToken) return;
+            const exists = ALL_FOODS.some(f => f.name.toLowerCase() === name.toLowerCase());
+            if (exists) return;
+            
+            try {
+                const icon = '🍽️';
+                const short = name.length > 12 ? name.substring(0, 10) + '..' : '';
+                
+                const row = [[name, cal, protein, nutrients.sodium, nutrients.fiber, nutrients.sugar, 
+                              nutrients.potassium, nutrients.calcium, nutrients.iron, nutrients.vitD, 
+                              nutrients.magnesium, icon, short]];
+                
+                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/FoodDB!A:M:append?valueInputOption=USER_ENTERED`, {
+                    method: 'POST',
+                    headers: { 
+                        Authorization: `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ values: row })
+                });
+                
+                ALL_FOODS.push({ name, cal, protein, ...nutrients, icon, short });
+                renderButtons();
+                console.log('Saved to FoodDB (full):', name);
+            } catch (e) {
+                console.error('Save to FoodDB error:', e);
+            }
+        }
+        
         // Input parsing
         function parseInput() {
             let input = document.getElementById('inputField').value.trim();
@@ -2024,10 +2111,38 @@
             input = input.replace(/^['"""']+|['"""']+$/g, '');
             input = input.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, ''); // zero-width chars, nbsp
             
-            // Match: Name 000cal 00g 000mg (with sodium)
-            const matchWithSodium = input.match(/^(.+?)\s+(\d+)\s*cal\s*(\d+)\s*g\s*(\d+)\s*mg$/i);
+            // Match FULL nutrients: Name 000cal 00g 000mg 0f 0s 000k 00ca 0fe 0d 00ma
+            // Order: cal, protein, sodium, fiber, sugar, potassium, calcium, iron, vitD, magnesium
+            const matchFull = input.match(/^(.+?)\s+(\d+)\s*cal\s+(\d+)\s*g\s+(\d+)\s*mg\s+(\d+)\s*f\s+(\d+)\s*s\s+(\d+)\s*k\s+(\d+)\s*ca\s+(\d+)\s*fe\s+(\d+)\s*d\s+(\d+)\s*ma$/i);
+            if (matchFull) {
+                const name = matchFull[1].trim();
+                const cal = parseInt(matchFull[2]);
+                const protein = parseInt(matchFull[3]);
+                const nutrients = {
+                    sodium: parseInt(matchFull[4]),
+                    fiber: parseInt(matchFull[5]),
+                    sugar: parseInt(matchFull[6]),
+                    potassium: parseInt(matchFull[7]),
+                    calcium: parseInt(matchFull[8]),
+                    iron: parseInt(matchFull[9]),
+                    vitD: parseInt(matchFull[10]),
+                    magnesium: parseInt(matchFull[11])
+                };
+                addFood(name, cal, protein, nutrients);
+                saveToFoodDBFull(name, cal, protein, nutrients);
+                document.getElementById('inputField').value = '';
+                return;
+            }
+            
+            // Match: Name 000cal 00g 000mg (with sodium only)
+            const matchWithSodium = input.match(/^(.+?)\s+(\d+)\s*cal\s+(\d+)\s*g\s+(\d+)\s*mg$/i);
             if (matchWithSodium) {
-                addFood(matchWithSodium[1].trim(), parseInt(matchWithSodium[2]), parseInt(matchWithSodium[3]), { sodium: parseInt(matchWithSodium[4]) });
+                const name = matchWithSodium[1].trim();
+                const cal = parseInt(matchWithSodium[2]);
+                const protein = parseInt(matchWithSodium[3]);
+                const sodium = parseInt(matchWithSodium[4]);
+                addFood(name, cal, protein, { sodium });
+                saveToFoodDB(name, cal, protein, sodium);
                 document.getElementById('inputField').value = '';
                 return;
             }
@@ -2038,9 +2153,9 @@
                 const name = match[1].trim();
                 const cal = parseInt(match[2]);
                 const protein = parseInt(match[3]);
-                // Estimate sodium: ~0.4mg per calorie as rough baseline for mixed meals
                 const estimatedSodium = Math.round(cal * 0.5);
                 addFood(name, cal, protein, { sodium: estimatedSodium });
+                saveToFoodDB(name, cal, protein, estimatedSodium); // Auto-save to sheet
                 document.getElementById('inputField').value = '';
                 return;
             }
@@ -2048,9 +2163,12 @@
             // Match: Name 000cal00g (no space between cal and protein)
             const match1b = input.match(/^(.+?)\s+(\d+)\s*cal(\d+)\s*g?$/i);
             if (match1b) {
+                const name = match1b[1].trim();
                 const cal = parseInt(match1b[2]);
+                const protein = parseInt(match1b[3]);
                 const estimatedSodium = Math.round(cal * 0.5);
-                addFood(match1b[1].trim(), cal, parseInt(match1b[3]), { sodium: estimatedSodium });
+                addFood(name, cal, protein, { sodium: estimatedSodium });
+                saveToFoodDB(name, cal, protein, estimatedSodium); // Auto-save to sheet
                 document.getElementById('inputField').value = '';
                 return;
             }
@@ -2058,9 +2176,11 @@
             // Match: Name 000cal
             const match2 = input.match(/^(.+?)\s+(\d+)\s*cal$/i);
             if (match2) {
+                const name = match2[1].trim();
                 const cal = parseInt(match2[2]);
                 const estimatedSodium = Math.round(cal * 0.5);
-                addFood(match2[1].trim(), cal, 0, { sodium: estimatedSodium });
+                addFood(name, cal, 0, { sodium: estimatedSodium });
+                saveToFoodDB(name, cal, 0, estimatedSodium); // Auto-save to sheet
                 document.getElementById('inputField').value = '';
                 return;
             }
