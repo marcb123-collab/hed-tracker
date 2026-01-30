@@ -358,7 +358,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker</span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v6.0</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -936,7 +936,6 @@
                         tokenExpiry = Date.now() + (r.expires_in || 3600) * 1000;
                         localStorage.setItem('hed_token', accessToken);
                         localStorage.setItem('hed_token_expiry', tokenExpiry.toString());
-                        document.getElementById('signInBtn').style.display = 'none';
                         updateSyncStatus();
                         // Load from Sheets after sign-in
                         const loaded = await loadFromLiveData();
@@ -958,7 +957,6 @@
             console.log('initGoogle: tokenLikelyValid=', tokenLikelyValid(), 'accessToken=', !!accessToken);
             if (tokenLikelyValid()) {
                 // Token looks valid, try to use it
-                document.getElementById('signInBtn').style.display = 'none';
                 updateSyncStatus();
                 loadFromLiveData().then(loaded => {
                     if (loaded) {
@@ -971,13 +969,11 @@
                 seedUsageFromSheets();
             } else if (accessToken) {
                 // Have a token but it might be expired - try anyway
-                document.getElementById('signInBtn').style.display = 'none';
                 updateSyncStatus();
                 loadFoodDB().then(() => { console.log('FoodDB loaded (expired token path)'); renderButtons(); });
                 console.log('Token may be expired - tap MB to refresh if needed');
             } else {
                 // No token at all
-                document.getElementById('signInBtn').style.display = 'inline-flex';
                 updateSyncStatus();
             }
             
