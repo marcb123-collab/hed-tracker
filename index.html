@@ -955,30 +955,40 @@
             });
             
             // Check if we have a potentially valid token
+            console.log('initGoogle: tokenLikelyValid=', tokenLikelyValid(), 'accessToken=', !!accessToken);
             if (tokenLikelyValid()) {
                 // Token looks valid, try to use it
                 document.getElementById('signInBtn').style.display = 'none';
+                updateSyncStatus();
                 loadFromLiveData().then(loaded => {
                     if (loaded) {
                         updateUI();
                         toast('Synced from cloud');
                     }
                 });
-                loadFoodDB().then(() => renderButtons());
+                loadFoodDB().then(() => { console.log('FoodDB loaded'); renderButtons(); });
                 syncHistoryToSheets(true);
                 seedUsageFromSheets();
-                updateSyncStatus();
             } else if (accessToken) {
                 // Have a token but it might be expired - try anyway
                 document.getElementById('signInBtn').style.display = 'none';
-                loadFoodDB().then(() => renderButtons()); // Try to load foods
                 updateSyncStatus();
+                loadFoodDB().then(() => { console.log('FoodDB loaded (expired token path)'); renderButtons(); });
                 console.log('Token may be expired - tap MB to refresh if needed');
             } else {
                 // No token at all
                 document.getElementById('signInBtn').style.display = 'inline-flex';
+                updateSyncStatus();
             }
-            updateSyncStatus();
+            
+            // Retry loading FoodDB after 2 seconds if not loaded
+            setTimeout(() => {
+                if (ALL_FOODS.length <= 1 && accessToken) {
+                    console.log('Retry loading FoodDB...');
+                    loadFoodDB().then(() => renderButtons());
+                    updateSyncStatus();
+                }
+            }, 2000);
         }
         
         function googleSignIn() { tokenClient.requestAccessToken(); }
