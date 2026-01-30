@@ -358,7 +358,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v6.3</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v6.4</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -1683,7 +1683,8 @@
         async function loadHistoryFromSheets() {
             if (!accessToken) return;
             try {
-                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog!A2:H100`, {
+                // New columns: Date(A), Cal In(B), Protein(C), Sodium(D), Cal Out(E), Steps(F), Weight(G), Net(H), Workout(I), Items(J)
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog!A2:J100`, {
                     headers: { Authorization: `Bearer ${accessToken}` }
                 });
                 if (res.status !== 200) return;
@@ -1703,6 +1704,7 @@
                 };
                 
                 // Convert sheet rows to history format, dedupe by normalized date
+                // Columns: Date(0), Cal In(1), Protein(2), Sodium(3), Cal Out(4), Steps(5), Weight(6), Net(7), Workout(8), Items(9)
                 const seenDates = new Set();
                 const sheetHistory = [];
                 data.values.forEach(row => {
@@ -1714,9 +1716,11 @@
                             date: date,
                             calIn: parseInt(row[1]) || 0,
                             protein: parseInt(row[2]) || 0,
-                            calOut: parseInt(row[3]) || 0,
-                            steps: parseInt(row[4]) || 0,
-                            workout: row[6] === 'Yes'
+                            sodium: parseInt(row[3]) || 0,
+                            calOut: parseInt(row[4]) || 0,
+                            steps: parseInt(row[5]) || 0,
+                            weight: parseFloat(row[6]) || 0,
+                            workout: row[8] === 'Yes'
                         });
                     }
                 });
