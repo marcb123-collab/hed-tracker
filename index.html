@@ -358,7 +358,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v6.4</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v6.5</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -878,12 +878,20 @@
         
         function updateSyncStatus() {
             const el = document.getElementById('syncStatus');
-            if (accessToken) {
+            // Green only if token exists AND not expired
+            if (accessToken && tokenLikelyValid()) {
                 el.textContent = 'MB';
                 el.style.background = '#4CAF50';
                 el.style.fontSize = '10px';
                 el.style.fontWeight = 'bold';
-                el.title = 'Signed in - tap to refresh token';
+                el.title = 'Connected - tap to refresh';
+            } else if (accessToken) {
+                // Have token but expired
+                el.textContent = 'MB';
+                el.style.background = '#ff9800'; // Orange = expired
+                el.style.fontSize = '10px';
+                el.style.fontWeight = 'bold';
+                el.title = 'Session expired - tap to reconnect';
             } else {
                 el.textContent = '';
                 el.style.background = 'rgba(255,255,255,0.4)';
@@ -891,22 +899,41 @@
             }
         }
         
-        // Handle 401 errors by clearing token and prompting re-auth
-        function handleAuthError() {
-            localStorage.removeItem('hed_token');
-            accessToken = null;
-            updateSyncStatus();
-            toast('Session expired - tap MB to sign in');
+        // Handle 401 errors - try silent refresh first
+        async function handleAuthError() {
+            console.log('Auth error - attempting silent refresh...');
+            const refreshed = await refreshTokenSilently();
+            if (refreshed && accessToken) {
+                console.log('Silent refresh successful');
+                updateSyncStatus();
+                return true; // Caller can retry
+            } else {
+                console.log('Silent refresh failed - need manual login');
+                localStorage.removeItem('hed_token');
+                localStorage.removeItem('hed_token_expiry');
+                accessToken = null;
+                tokenExpiry = 0;
+                updateSyncStatus();
+                toast('Tap MB to reconnect');
+                return false;
+            }
         }
         
-        // Wrapper for authenticated fetch that handles 401
+        // Wrapper for authenticated fetch that handles 401 with auto-retry
         async function authFetch(url, options = {}) {
             if (!accessToken) return null;
             options.headers = { ...options.headers, Authorization: `Bearer ${accessToken}` };
-            const res = await fetch(url, options);
+            let res = await fetch(url, options);
             if (res.status === 401) {
-                handleAuthError();
-                return null;
+                // Try to refresh and retry once
+                const refreshed = await handleAuthError();
+                if (refreshed) {
+                    options.headers.Authorization = `Bearer ${accessToken}`;
+                    res = await fetch(url, options);
+                    if (res.status === 401) return null; // Still failing
+                } else {
+                    return null;
+                }
             }
             return res;
         }
