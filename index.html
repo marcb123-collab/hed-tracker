@@ -2024,10 +2024,23 @@
             input = input.replace(/^['"""']+|['"""']+$/g, '');
             input = input.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, ''); // zero-width chars, nbsp
             
-            // Match: Name 000cal 00g (with or without space, g optional)
+            // Match: Name 000cal 00g 000mg (with sodium)
+            const matchWithSodium = input.match(/^(.+?)\s+(\d+)\s*cal\s*(\d+)\s*g\s*(\d+)\s*mg$/i);
+            if (matchWithSodium) {
+                addFood(matchWithSodium[1].trim(), parseInt(matchWithSodium[2]), parseInt(matchWithSodium[3]), { sodium: parseInt(matchWithSodium[4]) });
+                document.getElementById('inputField').value = '';
+                return;
+            }
+            
+            // Match: Name 000cal 00g (without sodium - estimate based on food type)
             const match = input.match(/^(.+?)\s+(\d+)\s*cal\s*(\d+)\s*g?$/i);
             if (match) {
-                addFood(match[1].trim(), parseInt(match[2]), parseInt(match[3]));
+                const name = match[1].trim();
+                const cal = parseInt(match[2]);
+                const protein = parseInt(match[3]);
+                // Estimate sodium: ~0.4mg per calorie as rough baseline for mixed meals
+                const estimatedSodium = Math.round(cal * 0.5);
+                addFood(name, cal, protein, { sodium: estimatedSodium });
                 document.getElementById('inputField').value = '';
                 return;
             }
@@ -2035,7 +2048,9 @@
             // Match: Name 000cal00g (no space between cal and protein)
             const match1b = input.match(/^(.+?)\s+(\d+)\s*cal(\d+)\s*g?$/i);
             if (match1b) {
-                addFood(match1b[1].trim(), parseInt(match1b[2]), parseInt(match1b[3]));
+                const cal = parseInt(match1b[2]);
+                const estimatedSodium = Math.round(cal * 0.5);
+                addFood(match1b[1].trim(), cal, parseInt(match1b[3]), { sodium: estimatedSodium });
                 document.getElementById('inputField').value = '';
                 return;
             }
@@ -2043,7 +2058,9 @@
             // Match: Name 000cal
             const match2 = input.match(/^(.+?)\s+(\d+)\s*cal$/i);
             if (match2) {
-                addFood(match2[1].trim(), parseInt(match2[2]), 0);
+                const cal = parseInt(match2[2]);
+                const estimatedSodium = Math.round(cal * 0.5);
+                addFood(match2[1].trim(), cal, 0, { sodium: estimatedSodium });
                 document.getElementById('inputField').value = '';
                 return;
             }
@@ -2057,7 +2074,7 @@
                 return;
             }
             
-            toast('Format: Saba Set 650cal 35g');
+            toast('Format: Food 650cal 35g 800mg');
         }
         
         document.getElementById('inputField').addEventListener('keypress', e => { if (e.key === 'Enter') parseInput(); });
