@@ -358,7 +358,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v6.6</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v6.8</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -505,7 +505,7 @@
                 <button class="qbtn action" onclick="syncWeight()">⚖️ Sync Weight</button>
             </div>
             
-            <div class="section-title">🍽️ FOOD <span id="foodToggle" onclick="toggleFoodList()" style="font-size:10px;color:#667eea;cursor:pointer;float:right;">Show All ▼</span></div>
+            <div class="section-title">🍽️ FOOD <span id="foodToggle" onclick="toggleFoodList()" style="font-size:10px;color:#667eea;cursor:pointer;float:right;">A-Z ▼</span></div>
             <div class="quick-grid" id="foodButtonsQuick"></div>
             <div class="quick-grid" id="foodButtonsFull" style="display:none;"></div>
             
@@ -750,31 +750,90 @@
             }
         }
         
-        const ALL_EXERCISES = [
-            { name: 'Pilates', cal: 90, icon: '🧘' },
-            { name: 'Pilates Lesson', cal: 180, icon: '🧘' },
+        let ALL_EXERCISES = [
             { name: 'Ab Circuit', cal: 200, icon: '💪' },
             { name: 'Bike', cal: 400, icon: '🚴' },
             { name: 'Resistance', cal: 180, icon: '🏋️' },
-            { name: 'Long Walk', cal: 150, icon: '🚶', short: 'Walk' },
-            { name: 'Drums 1hr', cal: 175, icon: '🥁', short: 'Drums 1h' },
-            { name: 'Drums 2hr', cal: 350, icon: '🥁', short: 'Drums 2h' },
-        ];
+        ]; // Fallback, will be replaced by loadExerciseDB
+        
+        // Load exercises from ExerciseDB sheet
+        async function loadExerciseDB() {
+            if (!accessToken) return;
+            try {
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/ExerciseDB!A2:D100`, {
+                    headers: { Authorization: `Bearer ${accessToken}` }
+                });
+                if (res.status === 401) {
+                    await handleAuthError();
+                    return;
+                }
+                if (res.status !== 200) return;
+                
+                const data = await res.json();
+                if (!data.values || !data.values.length) return;
+                
+                // Columns: Name(0), Cal(1), Icon(2), Short(3)
+                ALL_EXERCISES = data.values.map(row => ({
+                    name: row[0],
+                    cal: parseInt(row[1]) || 0,
+                    icon: row[2] || '💪',
+                    short: row[3] || ''
+                })).filter(e => e.name); // Filter out empty rows
+                
+                console.log('Loaded ' + ALL_EXERCISES.length + ' exercises from ExerciseDB');
+                renderButtons();
+            } catch (e) {
+                console.error('Load ExerciseDB error:', e);
+            }
+        }
+        
+        // Save exercise to ExerciseDB sheet
+        async function saveToExerciseDB(name, cal) {
+            await ensureValidToken();
+            if (!accessToken) return;
+            const exists = ALL_EXERCISES.some(e => e.name.toLowerCase() === name.toLowerCase());
+            if (exists) return;
+            
+            try {
+                const icon = '💪';
+                const short = name.length > 12 ? name.substring(0, 10) + '..' : '';
+                const row = [[name, cal, icon, short]];
+                
+                const res = await authFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/ExerciseDB!A:D:append?valueInputOption=USER_ENTERED`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ values: row })
+                });
+                
+                if (res && res.ok) {
+                    ALL_EXERCISES.push({ name, cal, icon, short });
+                    renderButtons();
+                    console.log('Saved to ExerciseDB:', name);
+                }
+            } catch (e) {
+                console.error('Save to ExerciseDB error:', e);
+            }
+        }
         
         // Usage tracking
         let itemUsage = JSON.parse(localStorage.getItem('hed_usage') || '{}');
+        let itemLastUsed = JSON.parse(localStorage.getItem('hed_last_used') || '{}');
         
         function trackUsage(name) {
             itemUsage[name] = (itemUsage[name] || 0) + 1;
+            itemLastUsed[name] = Date.now();
             localStorage.setItem('hed_usage', JSON.stringify(itemUsage));
+            localStorage.setItem('hed_last_used', JSON.stringify(itemLastUsed));
         }
         
         function seedUsageFromState() {
             // Count from today's entries
             state.entries.forEach(e => {
                 itemUsage[e.name] = (itemUsage[e.name] || 0) + 1;
+                itemLastUsed[e.name] = e.time || Date.now();
             });
             localStorage.setItem('hed_usage', JSON.stringify(itemUsage));
+            localStorage.setItem('hed_last_used', JSON.stringify(itemLastUsed));
         }
         
         async function seedUsageFromSheets() {
@@ -823,17 +882,14 @@
                 vitD: f.vitD || 0, magnesium: f.magnesium || 0
             }).replace(/"/g, "'");
             
-            // Sort foods by usage (most used first)
-            const sortedFoods = [...ALL_FOODS].sort((a, b) => (itemUsage[b.name] || 0) - (itemUsage[a.name] || 0));
-            
-            // Quick view - top 6 most used
-            const quickFoods = sortedFoods.slice(0, 6);
-            const quickHtml = quickFoods.map(f => 
+            // Recent view - sorted by last used time (most recent first)
+            const recentFoods = [...ALL_FOODS].sort((a, b) => (itemLastUsed[b.name] || 0) - (itemLastUsed[a.name] || 0));
+            const recentHtml = recentFoods.map(f => 
                 `<button class="qbtn food" onclick="addFoodByName('${f.name}')">${f.icon} ${f.short || f.name} <span class="qbtn-cal">${f.cal}/${f.protein}g/${f.sodium || 0}mg</span></button>`
             ).join('') + `<button class="qbtn food" onclick="openCustom()">➕ Custom</button>`;
-            quickEl.innerHTML = quickHtml;
+            quickEl.innerHTML = recentHtml;
             
-            // Full view - alphabetically sorted, show FULL names
+            // A-Z view - alphabetically sorted, show FULL names
             const alphaSorted = [...ALL_FOODS].sort((a, b) => a.name.localeCompare(b.name));
             const fullHtml = alphaSorted.map(f => 
                 `<button class="qbtn food" onclick="addFoodByName('${f.name}')">${f.icon} ${f.name} <span class="qbtn-cal">${f.cal}/${f.protein}g/${f.sodium || 0}mg</span></button>`
@@ -868,11 +924,11 @@
             if (showAllFoods) {
                 quickEl.style.display = 'none';
                 fullEl.style.display = 'flex';
-                toggleEl.textContent = 'Show Less ▲';
+                toggleEl.textContent = 'Recent ▲';
             } else {
                 quickEl.style.display = 'flex';
                 fullEl.style.display = 'none';
-                toggleEl.textContent = 'Show All ▼';
+                toggleEl.textContent = 'A-Z ▼';
             }
         }
         
@@ -970,8 +1026,9 @@
                             updateUI();
                             toast('Synced from cloud!');
                         }
-                        // Load food database from sheet
+                        // Load food and exercise databases from sheet
                         await loadFoodDB();
+                        await loadExerciseDB();
                         // Auto-sync any unsynced history to DailyLog
                         await syncHistoryToSheets(true);
                         seedUsageFromSheets();
@@ -992,25 +1049,31 @@
                     }
                 });
                 loadFoodDB().then(() => { console.log('FoodDB loaded'); renderButtons(); });
+                loadExerciseDB().then(() => { console.log('ExerciseDB loaded'); renderButtons(); });
                 syncHistoryToSheets(true);
                 seedUsageFromSheets();
             } else if (accessToken) {
                 // Have a token but it might be expired - try anyway
                 updateSyncStatus();
                 loadFoodDB().then(() => { console.log('FoodDB loaded (expired token path)'); renderButtons(); });
+                loadExerciseDB().then(() => { console.log('ExerciseDB loaded (expired token path)'); renderButtons(); });
                 console.log('Token may be expired - tap MB to refresh if needed');
             } else {
                 // No token at all
                 updateSyncStatus();
             }
             
-            // Retry loading FoodDB after 2 seconds if not loaded
+            // Retry loading DBs after 2 seconds if not loaded
             setTimeout(() => {
                 if (ALL_FOODS.length <= 1 && accessToken) {
                     console.log('Retry loading FoodDB...');
                     loadFoodDB().then(() => renderButtons());
-                    updateSyncStatus();
                 }
+                if (ALL_EXERCISES.length <= 3 && accessToken) {
+                    console.log('Retry loading ExerciseDB...');
+                    loadExerciseDB().then(() => renderButtons());
+                }
+                updateSyncStatus();
             }, 2000);
         }
         
