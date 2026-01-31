@@ -358,7 +358,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v6.9</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v7.0</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -505,12 +505,25 @@
                 <button class="qbtn action" onclick="syncWeight()">⚖️ Sync Weight</button>
             </div>
             
-            <div class="section-title">🍽️ FOOD <span id="foodToggle" onclick="toggleFoodList()" style="font-size:10px;color:#667eea;cursor:pointer;float:right;">A-Z ▼</span></div>
+            <div class="section-title">🍽️ FOOD 
+                <span style="float:right;font-size:10px;">
+                    <span id="foodSizeToggle" onclick="toggleFoodSize()" style="color:#667eea;cursor:pointer;">All ▼</span>
+                    <span style="color:#ccc;margin:0 4px;">|</span>
+                    <span id="foodSortToggle" onclick="toggleFoodSort()" style="color:#667eea;cursor:pointer;">Recent</span>
+                </span>
+            </div>
             <div class="quick-grid" id="foodButtonsQuick"></div>
             <div class="quick-grid" id="foodButtonsFull" style="display:none;"></div>
             
-            <div class="section-title">💪 EXERCISE</div>
-            <div class="quick-grid" id="exerciseButtons"></div>
+            <div class="section-title">💪 EXERCISE
+                <span style="float:right;font-size:10px;">
+                    <span id="exSizeToggle" onclick="toggleExSize()" style="color:#667eea;cursor:pointer;">All ▼</span>
+                    <span style="color:#ccc;margin:0 4px;">|</span>
+                    <span id="exSortToggle" onclick="toggleExSort()" style="color:#667eea;cursor:pointer;">Recent</span>
+                </span>
+            </div>
+            <div class="quick-grid" id="exerciseButtonsQuick"></div>
+            <div class="quick-grid" id="exerciseButtonsFull" style="display:none;"></div>
             <div style="margin: 10px 0;">
                 <button class="workout-btn" id="workoutBtn" onclick="toggleWorkout()" style="width:100%;padding:12px;font-size:14px;">☐ Workout Done</button>
             </div>
@@ -606,6 +619,9 @@
         };
         let photoData = null;
         let showAllFoods = false;
+        let foodSortAZ = false;
+        let showAllExercises = false;
+        let exSortAZ = false;
         
         // Check if token needs refresh (expired or missing)
         function tokenNeedsRefresh() {
@@ -867,41 +883,60 @@
         }
         
         function renderButtons() {
-            const quickEl = document.getElementById('foodButtonsQuick');
-            const fullEl = document.getElementById('foodButtonsFull');
-            const exEl = document.getElementById('exerciseButtons');
-            if (!quickEl || !fullEl || !exEl) {
+            const foodQuickEl = document.getElementById('foodButtonsQuick');
+            const foodFullEl = document.getElementById('foodButtonsFull');
+            const exQuickEl = document.getElementById('exerciseButtonsQuick');
+            const exFullEl = document.getElementById('exerciseButtonsFull');
+            if (!foodQuickEl || !foodFullEl) {
                 console.error('Button containers not found');
                 return;
             }
             
-            // Helper to create nutrient object string for onclick
-            const getNutrients = (f) => JSON.stringify({
-                sodium: f.sodium || 0, fiber: f.fiber || 0, sugar: f.sugar || 0,
-                potassium: f.potassium || 0, calcium: f.calcium || 0, iron: f.iron || 0,
-                vitD: f.vitD || 0, magnesium: f.magnesium || 0
-            }).replace(/"/g, "'");
+            // Sort foods based on current sort setting
+            let sortedFoods;
+            if (foodSortAZ) {
+                sortedFoods = [...ALL_FOODS].sort((a, b) => a.name.localeCompare(b.name));
+            } else {
+                sortedFoods = [...ALL_FOODS].sort((a, b) => (itemLastUsed[b.name] || 0) - (itemLastUsed[a.name] || 0));
+            }
             
-            // Recent view - top 8 sorted by last used time (most recent first)
-            const recentFoods = [...ALL_FOODS].sort((a, b) => (itemLastUsed[b.name] || 0) - (itemLastUsed[a.name] || 0)).slice(0, 8);
-            const recentHtml = recentFoods.map(f => 
+            // Quick view - top 8
+            const quickFoods = sortedFoods.slice(0, 8);
+            const quickHtml = quickFoods.map(f => 
                 `<button class="qbtn food" onclick="addFoodByName('${f.name}')">${f.icon} ${f.short || f.name} <span class="qbtn-cal">${f.cal}/${f.protein}g/${f.sodium || 0}mg</span></button>`
             ).join('') + `<button class="qbtn food" onclick="openCustom()">➕ Custom</button>`;
-            quickEl.innerHTML = recentHtml;
+            foodQuickEl.innerHTML = quickHtml;
             
-            // A-Z view - alphabetically sorted, show FULL names
-            const alphaSorted = [...ALL_FOODS].sort((a, b) => a.name.localeCompare(b.name));
-            const fullHtml = alphaSorted.map(f => 
+            // Full view - all foods with full names
+            const fullHtml = sortedFoods.map(f => 
                 `<button class="qbtn food" onclick="addFoodByName('${f.name}')">${f.icon} ${f.name} <span class="qbtn-cal">${f.cal}/${f.protein}g/${f.sodium || 0}mg</span></button>`
             ).join('') + `<button class="qbtn food" onclick="openCustom()">➕ Custom</button>`;
-            fullEl.innerHTML = fullHtml;
+            foodFullEl.innerHTML = fullHtml;
             
-            // Exercises - show FULL names, sorted by last used
-            const sortedEx = [...ALL_EXERCISES].sort((a, b) => (itemLastUsed[b.name] || 0) - (itemLastUsed[a.name] || 0));
-            const exHtml = sortedEx.map(e => 
-                `<button class="qbtn exercise" onclick="addExercise('${e.name}',${e.cal})">${e.icon} ${e.name} <span class="qbtn-cal">${e.cal}</span></button>`
-            ).join('');
-            exEl.innerHTML = exHtml;
+            // Sort exercises based on current sort setting
+            let sortedEx;
+            if (exSortAZ) {
+                sortedEx = [...ALL_EXERCISES].sort((a, b) => a.name.localeCompare(b.name));
+            } else {
+                sortedEx = [...ALL_EXERCISES].sort((a, b) => (itemLastUsed[b.name] || 0) - (itemLastUsed[a.name] || 0));
+            }
+            
+            // Exercise quick view - top 6
+            if (exQuickEl) {
+                const quickEx = sortedEx.slice(0, 6);
+                const exQuickHtml = quickEx.map(e => 
+                    `<button class="qbtn exercise" onclick="addExercise('${e.name}',${e.cal})">${e.icon} ${e.name} <span class="qbtn-cal">${e.cal}</span></button>`
+                ).join('');
+                exQuickEl.innerHTML = exQuickHtml;
+            }
+            
+            // Exercise full view - all
+            if (exFullEl) {
+                const exFullHtml = sortedEx.map(e => 
+                    `<button class="qbtn exercise" onclick="addExercise('${e.name}',${e.cal})">${e.icon} ${e.name} <span class="qbtn-cal">${e.cal}</span></button>`
+                ).join('');
+                exFullEl.innerHTML = exFullHtml;
+            }
         }
         
         // Helper to add food by name (looks up all nutrients)
@@ -916,20 +951,50 @@
             }
         }
         
-        function toggleFoodList() {
+        // Food toggle functions
+        function toggleFoodSize() {
+            showAllFoods = !showAllFoods;
             const quickEl = document.getElementById('foodButtonsQuick');
             const fullEl = document.getElementById('foodButtonsFull');
-            const toggleEl = document.getElementById('foodToggle');
-            showAllFoods = !showAllFoods;
+            const toggleEl = document.getElementById('foodSizeToggle');
             if (showAllFoods) {
                 quickEl.style.display = 'none';
                 fullEl.style.display = 'flex';
-                toggleEl.textContent = 'Recent ▲';
+                toggleEl.textContent = 'Less ▲';
             } else {
                 quickEl.style.display = 'flex';
                 fullEl.style.display = 'none';
-                toggleEl.textContent = 'A-Z ▼';
+                toggleEl.textContent = 'All ▼';
             }
+        }
+        
+        function toggleFoodSort() {
+            foodSortAZ = !foodSortAZ;
+            document.getElementById('foodSortToggle').textContent = foodSortAZ ? 'A-Z' : 'Recent';
+            renderButtons();
+        }
+        
+        // Exercise toggle functions
+        function toggleExSize() {
+            showAllExercises = !showAllExercises;
+            const quickEl = document.getElementById('exerciseButtonsQuick');
+            const fullEl = document.getElementById('exerciseButtonsFull');
+            const toggleEl = document.getElementById('exSizeToggle');
+            if (showAllExercises) {
+                quickEl.style.display = 'none';
+                fullEl.style.display = 'flex';
+                toggleEl.textContent = 'Less ▲';
+            } else {
+                quickEl.style.display = 'flex';
+                fullEl.style.display = 'none';
+                toggleEl.textContent = 'All ▼';
+            }
+        }
+        
+        function toggleExSort() {
+            exSortAZ = !exSortAZ;
+            document.getElementById('exSortToggle').textContent = exSortAZ ? 'A-Z' : 'Recent';
+            renderButtons();
         }
         
         function updateSyncStatus() {
