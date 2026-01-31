@@ -358,7 +358,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v7.0</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v7.2</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -376,11 +376,11 @@
             </div>
             <div class="stat">
                 <div class="stat-value" id="burned">0</div>
-                <div class="stat-label">BURNED</div>
+                <div class="stat-label">CAL BURNED</div>
             </div>
             <div class="stat">
                 <div class="stat-value" id="net">0</div>
-                <div class="stat-label">NET</div>
+                <div class="stat-label">NET CAL</div>
             </div>
         </div>
         <div class="progress-row">
@@ -1088,12 +1088,13 @@
                         // Load from Sheets after sign-in
                         const loaded = await loadFromLiveData();
                         if (loaded) {
-                            updateUI();
                             toast('Synced from cloud!');
                         }
+                        updateUI(); // Always update UI after sign-in
                         // Load food and exercise databases from sheet
                         await loadFoodDB();
                         await loadExerciseDB();
+                        renderButtons();
                         // Auto-sync any unsynced history to DailyLog
                         await syncHistoryToSheets(true);
                         seedUsageFromSheets();
@@ -1109,9 +1110,9 @@
                 updateSyncStatus();
                 loadFromLiveData().then(loaded => {
                     if (loaded) {
-                        updateUI();
                         toast('Synced from cloud');
                     }
+                    updateUI(); // Always update UI after attempting load
                 });
                 loadFoodDB().then(() => { console.log('FoodDB loaded'); renderButtons(); });
                 loadExerciseDB().then(() => { console.log('ExerciseDB loaded'); renderButtons(); });
@@ -1593,19 +1594,28 @@
             
             const calPct = Math.min(Math.round((net / TARGETS.cal) * 100), 100);
             const worPct = Math.min(Math.round((state.protein / TARGETS.protein) * 100), 100);
-            const sodiumPct = Math.min(Math.round(((state.sodium || 0) / TARGETS.sodium) * 100), 100);
+            const sodiumPct = Math.round(((state.sodium || 0) / TARGETS.sodium) * 100); // No cap - show overage
+            const sodiumBarWidth = Math.min(sodiumPct, 150); // Cap bar at 150% width
             document.getElementById('calPct').textContent = calPct;
             document.getElementById('worPct').textContent = worPct;
             document.getElementById('sodiumPct').textContent = sodiumPct;
             document.getElementById('calBar').style.width = calPct + '%';
             document.getElementById('worBar').style.width = worPct + '%';
-            document.getElementById('sodiumBar').style.width = sodiumPct + '%';
+            document.getElementById('sodiumBar').style.width = sodiumBarWidth + '%';
+            // Color sodium bar red if over limit
+            document.getElementById('sodiumBar').style.background = sodiumPct > 100 ? '#ff6b6b' : '#ff9800';
             
             // Goals section
             document.getElementById('goalCal').textContent = net + '/1600';
             document.getElementById('goalProtein').textContent = state.protein + '/110g';
             document.getElementById('goalSodium').textContent = (state.sodium || 0) + '/2300mg';
             document.getElementById('goalSteps').textContent = state.steps.toLocaleString() + '/7500';
+            
+            // Auto-check workout if calOut >= 400
+            if (state.calOut >= 400 && !state.workout) {
+                state.workout = true;
+                saveState();
+            }
             
             // Workout button
             const workoutBtn = document.getElementById('workoutBtn');
@@ -1654,18 +1664,23 @@
             // Average daily deficit (last 7 days)
             if (history.length > 0) {
                 const recent = history.slice(0, 7);
-                const avgDeficit = Math.round(recent.reduce((sum, d) => sum + (d.calIn - d.calOut), 0) / recent.length);
-                document.getElementById('avgDeficit').textContent = avgDeficit + ' cal/day';
-                document.getElementById('avgDeficit').style.color = avgDeficit <= 1600 ? '#4CAF50' : '#f44336';
+                const avgDeficit = Math.round(recent.reduce((sum, d) => sum + (TARGETS.cal - (d.calIn - d.calOut)), 0) / recent.length);
+                document.getElementById('avgDeficit').textContent = avgDeficit > 0 ? `-${avgDeficit} cal` : `+${Math.abs(avgDeficit)} cal`;
+                document.getElementById('avgDeficit').style.color = avgDeficit > 0 ? '#4CAF50' : '#f44336';
                 
                 // Protein average
                 const avgProtein = Math.round(recent.reduce((sum, d) => sum + d.protein, 0) / recent.length);
-                document.getElementById('proteinAvg').textContent = avgProtein + 'g/day';
-                document.getElementById('proteinAvg').style.color = avgProtein >= 100 ? '#4CAF50' : '#f44336';
+                document.getElementById('proteinAvg').textContent = avgProtein + 'g';
+                document.getElementById('proteinAvg').style.color = avgProtein >= TARGETS.protein ? '#4CAF50' : '#f44336';
+                
+                // Sodium average
+                const avgSodium = Math.round(recent.reduce((sum, d) => sum + (d.sodium || 0), 0) / recent.length);
+                document.getElementById('sodiumAvg').textContent = avgSodium > 0 ? avgSodium + 'mg' : '--';
+                document.getElementById('sodiumAvg').style.color = avgSodium <= TARGETS.sodium ? '#4CAF50' : '#ff6b6b';
                 
                 // Workout streak
                 let streak = 0;
-                for (const d of recent) {
+                for (const d of history) {
                     if (d.workout) streak++;
                     else break;
                 }
@@ -1673,6 +1688,7 @@
             } else {
                 document.getElementById('avgDeficit').textContent = 'No data';
                 document.getElementById('proteinAvg').textContent = 'No data';
+                document.getElementById('sodiumAvg').textContent = '--';
                 document.getElementById('workoutStreak').textContent = '0 days';
             }
         }
@@ -1940,50 +1956,6 @@
                 `).join('');
             } catch (e) {
                 console.error('Load history error:', e);
-            }
-        }
-        
-        function updateNutritionSummary() {
-            const history = JSON.parse(localStorage.getItem('hed_history') || '[]');
-            const weightHistory = JSON.parse(localStorage.getItem('hed_weight_history') || '[]');
-            
-            // Weight trend (last 7 days)
-            if (weightHistory.length >= 2) {
-                const recent = weightHistory.slice(0, 7);
-                const first = recent[recent.length - 1].weight;
-                const last = recent[0].weight;
-                const diff = (last - first).toFixed(1);
-                const trend = diff > 0 ? `+${diff}kg ↑` : `${diff}kg ↓`;
-                document.getElementById('weightTrend').textContent = trend;
-                document.getElementById('weightTrend').style.color = diff <= 0 ? '#4CAF50' : '#ff6b6b';
-            } else {
-                document.getElementById('weightTrend').textContent = 'Need more data';
-            }
-            
-            // Average deficit (last 7 days)
-            if (history.length > 0) {
-                const recent = history.slice(0, 7);
-                const avgDeficit = Math.round(recent.reduce((sum, d) => sum + (TARGETS.cal - (d.calIn - d.calOut)), 0) / recent.length);
-                document.getElementById('avgDeficit').textContent = avgDeficit > 0 ? `-${avgDeficit} cal` : `+${Math.abs(avgDeficit)} cal`;
-                document.getElementById('avgDeficit').style.color = avgDeficit > 0 ? '#4CAF50' : '#ff6b6b';
-                
-                // Protein average
-                const avgProtein = Math.round(recent.reduce((sum, d) => sum + d.protein, 0) / recent.length);
-                document.getElementById('proteinAvg').textContent = avgProtein + 'g';
-                document.getElementById('proteinAvg').style.color = avgProtein >= TARGETS.protein ? '#4CAF50' : '#ff6b6b';
-                
-                // Sodium average
-                const avgSodium = Math.round(recent.reduce((sum, d) => sum + (d.sodium || 0), 0) / recent.length);
-                document.getElementById('sodiumAvg').textContent = avgSodium > 0 ? avgSodium + 'mg' : '--';
-                document.getElementById('sodiumAvg').style.color = avgSodium <= TARGETS.sodium ? '#4CAF50' : '#ff6b6b';
-                
-                // Workout streak
-                let streak = 0;
-                for (const d of history) {
-                    if (d.workout) streak++;
-                    else break;
-                }
-                document.getElementById('workoutStreak').textContent = streak + ' days';
             }
         }
         
