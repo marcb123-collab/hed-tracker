@@ -358,7 +358,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v7.3</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v7.5</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -1419,23 +1419,44 @@
                 // Normalize all dates to YYYY-MM-DD for comparison
                 const normalizeDate = (d) => {
                     if (!d) return '';
+                    // Already in correct format
                     if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+                    // Try parsing various formats
                     try {
                         const parsed = new Date(d);
                         if (!isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0];
                     } catch {}
-                    return d;
+                    return '';
                 };
                 
-                const existingDates = new Set((data.values || []).flat().map(normalizeDate));
+                // Build set of existing dates (normalized)
+                const existingDates = new Set();
+                (data.values || []).forEach(row => {
+                    if (row[0]) {
+                        const norm = normalizeDate(row[0]);
+                        if (norm) existingDates.add(norm);
+                    }
+                });
+                console.log('Existing dates in DailyLog:', [...existingDates]);
                 
                 // Filter history to only new dates (normalize for comparison)
                 const newEntries = history.filter(h => {
                     const normDate = normalizeDate(h.date);
-                    // Skip if no date or already exists
-                    if (!normDate || existingDates.has(normDate)) return false;
+                    // Skip if no valid date
+                    if (!normDate) {
+                        console.log('Skipping entry with invalid date:', h.date);
+                        return false;
+                    }
+                    // Skip if already exists
+                    if (existingDates.has(normDate)) {
+                        console.log('Skipping existing date:', normDate);
+                        return false;
+                    }
                     // Skip if no actual data
-                    if (!h.calIn && !h.protein) return false;
+                    if (!h.calIn && !h.protein) {
+                        console.log('Skipping entry with no data:', normDate);
+                        return false;
+                    }
                     return true;
                 });
                 
@@ -1444,12 +1465,14 @@
                     return;
                 }
                 
+                console.log('New entries to sync:', newEntries.map(h => normalizeDate(h.date)));
+                
                 // Append new entries with normalized dates
                 // New columns: Date, Cal In, Protein, Sodium, Cal Out, Steps, Weight, Net, Workout, Items
                 const weightHistory = JSON.parse(localStorage.getItem('hed_weight_history') || '[]');
                 const rows = newEntries.map(h => {
                     const normDate = normalizeDate(h.date);
-                    const dayWeight = weightHistory.find(w => w.date === normDate);
+                    const dayWeight = weightHistory.find(w => normalizeDate(w.date) === normDate);
                     return [
                         normDate, 
                         h.calIn || 0, 
@@ -1586,7 +1609,6 @@
             document.getElementById('calIn').textContent = state.calIn;
             document.getElementById('protein').textContent = state.protein + 'g';
             document.getElementById('burned').textContent = state.calOut;
-            document.getElementById('burned').style.color = state.calOut >= 400 ? '#4CAF50' : '#ff6b6b';
             const net = state.calIn - state.calOut;
             document.getElementById('net').textContent = net;
             
@@ -1792,12 +1814,12 @@
                     <div class="history-card">
                         <div class="history-date" onclick="toggleHistoryDetail(${i})" style="cursor:pointer;">
                             <span>${d.date} ${d.weight ? '<span style="color:#667eea;">⚖️' + d.weight + 'kg</span>' : ''}</span>
-                            <span>${d.workout ? '✅' : '⬜'} <span id="histArrowLocal${i}">▶</span></span>
+                            <span><span id="histArrowLocal${i}">▶</span></span>
                         </div>
                         <div class="history-stats">
                             <div class="history-stat ${d.calIn <= TARGETS.cal ? 'good' : 'bad'}"><div class="history-stat-value">${d.calIn}</div><div class="history-stat-label">Cal In</div></div>
                             <div class="history-stat ${d.protein >= TARGETS.protein ? 'good' : ''}"><div class="history-stat-value">${d.protein}g</div><div class="history-stat-label">Protein</div></div>
-                            <div class="history-stat"><div class="history-stat-value">${d.calOut}</div><div class="history-stat-label">Burned</div></div>
+                            <div class="history-stat ${d.calOut >= 400 ? 'good' : 'bad'}"><div class="history-stat-value">${d.calOut}</div><div class="history-stat-label">Burned</div></div>
                             <div class="history-stat"><div class="history-stat-value">${(d.steps||0).toLocaleString()}</div><div class="history-stat-label">Steps</div></div>
                         </div>
                         <div id="histDetailLocal${i}" style="display:none;padding:10px 0;border-top:1px solid #eee;margin-top:8px;font-size:11px;">
@@ -1920,12 +1942,12 @@
                     <div class="history-card">
                         <div class="history-date" onclick="toggleHistoryDetail(${i})" style="cursor:pointer;">
                             <span>${d.date} ${d.weight ? '⚖️' + d.weight + 'kg' : ''}</span>
-                            <span>${d.workout ? '✅' : '⬜'} <span id="histArrow${i}">▶</span></span>
+                            <span><span id="histArrow${i}">▶</span></span>
                         </div>
                         <div class="history-stats">
                             <div class="history-stat ${d.calIn <= TARGETS.cal ? 'good' : 'bad'}"><div class="history-stat-value">${d.calIn}</div><div class="history-stat-label">Cal In</div></div>
                             <div class="history-stat ${d.protein >= TARGETS.protein ? 'good' : ''}"><div class="history-stat-value">${d.protein}g</div><div class="history-stat-label">Protein</div></div>
-                            <div class="history-stat"><div class="history-stat-value">${d.calOut}</div><div class="history-stat-label">Burned</div></div>
+                            <div class="history-stat ${d.calOut >= 400 ? 'good' : 'bad'}"><div class="history-stat-value">${d.calOut}</div><div class="history-stat-label">Burned</div></div>
                             <div class="history-stat"><div class="history-stat-value">${(d.steps||0).toLocaleString()}</div><div class="history-stat-label">Steps</div></div>
                         </div>
                         <div id="histDetail${i}" style="display:none;padding:10px 0;border-top:1px solid #eee;margin-top:8px;font-size:11px;">
