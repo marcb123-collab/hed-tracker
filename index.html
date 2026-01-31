@@ -358,7 +358,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v7.2</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v7.3</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -524,9 +524,6 @@
             </div>
             <div class="quick-grid" id="exerciseButtonsQuick"></div>
             <div class="quick-grid" id="exerciseButtonsFull" style="display:none;"></div>
-            <div style="margin: 10px 0;">
-                <button class="workout-btn" id="workoutBtn" onclick="toggleWorkout()" style="width:100%;padding:12px;font-size:14px;">☐ Workout Done</button>
-            </div>
         </div>
         
         <!-- Plan Pane -->
@@ -1589,6 +1586,7 @@
             document.getElementById('calIn').textContent = state.calIn;
             document.getElementById('protein').textContent = state.protein + 'g';
             document.getElementById('burned').textContent = state.calOut;
+            document.getElementById('burned').style.color = state.calOut >= 400 ? '#4CAF50' : '#ff6b6b';
             const net = state.calIn - state.calOut;
             document.getElementById('net').textContent = net;
             
@@ -1610,17 +1608,6 @@
             document.getElementById('goalProtein').textContent = state.protein + '/110g';
             document.getElementById('goalSodium').textContent = (state.sodium || 0) + '/2300mg';
             document.getElementById('goalSteps').textContent = state.steps.toLocaleString() + '/7500';
-            
-            // Auto-check workout if calOut >= 400
-            if (state.calOut >= 400 && !state.workout) {
-                state.workout = true;
-                saveState();
-            }
-            
-            // Workout button
-            const workoutBtn = document.getElementById('workoutBtn');
-            workoutBtn.textContent = state.workout ? '☑ Workout Done' : '☐ Workout Done';
-            workoutBtn.className = state.workout ? 'workout-btn done' : 'workout-btn';
             
             // Weight display in Summary section
             const weight = localStorage.getItem('hed_weight') || '--';
@@ -2046,13 +2033,6 @@
             saveState();
             updateUI();
             toast('Deleted ' + e.name);
-        }
-        
-        function toggleWorkout() {
-            state.workout = !state.workout;
-            saveState();
-            updateUI();
-            toast(state.workout ? 'Workout done! 💪' : 'Workout unmarked');
         }
         
         // Steps
