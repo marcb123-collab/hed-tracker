@@ -358,7 +358,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v6.5</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v6.6</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -2135,6 +2135,7 @@
         
         // Save food to FoodDB sheet if not already there
         async function saveToFoodDB(name, cal, protein, sodium) {
+            await ensureValidToken();
             if (!accessToken) return;
             // Check if already in database
             const exists = ALL_FOODS.some(f => f.name.toLowerCase() === name.toLowerCase());
@@ -2155,19 +2156,20 @@
                 
                 const row = [[name, cal, protein, sodium, fiber, sugar, potassium, calcium, iron, vitD, magnesium, icon, short]];
                 
-                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/FoodDB!A:M:append?valueInputOption=USER_ENTERED`, {
+                const res = await authFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/FoodDB!A:M:append?valueInputOption=USER_ENTERED`, {
                     method: 'POST',
-                    headers: { 
-                        Authorization: `Bearer ${accessToken}`,
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ values: row })
                 });
                 
-                // Add to local array
-                ALL_FOODS.push({ name, cal, protein, sodium, fiber, sugar, potassium, calcium, iron, vitD, magnesium, icon, short });
-                renderButtons();
-                console.log('Saved to FoodDB:', name);
+                if (res && res.ok) {
+                    // Add to local array only if save succeeded
+                    ALL_FOODS.push({ name, cal, protein, sodium, fiber, sugar, potassium, calcium, iron, vitD, magnesium, icon, short });
+                    renderButtons();
+                    console.log('Saved to FoodDB:', name);
+                } else {
+                    console.error('Save to FoodDB failed - response not ok');
+                }
             } catch (e) {
                 console.error('Save to FoodDB error:', e);
             }
@@ -2175,6 +2177,7 @@
         
         // Save food with FULL nutrients to FoodDB sheet
         async function saveToFoodDBFull(name, cal, protein, nutrients) {
+            await ensureValidToken();
             if (!accessToken) return;
             const exists = ALL_FOODS.some(f => f.name.toLowerCase() === name.toLowerCase());
             if (exists) return;
@@ -2187,18 +2190,19 @@
                               nutrients.potassium, nutrients.calcium, nutrients.iron, nutrients.vitD, 
                               nutrients.magnesium, icon, short]];
                 
-                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/FoodDB!A:M:append?valueInputOption=USER_ENTERED`, {
+                const res = await authFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/FoodDB!A:M:append?valueInputOption=USER_ENTERED`, {
                     method: 'POST',
-                    headers: { 
-                        Authorization: `Bearer ${accessToken}`,
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ values: row })
                 });
                 
-                ALL_FOODS.push({ name, cal, protein, ...nutrients, icon, short });
-                renderButtons();
-                console.log('Saved to FoodDB (full):', name);
+                if (res && res.ok) {
+                    ALL_FOODS.push({ name, cal, protein, ...nutrients, icon, short });
+                    renderButtons();
+                    console.log('Saved to FoodDB (full):', name);
+                } else {
+                    console.error('Save to FoodDB (full) failed - response not ok');
+                }
             } catch (e) {
                 console.error('Save to FoodDB error:', e);
             }
