@@ -358,7 +358,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v6.8</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v6.9</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -882,8 +882,8 @@
                 vitD: f.vitD || 0, magnesium: f.magnesium || 0
             }).replace(/"/g, "'");
             
-            // Recent view - sorted by last used time (most recent first)
-            const recentFoods = [...ALL_FOODS].sort((a, b) => (itemLastUsed[b.name] || 0) - (itemLastUsed[a.name] || 0));
+            // Recent view - top 8 sorted by last used time (most recent first)
+            const recentFoods = [...ALL_FOODS].sort((a, b) => (itemLastUsed[b.name] || 0) - (itemLastUsed[a.name] || 0)).slice(0, 8);
             const recentHtml = recentFoods.map(f => 
                 `<button class="qbtn food" onclick="addFoodByName('${f.name}')">${f.icon} ${f.short || f.name} <span class="qbtn-cal">${f.cal}/${f.protein}g/${f.sodium || 0}mg</span></button>`
             ).join('') + `<button class="qbtn food" onclick="openCustom()">➕ Custom</button>`;
@@ -896,10 +896,10 @@
             ).join('') + `<button class="qbtn food" onclick="openCustom()">➕ Custom</button>`;
             fullEl.innerHTML = fullHtml;
             
-            // Sort exercises by usage
-            const sortedEx = [...ALL_EXERCISES].sort((a, b) => (itemUsage[b.name] || 0) - (itemUsage[a.name] || 0));
+            // Exercises - show FULL names, sorted by last used
+            const sortedEx = [...ALL_EXERCISES].sort((a, b) => (itemLastUsed[b.name] || 0) - (itemLastUsed[a.name] || 0));
             const exHtml = sortedEx.map(e => 
-                `<button class="qbtn exercise" onclick="addExercise('${e.name}',${e.cal})">${e.icon} ${e.short || e.name} <span class="qbtn-cal">${e.cal}</span></button>`
+                `<button class="qbtn exercise" onclick="addExercise('${e.name}',${e.cal})">${e.icon} ${e.name} <span class="qbtn-cal">${e.cal}</span></button>`
             ).join('');
             exEl.innerHTML = exHtml;
         }
