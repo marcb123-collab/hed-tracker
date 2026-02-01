@@ -358,7 +358,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v7.5</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v7.7</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -1180,8 +1180,10 @@
             const weightHistory = JSON.parse(localStorage.getItem('hed_weight_history') || '[]');
             const todayWeight = weightHistory.find(w => w.date === today);
             const weight = todayWeight ? todayWeight.weight : '';
+            // Auto-set workout if calOut >= 400
+            const workoutDone = state.calOut >= 400 ? 'Yes' : 'No';
             // New columns: Date, Cal In, Protein, Sodium, Cal Out, Steps, Weight, Net, Workout, Entries
-            const row = [today, state.calIn, state.protein, state.sodium || 0, state.calOut, state.steps, weight, state.calIn - state.calOut, state.workout ? 'Yes' : 'No', entriesData];
+            const row = [today, state.calIn, state.protein, state.sodium || 0, state.calOut, state.steps, weight, state.calIn - state.calOut, workoutDone, entriesData];
             try {
                 await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/LiveData!A2:J2?valueInputOption=RAW`, {
                     method: 'PUT',
@@ -1482,7 +1484,7 @@
                         h.steps || 0, 
                         dayWeight ? dayWeight.weight : '',
                         (h.calIn || 0) - (h.calOut || 0), 
-                        h.workout ? 'Yes' : 'No', 
+                        (h.calOut || 0) >= 400 ? 'Yes' : 'No', 
                         ''
                     ];
                 });
@@ -1563,7 +1565,7 @@
                 data.steps, 
                 dayWeight ? dayWeight.weight : '',
                 data.calIn - data.calOut, 
-                data.workout ? 'Yes' : 'No', 
+                data.calOut >= 400 ? 'Yes' : 'No', 
                 data.entries.map(e => e.name).join(', ')
             ];
             try {
@@ -1835,8 +1837,8 @@
                 `).join('');
             }
             
-            // Then try to load from Sheets if we don't have much local history
-            if (history.length < 5 && accessToken) {
+            // Always load from Sheets when signed in - sheet data takes priority
+            if (accessToken) {
                 loadHistoryFromSheets();
             }
         }
