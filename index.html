@@ -358,7 +358,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v7.7</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v7.8</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -491,6 +491,7 @@
                             <div style="display:flex;justify-content:space-between;"><span>Magnesium</span><span id="magnesiumToday">0/420mg</span></div>
                         </div>
                         <div style="font-size:9px;color:#999;margin-top:6px;">*Estimates based on visual/textual food analysis</div>
+                        <button onclick="copyDaySummary()" style="margin-top:10px;width:100%;padding:8px;background:#667eea;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer;">📋 Copy Today's Summary</button>
                     </div>
                 </div>
             </div>
@@ -528,6 +529,13 @@
         
         <!-- Plan Pane -->
         <div class="pane" id="planPane">
+            <div class="summary-card" style="background:#f0f4ff;border:2px solid #667eea;">
+                <div class="summary-header">🧘 Pilates (3X/week minimum)</div>
+                <div style="display:flex;gap:8px;margin-top:8px;">
+                    <button class="qbtn exercise" onclick="addExercise('Pilates Home',90)" style="flex:1;">🧘 Pilates Home <span class="qbtn-cal">90</span></button>
+                    <button class="qbtn exercise" onclick="addExercise('Pilates Lesson',180)" style="flex:1;">🧘 Pilates Lesson <span class="qbtn-cal">180</span></button>
+                </div>
+            </div>
             <div class="summary-card">
                 <div class="summary-header">📅 Weekly Exercise Plan</div>
                 <p style="font-size:11px;color:#666;margin-bottom:10px;">6-day rotation. Workout 10-11am (8-9am if calls). Sunday rest.</p>
@@ -1162,6 +1170,7 @@
         
         function saveState() {
             state.date = new Date().toDateString();
+            state.lastModified = Date.now(); // Track when state was last modified
             localStorage.setItem('hed_state', JSON.stringify(state));
             syncToLiveData(); // Sync to Sheets on every save
         }
@@ -2430,6 +2439,21 @@
             toast('Full log copied!');
         }
         
+        function copyDaySummary() {
+            const date = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            const net = state.calIn - state.calOut;
+            const weight = localStorage.getItem('hed_weight') || '--';
+            let text = `HED ${date}\n`;
+            text += `Weight: ${weight}kg\n`;
+            text += `Cal In: ${state.calIn}/1600 | Net: ${net}\n`;
+            text += `Protein: ${state.protein}/110g\n`;
+            text += `Sodium: ${state.sodium || 0}/2300mg\n`;
+            text += `Cal Burned: ${state.calOut}\n`;
+            text += `Steps: ${state.steps.toLocaleString()}/7500`;
+            navigator.clipboard.writeText(text);
+            toast('Day summary copied!');
+        }
+        
         // Start
         window.onload = function() {
             // Check for clear parameter
@@ -2439,6 +2463,14 @@
                 return;
             }
             init();
+            
+            // iOS keyboard scroll fix
+            const inputField = document.getElementById('inputField');
+            inputField.addEventListener('focus', () => {
+                setTimeout(() => {
+                    inputField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            });
         };
     </script>
     <script src="https://accounts.google.com/gsi/client" async></script>
