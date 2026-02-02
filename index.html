@@ -358,7 +358,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v7.8</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v7.9</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -491,7 +491,9 @@
                             <div style="display:flex;justify-content:space-between;"><span>Magnesium</span><span id="magnesiumToday">0/420mg</span></div>
                         </div>
                         <div style="font-size:9px;color:#999;margin-top:6px;">*Estimates based on visual/textual food analysis</div>
-                        <button onclick="copyDaySummary()" style="margin-top:10px;width:100%;padding:8px;background:#667eea;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer;">📋 Copy Today's Summary</button>
+                        <div style="margin-top:10px;">
+                            <button class="qbtn action" onclick="copyDaySummary()" style="font-size:10px;padding:4px 8px;">📋 Copy Day</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -529,17 +531,24 @@
         
         <!-- Plan Pane -->
         <div class="pane" id="planPane">
-            <div class="summary-card" style="background:#f0f4ff;border:2px solid #667eea;">
-                <div class="summary-header">🧘 Pilates (3X/week minimum)</div>
-                <div style="display:flex;gap:8px;margin-top:8px;">
-                    <button class="qbtn exercise" onclick="addExercise('Pilates Home',90)" style="flex:1;">🧘 Pilates Home <span class="qbtn-cal">90</span></button>
-                    <button class="qbtn exercise" onclick="addExercise('Pilates Lesson',180)" style="flex:1;">🧘 Pilates Lesson <span class="qbtn-cal">180</span></button>
-                </div>
-            </div>
             <div class="summary-card">
                 <div class="summary-header">📅 Weekly Exercise Plan</div>
                 <p style="font-size:11px;color:#666;margin-bottom:10px;">6-day rotation. Workout 10-11am (8-9am if calls). Sunday rest.</p>
             </div>
+            
+            <!-- Pilates Home - 3X/week -->
+            <div class="summary-card" id="pilatesCard">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <span style="font-weight:600;color:#667eea;">🧘 Pilates Home</span>
+                        <span style="font-size:11px;color:#888;margin-left:8px;">3X/week minimum</span>
+                    </div>
+                    <span style="color:#4CAF50;font-weight:600;">90 cal</span>
+                </div>
+                <div style="font-size:11px;color:#666;margin-top:4px;">~20 min. Morning routine before other workout.</div>
+                <div id="pilatesExercises" style="margin-top:8px;font-size:11px;display:none;"></div>
+            </div>
+            
             <div id="planList"></div>
         </div>
         
@@ -677,6 +686,17 @@
         
         // Weekly plan data with exercise details and hints
         const EXERCISE_HINTS = {
+            // Pilates Home
+            'Pelvic Curl 8-10 reps': 'Lie on back, knees bent, roll spine up vertebra by vertebra',
+            'Spine Twist 5 each side': 'Seated, arms wide, rotate torso keeping hips still',
+            'Swan Prep 5-8 reps': 'Lie on stomach, lift chest keeping hips down',
+            'Single Leg Stretch 8-10 each': 'On back, alternate pulling knee to chest',
+            'Double Leg Stretch 8-10 reps': 'On back, extend arms/legs out, circle back',
+            'Spine Stretch Forward 5 reps': 'Seated, reach forward rounding spine',
+            'Side Kick Series 8 each': 'Lie on side, controlled leg movements',
+            'Swimming 20-30 counts': 'On stomach, flutter opposite arm/leg',
+            'Cat-Cow Stretch 8-10 reps': 'On all fours, alternate arching and rounding spine',
+            'Roll Down 3-5 reps': 'Standing, roll down vertebra by vertebra, roll back up',
             // Ab Circuit
             'Mountain Climbers 3x30': 'Plank position, drive knees to chest alternating fast',
             'Bicycle Crunches 3x20': 'On back, alternate elbow to opposite knee',
@@ -1718,6 +1738,46 @@
             const list = document.getElementById('planList');
             if (!list) return;
             
+            // Pilates Home exercises
+            const PILATES_EXERCISES = [
+                'Pelvic Curl 8-10 reps',
+                'Spine Twist 5 each side', 
+                'Swan Prep 5-8 reps',
+                'Single Leg Stretch 8-10 each',
+                'Double Leg Stretch 8-10 reps',
+                'Spine Stretch Forward 5 reps',
+                'Side Kick Series 8 each',
+                'Swimming 20-30 counts',
+                'Cat-Cow Stretch 8-10 reps',
+                'Roll Down 3-5 reps'
+            ];
+            
+            // Render Pilates card exercises
+            const pilatesEl = document.getElementById('pilatesExercises');
+            if (pilatesEl) {
+                pilatesEl.innerHTML = PILATES_EXERCISES.map((ex, j) => {
+                    const hint = EXERCISE_HINTS[ex];
+                    return `<div style="font-size:11px;color:#444;padding:3px 0;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;cursor:${hint ? 'pointer' : 'default'};" onclick="${hint ? `togglePilatesHint(${j})` : ''}">
+                            <span>• ${ex}</span>
+                            ${hint ? `<span id="pilatesArrow${j}" style="color:#999;font-size:10px;">ℹ️</span>` : ''}
+                        </div>
+                        ${hint ? `<div id="pilatesHint${j}" style="display:none;font-size:10px;color:#888;padding:4px 0 4px 12px;font-style:italic;">→ ${hint}</div>` : ''}
+                    </div>`;
+                }).join('');
+            }
+            
+            // Make Pilates card clickable to expand
+            const pilatesCard = document.getElementById('pilatesCard');
+            if (pilatesCard) {
+                pilatesCard.onclick = function(e) {
+                    if (e.target.closest('[onclick*="togglePilatesHint"]')) return; // Don't toggle if clicking hint
+                    const el = document.getElementById('pilatesExercises');
+                    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+                };
+                pilatesCard.style.cursor = 'pointer';
+            }
+            
             list.innerHTML = WEEKLY_PLAN.map((p, i) => `
                 <div class="summary-card" style="${p.day === todayName ? 'border-left: 4px solid #667eea; background: #f8f9ff;' : ''}">
                     <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="togglePlanDay(${i})">
@@ -1760,6 +1820,13 @@
         
         function toggleExHint(dayIdx, exIdx) {
             const el = document.getElementById(`exHint${dayIdx}_${exIdx}`);
+            if (el) {
+                el.style.display = el.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+        
+        function togglePilatesHint(idx) {
+            const el = document.getElementById(`pilatesHint${idx}`);
             if (el) {
                 el.style.display = el.style.display === 'none' ? 'block' : 'none';
             }
