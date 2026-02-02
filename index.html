@@ -358,7 +358,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v7.9</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v81</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -450,7 +450,10 @@
             
             <!-- Nutrition Summary -->
             <div class="summary-card" style="margin-top:10px;">
-                <div class="summary-header">📊 Summary</div>
+                <div class="summary-header">
+                    <span>📊 Summary</span>
+                    <button class="qbtn action" onclick="copyDaySummary()" style="font-size:10px;padding:4px 8px;">📋 Copy</button>
+                </div>
                 <div id="nutritionSummary" style="font-size:12px;padding:8px 0;">
                     <!-- Weight Section -->
                     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee;background:#f8f9ff;margin:-8px -12px 8px -12px;padding:8px 12px;">
@@ -491,9 +494,6 @@
                             <div style="display:flex;justify-content:space-between;"><span>Magnesium</span><span id="magnesiumToday">0/420mg</span></div>
                         </div>
                         <div style="font-size:9px;color:#999;margin-top:6px;">*Estimates based on visual/textual food analysis</div>
-                        <div style="margin-top:10px;">
-                            <button class="qbtn action" onclick="copyDaySummary()" style="font-size:10px;padding:4px 8px;">📋 Copy Day</button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -1144,14 +1144,31 @@
                 syncHistoryToSheets(true);
                 seedUsageFromSheets();
             } else if (accessToken) {
-                // Have a token but it might be expired - try anyway
+                // Have a token but it's expired - try silent refresh first
                 updateSyncStatus();
-                loadFoodDB().then(() => { console.log('FoodDB loaded (expired token path)'); renderButtons(); });
-                loadExerciseDB().then(() => { console.log('ExerciseDB loaded (expired token path)'); renderButtons(); });
-                console.log('Token may be expired - tap MB to refresh if needed');
+                console.log('Token expired - attempting silent refresh...');
+                refreshTokenSilently().then(refreshed => {
+                    if (refreshed) {
+                        console.log('Silent refresh succeeded');
+                        updateSyncStatus();
+                        loadFromLiveData().then(loaded => {
+                            if (loaded) toast('Synced from cloud');
+                            updateUI();
+                        });
+                        loadFoodDB().then(() => { console.log('FoodDB loaded'); renderButtons(); });
+                        loadExerciseDB().then(() => { console.log('ExerciseDB loaded'); renderButtons(); });
+                        syncHistoryToSheets(true);
+                        seedUsageFromSheets();
+                    } else {
+                        console.log('Silent refresh failed - prompting login');
+                        googleSignIn(); // Auto-prompt if silent refresh fails
+                    }
+                });
             } else {
-                // No token at all
+                // No token at all - auto-prompt login
                 updateSyncStatus();
+                console.log('No token - prompting login');
+                setTimeout(() => googleSignIn(), 500); // Slight delay for smoother UX
             }
             
             // Retry loading DBs after 2 seconds if not loaded
