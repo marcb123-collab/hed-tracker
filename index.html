@@ -358,7 +358,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v81</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v82</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -545,7 +545,7 @@
                     </div>
                     <span style="color:#4CAF50;font-weight:600;">90 cal</span>
                 </div>
-                <div style="font-size:11px;color:#666;margin-top:4px;">~20 min. Morning routine before other workout.</div>
+                <div style="font-size:11px;color:#666;margin-top:4px;">15-20 min. Complete every day before main workout.</div>
                 <div id="pilatesExercises" style="margin-top:8px;font-size:11px;display:none;"></div>
             </div>
             
@@ -686,17 +686,14 @@
         
         // Weekly plan data with exercise details and hints
         const EXERCISE_HINTS = {
-            // Pilates Home
-            'Pelvic Curl 8-10 reps': 'Lie on back, knees bent, roll spine up vertebra by vertebra',
-            'Spine Twist 5 each side': 'Seated, arms wide, rotate torso keeping hips still',
-            'Swan Prep 5-8 reps': 'Lie on stomach, lift chest keeping hips down',
-            'Single Leg Stretch 8-10 each': 'On back, alternate pulling knee to chest',
-            'Double Leg Stretch 8-10 reps': 'On back, extend arms/legs out, circle back',
-            'Spine Stretch Forward 5 reps': 'Seated, reach forward rounding spine',
-            'Side Kick Series 8 each': 'Lie on side, controlled leg movements',
-            'Swimming 20-30 counts': 'On stomach, flutter opposite arm/leg',
-            'Cat-Cow Stretch 8-10 reps': 'On all fours, alternate arching and rounding spine',
-            'Roll Down 3-5 reps': 'Standing, roll down vertebra by vertebra, roll back up',
+            // Pilates Home (from teacher)
+            'Ball Balancing Tabletop & Return 2x10': 'Stay stationary, balance on ball in tabletop position',
+            'Ball Hand-Up Tabletop, Curved Back Leg Extensions 2x8 each': 'Hand up while extending opposite leg with curved back',
+            'Tabletop with Bicycle Motion 2x10 each': 'Tabletop position, bicycle legs alternating',
+            'Curved Back Single Leg Tabletop Raises 2x10 each': 'Curved back, raise one leg at a time in tabletop',
+            'Ball Under Ankles - Foot Circles 2x8 each dir': 'Ball under ankles, circle feet both directions',
+            'Chest Stretch Left & Right 2x30sec each': 'Stretch chest, hold each side 30 seconds',
+            'Prone Upper Torso Raises with Ball 2x12': 'Lying face down, raise upper torso with ball',
             // Ab Circuit
             'Mountain Climbers 3x30': 'Plank position, drive knees to chest alternating fast',
             'Bicycle Crunches 3x20': 'On back, alternate elbow to opposite knee',
@@ -1755,18 +1752,15 @@
             const list = document.getElementById('planList');
             if (!list) return;
             
-            // Pilates Home exercises
+            // Pilates Home exercises (from teacher)
             const PILATES_EXERCISES = [
-                'Pelvic Curl 8-10 reps',
-                'Spine Twist 5 each side', 
-                'Swan Prep 5-8 reps',
-                'Single Leg Stretch 8-10 each',
-                'Double Leg Stretch 8-10 reps',
-                'Spine Stretch Forward 5 reps',
-                'Side Kick Series 8 each',
-                'Swimming 20-30 counts',
-                'Cat-Cow Stretch 8-10 reps',
-                'Roll Down 3-5 reps'
+                'Ball Balancing Tabletop & Return 2x10',
+                'Ball Hand-Up Tabletop, Curved Back Leg Extensions 2x8 each',
+                'Tabletop with Bicycle Motion 2x10 each',
+                'Curved Back Single Leg Tabletop Raises 2x10 each',
+                'Ball Under Ankles - Foot Circles 2x8 each dir',
+                'Chest Stretch Left & Right 2x30sec each',
+                'Prone Upper Torso Raises with Ball 2x12'
             ];
             
             // Render Pilates card exercises
