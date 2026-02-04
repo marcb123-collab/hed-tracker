@@ -2429,6 +2429,24 @@
             input = input.replace(/^['"""']+|['"""']+$/g, '');
             input = input.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, ''); // zero-width chars, nbsp
             
+            // Remove flags [V], [P], [S], [O+], [O-] - HED ignores these
+            input = input.replace(/\s*\[[VPSvps]\]\s*/gi, ' ').replace(/\s*\[O[\+\-]\]\s*/gi, ' ').trim();
+            
+            // Match Opu Light format: Name 000cal 00g 000mg 00g fat (0g sat) 0g fiber
+            // HED extracts: name, cal, protein, sodium, fiber (ignores fat)
+            const matchOpu = input.match(/^(.+?)\s+(\d+)\s*cal\s+(\d+)\s*g(?:\s+protein)?\s+(\d+)\s*mg(?:\s+sodium)?\s+(\d+)\s*g\s*fat\s*\((\d+)\s*g\s*sat\)\s+(\d+)\s*g\s*fiber$/i);
+            if (matchOpu) {
+                const name = matchOpu[1].trim();
+                const cal = parseInt(matchOpu[2]);
+                const protein = parseInt(matchOpu[3]);
+                const sodium = parseInt(matchOpu[4]);
+                const fiber = parseInt(matchOpu[7]);
+                addFood(name, cal, protein, { sodium, fiber });
+                saveToFoodDB(name, cal, protein, sodium);
+                document.getElementById('inputField').value = '';
+                return;
+            }
+            
             // Match FULL nutrients: Name 000cal 00g 000mg 0f 0s 000k 00ca 0fe 0d 00ma
             // Order: cal, protein, sodium, fiber, sugar, potassium, calcium, iron, vitD, magnesium
             const matchFull = input.match(/^(.+?)\s+(\d+)\s*cal\s+(\d+)\s*g\s+(\d+)\s*mg\s+(\d+)\s*f\s+(\d+)\s*s\s+(\d+)\s*k\s+(\d+)\s*ca\s+(\d+)\s*fe\s+(\d+)\s*d\s+(\d+)\s*ma$/i);
