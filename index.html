@@ -358,7 +358,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v84</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v85</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -627,6 +627,7 @@
         let tokenClient, accessToken = localStorage.getItem('hed_token');
         let tokenExpiry = parseInt(localStorage.getItem('hed_token_expiry')) || 0;
         let authInProgress = false; // Prevent multiple simultaneous auth attempts
+        let syncInProgress = false; // Prevent duplicate sync operations
         let state = { 
             date: '', calIn: 0, calOut: 0, protein: 0, sodium: 0, 
             fiber: 0, sugar: 0, potassium: 0, calcium: 0, iron: 0, vitD: 0, magnesium: 0,
@@ -1392,9 +1393,17 @@
             }
         }
         
-        // Archive a day's data to DailyLog
+        // Archive a day's data to DailyLog - WITH LOCK to prevent duplicates
         async function archiveToDaily(row) {
             if (!accessToken) return;
+            
+            // Use same lock as syncHistoryToSheets to prevent concurrent writes
+            if (syncInProgress) {
+                console.log('Sync in progress, skipping archive');
+                return;
+            }
+            syncInProgress = true;
+            
             try {
                 // Normalize date function
                 const normalizeDate = (d) => {
@@ -1417,6 +1426,18 @@
                 
                 if (existingDates.has(rowDate)) {
                     console.log('Date already archived:', rowDate);
+                    return;
+                }
+                
+                // Double-check before write (re-fetch to be absolutely sure)
+                const recheck = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog-HED!A:A`, {
+                    headers: { Authorization: `Bearer ${accessToken}` }
+                });
+                const recheckData = await recheck.json();
+                const recheckDates = new Set((recheckData.values || []).flat().map(normalizeDate));
+                
+                if (recheckDates.has(rowDate)) {
+                    console.log('Date appeared during archive check:', rowDate);
                     return;
                 }
                 
@@ -1447,6 +1468,8 @@
                 console.log('Archived to DailyLog:', rowDate);
             } catch (e) {
                 console.error('Archive error:', e);
+            } finally {
+                syncInProgress = false; // Always release lock
             }
         }
         
@@ -1462,20 +1485,27 @@
             }
         }
         
-        // Sync local history to DailyLog sheet
+        // Sync local history to DailyLog sheet - WITH LOCK to prevent duplicates
         async function syncHistoryToSheets(silent = false) {
-            if (!accessToken) { 
-                if (!silent) toast('Please sign in first');
-                return; 
-            }
-            if (!silent) toast('Syncing history...');
-            const history = JSON.parse(localStorage.getItem('hed_history') || '[]');
-            if (!history.length) {
-                if (!silent) toast('No history to sync');
+            // LOCK: Prevent multiple simultaneous sync operations
+            if (syncInProgress) {
+                console.log('Sync already in progress, skipping');
                 return;
             }
+            syncInProgress = true;
             
             try {
+                if (!accessToken) { 
+                    if (!silent) toast('Please sign in first');
+                    return; 
+                }
+                if (!silent) toast('Syncing history...');
+                const history = JSON.parse(localStorage.getItem('hed_history') || '[]');
+                if (!history.length) {
+                    if (!silent) toast('No history to sync');
+                    return;
+                }
+                
                 // Get existing dates in DailyLog
                 const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog-HED!A:A`, {
                     headers: { Authorization: `Bearer ${accessToken}` }
@@ -1485,9 +1515,7 @@
                 // Normalize all dates to YYYY-MM-DD for comparison
                 const normalizeDate = (d) => {
                     if (!d) return '';
-                    // Already in correct format
                     if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
-                    // Try parsing various formats
                     try {
                         const parsed = new Date(d);
                         if (!isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0];
@@ -1508,21 +1536,9 @@
                 // Filter history to only new dates (normalize for comparison)
                 const newEntries = history.filter(h => {
                     const normDate = normalizeDate(h.date);
-                    // Skip if no valid date
-                    if (!normDate) {
-                        console.log('Skipping entry with invalid date:', h.date);
-                        return false;
-                    }
-                    // Skip if already exists
-                    if (existingDates.has(normDate)) {
-                        console.log('Skipping existing date:', normDate);
-                        return false;
-                    }
-                    // Skip if no actual data
-                    if (!h.calIn && !h.protein) {
-                        console.log('Skipping entry with no data:', normDate);
-                        return false;
-                    }
+                    if (!normDate) return false;
+                    if (existingDates.has(normDate)) return false;
+                    if (!h.calIn && !h.protein) return false;
                     return true;
                 });
                 
@@ -1531,39 +1547,60 @@
                     return;
                 }
                 
-                console.log('New entries to sync:', newEntries.map(h => normalizeDate(h.date)));
+                // IMPORTANT: Only sync ONE entry at a time to prevent race conditions
+                // This is slower but prevents duplicates
+                const entry = newEntries[0]; // Just sync the first new entry
+                const normDate = normalizeDate(entry.date);
                 
-                // Append new entries with normalized dates
-                // New columns: Date, Cal In, Protein, Sodium, Cal Out, Steps, Weight, Net, Workout, Items
-                const weightHistory = JSON.parse(localStorage.getItem('hed_weight_history') || '[]');
-                const rows = newEntries.map(h => {
-                    const normDate = normalizeDate(h.date);
-                    const dayWeight = weightHistory.find(w => normalizeDate(w.date) === normDate);
-                    return [
-                        normDate, 
-                        h.calIn || 0, 
-                        h.protein || 0, 
-                        h.sodium || 0,
-                        h.calOut || 0, 
-                        h.steps || 0, 
-                        dayWeight ? dayWeight.weight : '',
-                        (h.calIn || 0) - (h.calOut || 0), 
-                        (h.calOut || 0) >= 400 ? 'Yes' : 'No', 
-                        ''
-                    ];
+                console.log('Syncing single entry:', normDate);
+                
+                // Double-check this date doesn't exist (re-fetch to be safe)
+                const recheck = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog-HED!A:A`, {
+                    headers: { Authorization: `Bearer ${accessToken}` }
                 });
+                const recheckData = await recheck.json();
+                const recheckDates = new Set((recheckData.values || []).flat().map(normalizeDate));
+                
+                if (recheckDates.has(normDate)) {
+                    console.log('Date appeared during sync, skipping:', normDate);
+                    if (!silent) toast('History already synced');
+                    return;
+                }
+                
+                const weightHistory = JSON.parse(localStorage.getItem('hed_weight_history') || '[]');
+                const dayWeight = weightHistory.find(w => normalizeDate(w.date) === normDate);
+                
+                const row = [
+                    normDate, 
+                    entry.calIn || 0, 
+                    entry.protein || 0, 
+                    entry.sodium || 0,
+                    entry.calOut || 0, 
+                    entry.steps || 0, 
+                    dayWeight ? dayWeight.weight : '',
+                    (entry.calIn || 0) - (entry.calOut || 0), 
+                    (entry.calOut || 0) >= 400 ? 'Yes' : 'No', 
+                    entry.items || ''
+                ];
                 
                 await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog-HED!A:J:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
                     method: 'POST',
                     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ values: rows })
+                    body: JSON.stringify({ values: [row] })
                 });
                 
-                if (!silent) toast(`Synced ${newEntries.length} day(s) to Sheets`);
-                console.log(`Auto-synced ${newEntries.length} day(s) to DailyLog`);
+                if (!silent) toast('Synced 1 day to Sheets');
+                console.log('Synced to DailyLog:', normDate);
+                
+                // If there are more entries, schedule another sync after a delay
+                if (newEntries.length > 1) {
+                    setTimeout(() => syncHistoryToSheets(true), 2000);
+                }
             } catch (e) {
                 console.error('Sync history error:', e);
                 if (!silent) toast('Sync failed');
+            } finally {
+                syncInProgress = false; // Always release lock
             }
         }
         
