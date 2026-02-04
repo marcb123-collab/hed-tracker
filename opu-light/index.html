@@ -523,27 +523,44 @@
                         <span id="weightTrend">--</span>
                     </div>
                     <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;">
-                        <span>Avg Daily Deficit</span>
-                        <span id="avgDeficit">--</span>
+                        <span>Waist</span>
+                        <span id="waistDisplay">--</span>
                     </div>
                     <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;">
                         <span>Workout Streak</span>
                         <span id="workoutStreak">--</span>
                     </div>
-                    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;">
-                        <span>Protein Avg (7 days)</span>
-                        <span id="proteinAvg">--</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;">
-                        <span>Sodium Avg (7 days)</span>
-                        <span id="sodiumAvg">--</span>
+                    
+                    <!-- Survey Status -->
+                    <div style="margin-top:10px;padding-top:8px;border-top:2px solid #eee;">
+                        <div style="font-weight:600;margin-bottom:6px;">📋 Today's Surveys</div>
+                        <div style="display:flex;justify-content:space-between;padding:4px 0;" onclick="showMorningSurveyManual()" style="cursor:pointer;">
+                            <span>🌅 Morning (Sleep)</span>
+                            <span id="surveyMorningStatus" style="color:#999;">Not done</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;padding:4px 0;" onclick="showEveningSurveyManual()" style="cursor:pointer;">
+                            <span>🌙 Evening</span>
+                            <span id="surveyEveningStatus" style="color:#999;">Not done</span>
+                        </div>
                     </div>
                     
-                    <!-- Today's Nutrients -->
+                    <!-- Today's Opu Nutrients -->
                     <div style="margin-top:10px;padding-top:8px;border-top:2px solid #eee;">
-                        <div style="font-weight:600;margin-bottom:6px;">Today's Nutrients*</div>
+                        <div style="font-weight:600;margin-bottom:6px;">Today's Nutrients</div>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px;">
-                            <div style="display:flex;justify-content:space-between;"><span>Fiber</span><span id="fiberToday">0/28g</span></div>
+                            <div style="display:flex;justify-content:space-between;"><span>Fiber</span><span id="fiberToday">0/25g</span></div>
+                            <div style="display:flex;justify-content:space-between;"><span>Sat Fat</span><span id="satFatToday">0/18g</span></div>
+                            <div style="display:flex;justify-content:space-between;"><span>Total Fat</span><span id="fatToday">0g</span></div>
+                            <div style="display:flex;justify-content:space-between;"><span>Omega Score</span><span id="omegaToday">0</span></div>
+                            <div style="display:flex;justify-content:space-between;"><span>Vegetables</span><span id="vegToday">0</span></div>
+                            <div style="display:flex;justify-content:space-between;"><span>Processed</span><span id="processedToday">0</span></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Other Nutrients -->
+                    <div style="margin-top:10px;padding-top:8px;border-top:2px solid #eee;">
+                        <div style="font-weight:600;margin-bottom:6px;">Other Nutrients*</div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px;">
                             <div style="display:flex;justify-content:space-between;"><span>Sugar</span><span id="sugarToday">0/25g</span></div>
                             <div style="display:flex;justify-content:space-between;"><span>Potassium</span><span id="potassiumToday">0/3500mg</span></div>
                             <div style="display:flex;justify-content:space-between;"><span>Calcium</span><span id="calciumToday">0/1000mg</span></div>
@@ -1969,14 +1986,46 @@
             const weight = localStorage.getItem('hed_weight') || '--';
             document.getElementById('weightDisplay').textContent = weight + 'kg';
             
-            // Today's nutrients in Summary
+            // Waist display
+            const waistHistory = JSON.parse(localStorage.getItem('opu_waist_history') || '[]');
+            document.getElementById('waistDisplay').textContent = waistHistory.length > 0 ? waistHistory[0].waist + 'cm' : '--';
+            
+            // Today's Opu nutrients in Summary
             document.getElementById('fiberToday').textContent = (state.fiber || 0) + '/' + TARGETS.fiber + 'g';
+            document.getElementById('satFatToday').textContent = (state.fatSaturated || 0) + '/' + TARGETS.satFat + 'g';
+            document.getElementById('fatToday').textContent = (state.fatTotal || 0) + 'g';
+            document.getElementById('omegaToday').textContent = (omegaVal >= 0 ? '+' : '') + omegaVal;
+            document.getElementById('vegToday').textContent = state.vegetableCount || 0;
+            document.getElementById('processedToday').textContent = state.processedCount || 0;
+            
+            // Other nutrients
             document.getElementById('sugarToday').textContent = (state.sugar || 0) + '/' + TARGETS.sugar + 'g';
             document.getElementById('potassiumToday').textContent = (state.potassium || 0) + '/' + TARGETS.potassium + 'mg';
             document.getElementById('calciumToday').textContent = (state.calcium || 0) + '/' + TARGETS.calcium + 'mg';
             document.getElementById('ironToday').textContent = (state.iron || 0) + '/' + TARGETS.iron + 'mg';
             document.getElementById('vitDToday').textContent = (state.vitD || 0) + '/' + TARGETS.vitD + 'IU';
             document.getElementById('magnesiumToday').textContent = (state.magnesium || 0) + '/' + TARGETS.magnesium + 'mg';
+            
+            // Survey status
+            const survey = state.survey || { morning: {}, evening: {} };
+            const morningEl = document.getElementById('surveyMorningStatus');
+            const eveningEl = document.getElementById('surveyEveningStatus');
+            if (survey.morning && survey.morning.sleepHours) {
+                morningEl.textContent = survey.morning.sleepHours + ' hrs';
+                morningEl.style.color = survey.morning.sleepHours === '7+' ? '#4CAF50' : survey.morning.sleepHours === '5-7' ? '#FF9800' : '#f44336';
+            } else {
+                morningEl.textContent = 'Not done';
+                morningEl.style.color = '#999';
+            }
+            if (survey.evening && survey.evening.answeredAt) {
+                const positives = (survey.evening.meditation ? 1 : 0) + (survey.evening.social ? 1 : 0) + (survey.evening.outdoors ? 1 : 0);
+                const negatives = (survey.evening.smoked ? 1 : 0) + (survey.evening.alcohol ? 1 : 0) + (survey.evening.sedentary ? 1 : 0) + (survey.evening.unwell ? 1 : 0);
+                eveningEl.textContent = '+' + positives + ' / -' + negatives;
+                eveningEl.style.color = negatives === 0 ? '#4CAF50' : '#FF9800';
+            } else {
+                eveningEl.textContent = 'Not done';
+                eveningEl.style.color = '#999';
+            }
             
             // Update nutrition summary
             updateNutritionSummary();
@@ -3085,6 +3134,20 @@
             checkSurveys(); // Check if evening survey needed
         }
         
+        // Manual survey triggers (from Summary section)
+        function showMorningSurveyManual() {
+            document.getElementById('morningDateLabel').textContent = 'How did you sleep last night?';
+            document.getElementById('morningSurveyModal').classList.add('open');
+        }
+        
+        function showEveningSurveyManual() {
+            // Reset toggles
+            eveningToggles = { meditation: false, social: false, outdoors: false, smoked: false, alcohol: false, sedentary: false, unwell: false };
+            document.querySelectorAll('.survey-toggle').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('eveningDateLabel').textContent = 'How was today?';
+            document.getElementById('eveningSurveyModal').classList.add('open');
+        }
+        
         function skipMorningSurvey() {
             surveyBackfillMode = false;
             closeModal('morningSurveyModal');
@@ -3181,4 +3244,3 @@
     <script src="https://accounts.google.com/gsi/client" async></script>
 </body>
 </html>
-
