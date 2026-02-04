@@ -2354,8 +2354,12 @@
             if (exists) return;
             
             try {
-                // Append new row: Name, Cal, Protein, Sodium, Fiber, Sugar, Potassium, Calcium, Iron, VitD, Magnesium, Icon, Short
-                // Estimate other nutrients based on cal/protein ratio
+                // New FoodDB columns: Name(A), Cal(B), Protein(C), Sodium(D), FatTotal(E), FatSaturated(F), 
+                // OmegaScore(G), Flags(H), Fiber(I), Sugar(J), Potassium(K), Calcium(L), Iron(M), VitD(N), Magnesium(O), Icon(P), Short(Q)
+                const fatTotal = 0;
+                const fatSaturated = 0;
+                const omegaScore = 0;
+                const flags = '';
                 const fiber = Math.round(cal / 200); // rough estimate
                 const sugar = Math.round(cal / 50);
                 const potassium = Math.round(cal * 0.5);
@@ -2366,9 +2370,9 @@
                 const icon = '🍽️';
                 const short = name.length > 12 ? name.substring(0, 10) + '..' : '';
                 
-                const row = [[name, cal, protein, sodium, fiber, sugar, potassium, calcium, iron, vitD, magnesium, icon, short]];
+                const row = [[name, cal, protein, sodium, fatTotal, fatSaturated, omegaScore, flags, fiber, sugar, potassium, calcium, iron, vitD, magnesium, icon, short]];
                 
-                const res = await authFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/FoodDB!A:M:append?valueInputOption=USER_ENTERED`, {
+                const res = await authFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/FoodDB!A:Q:append?valueInputOption=USER_ENTERED`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ values: row })
@@ -2398,11 +2402,13 @@
                 const icon = '🍽️';
                 const short = name.length > 12 ? name.substring(0, 10) + '..' : '';
                 
-                const row = [[name, cal, protein, nutrients.sodium, nutrients.fiber, nutrients.sugar, 
-                              nutrients.potassium, nutrients.calcium, nutrients.iron, nutrients.vitD, 
-                              nutrients.magnesium, icon, short]];
+                // New FoodDB columns: Name, Cal, Protein, Sodium, FatTotal, FatSaturated, OmegaScore, Flags, Fiber, Sugar, Potassium, Calcium, Iron, VitD, Magnesium, Icon, Short
+                const row = [[name, cal, protein, nutrients.sodium || 0, 
+                              nutrients.fatTotal || 0, nutrients.fatSaturated || 0, nutrients.omegaScore || 0, nutrients.flags || '',
+                              nutrients.fiber || 0, nutrients.sugar || 0, nutrients.potassium || 0, nutrients.calcium || 0, 
+                              nutrients.iron || 0, nutrients.vitD || 0, nutrients.magnesium || 0, icon, short]];
                 
-                const res = await authFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/FoodDB!A:M:append?valueInputOption=USER_ENTERED`, {
+                const res = await authFetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/FoodDB!A:Q:append?valueInputOption=USER_ENTERED`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ values: row })
