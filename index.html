@@ -626,6 +626,7 @@
         
         let tokenClient, accessToken = localStorage.getItem('hed_token');
         let tokenExpiry = parseInt(localStorage.getItem('hed_token_expiry')) || 0;
+        let authInProgress = false; // Prevent multiple simultaneous auth attempts
         let state = { 
             date: '', calIn: 0, calOut: 0, protein: 0, sodium: 0, 
             fiber: 0, sugar: 0, potassium: 0, calcium: 0, iron: 0, vitD: 0, magnesium: 0,
@@ -654,14 +655,23 @@
         
         // Silently refresh token - returns true if successful
         async function refreshTokenSilently() {
+            if (authInProgress) {
+                console.log('Auth already in progress, waiting...');
+                // Wait for existing auth to complete
+                return new Promise((resolve) => {
+                    setTimeout(() => resolve(!!accessToken), 3000);
+                });
+            }
             return new Promise((resolve) => {
                 if (!tokenClient) { resolve(false); return; }
                 try {
+                    authInProgress = true;
                     tokenClient.requestAccessToken({ prompt: '' });
-                    // The callback in initGoogle will handle the response
+                    // The callback in initGoogle will handle the response and reset authInProgress
                     setTimeout(() => resolve(!!accessToken), 3000);
                 } catch (e) {
                     console.log('Silent refresh failed:', e);
+                    authInProgress = false;
                     resolve(false);
                 }
             });
@@ -1102,6 +1112,7 @@
                 client_id: CLIENT_ID,
                 scope: SCOPES,
                 callback: async (r) => {
+                    authInProgress = false; // Reset auth lock
                     if (r.access_token) {
                         accessToken = r.access_token;
                         // Token expires in ~1 hour (3600 seconds)
@@ -1184,7 +1195,15 @@
             }, 2000);
         }
         
-        function googleSignIn() { tokenClient.requestAccessToken(); }
+        function googleSignIn() { 
+            if (authInProgress) {
+                console.log('Auth already in progress, skipping');
+                return;
+            }
+            authInProgress = true;
+            console.log('Starting auth...');
+            tokenClient.requestAccessToken(); 
+        }
         
         // State
         function loadState() {
