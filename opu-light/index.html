@@ -1375,7 +1375,16 @@
             if (saved) {
                 const parsed = JSON.parse(saved);
                 if (parsed.date === today) {
-                    state = parsed;
+                    // Merge parsed state with defaults to ensure all fields exist
+                    state = { 
+                        ...state,  // Keep defaults (including scores)
+                        ...parsed, // Override with saved values
+                        scores: { ...state.scores, ...(parsed.scores || {}) }, // Ensure scores exists
+                        survey: { 
+                            morning: { ...state.survey.morning, ...(parsed.survey?.morning || {}) },
+                            evening: { ...state.survey.evening, ...(parsed.survey?.evening || {}) }
+                        }
+                    };
                 } else {
                     saveToHistory(parsed);
                     saveToSheets(parsed);
