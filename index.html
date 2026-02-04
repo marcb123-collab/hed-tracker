@@ -358,7 +358,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v82</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v83</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -757,28 +757,30 @@
         async function loadFoodDB() {
             if (!accessToken) return;
             try {
-                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/FoodDB!A2:M200`, {
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/FoodDB!A2:Q200`, {
                     headers: { Authorization: `Bearer ${accessToken}` }
                 });
                 if (!res.ok) return;
                 const data = await res.json();
                 if (!data.values || data.values.length === 0) return;
                 
-                // Parse sheet data: Name, Cal, Protein, Sodium, Fiber, Sugar, Potassium, Calcium, Iron, VitD, Magnesium, Icon, Short
+                // New FoodDB columns: Name(0), Cal(1), Protein(2), Sodium(3), FatTotal(4), FatSaturated(5), 
+                // OmegaScore(6), Flags(7), Fiber(8), Sugar(9), Potassium(10), Calcium(11), Iron(12), VitD(13), Magnesium(14), Icon(15), Short(16)
+                // HED only uses: Name, Cal, Protein, Sodium, Fiber, Sugar, Potassium, Calcium, Iron, VitD, Magnesium, Icon, Short
                 ALL_FOODS = data.values.map(row => ({
                     name: row[0] || '',
                     cal: parseInt(row[1]) || 0,
                     protein: parseInt(row[2]) || 0,
                     sodium: parseInt(row[3]) || 0,
-                    fiber: parseInt(row[4]) || 0,
-                    sugar: parseInt(row[5]) || 0,
-                    potassium: parseInt(row[6]) || 0,
-                    calcium: parseInt(row[7]) || 0,
-                    iron: parseInt(row[8]) || 0,
-                    vitD: parseInt(row[9]) || 0,
-                    magnesium: parseInt(row[10]) || 0,
-                    icon: row[11] || '🍽️',
-                    short: row[12] || ''
+                    fiber: parseInt(row[8]) || 0,      // Column I (index 8)
+                    sugar: parseInt(row[9]) || 0,      // Column J (index 9)
+                    potassium: parseInt(row[10]) || 0, // Column K (index 10)
+                    calcium: parseInt(row[11]) || 0,   // Column L (index 11)
+                    iron: parseInt(row[12]) || 0,      // Column M (index 12)
+                    vitD: parseInt(row[13]) || 0,      // Column N (index 13)
+                    magnesium: parseInt(row[14]) || 0, // Column O (index 14)
+                    icon: row[15] || '🍽️',            // Column P (index 15)
+                    short: row[16] || ''               // Column Q (index 16)
                 })).filter(f => f.name); // Filter out empty rows
                 
                 console.log('Loaded ' + ALL_FOODS.length + ' foods from FoodDB');
@@ -877,7 +879,7 @@
         async function seedUsageFromSheets() {
             if (!accessToken) return;
             try {
-                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog!H2:H100`, {
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog-HED!H2:H100`, {
                     headers: { Authorization: `Bearer ${accessToken}` }
                 });
                 if (res.status !== 200) return;
@@ -1135,10 +1137,10 @@
                         toast('Synced from cloud');
                     }
                     updateUI(); // Always update UI after attempting load
+                    syncHistoryToSheets(true); // Run AFTER loadFromLiveData completes to avoid race condition
                 });
                 loadFoodDB().then(() => { console.log('FoodDB loaded'); renderButtons(); });
                 loadExerciseDB().then(() => { console.log('ExerciseDB loaded'); renderButtons(); });
-                syncHistoryToSheets(true);
                 seedUsageFromSheets();
             } else if (accessToken) {
                 // Have a token but it's expired - try silent refresh first
@@ -1151,10 +1153,10 @@
                         loadFromLiveData().then(loaded => {
                             if (loaded) toast('Synced from cloud');
                             updateUI();
+                            syncHistoryToSheets(true); // Run AFTER loadFromLiveData completes to avoid race condition
                         });
                         loadFoodDB().then(() => { console.log('FoodDB loaded'); renderButtons(); });
                         loadExerciseDB().then(() => { console.log('ExerciseDB loaded'); renderButtons(); });
-                        syncHistoryToSheets(true);
                         seedUsageFromSheets();
                     } else {
                         console.log('Silent refresh failed - prompting login');
@@ -1228,7 +1230,7 @@
             // New columns: Date, Cal In, Protein, Sodium, Cal Out, Steps, Weight, Net, Workout, Entries
             const row = [today, state.calIn, state.protein, state.sodium || 0, state.calOut, state.steps, weight, state.calIn - state.calOut, workoutDone, entriesData];
             try {
-                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/LiveData!A2:J2?valueInputOption=RAW`, {
+                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/LiveData-HED!A2:J2?valueInputOption=RAW`, {
                     method: 'PUT',
                     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ values: [row] })
@@ -1245,13 +1247,13 @@
             if (!accessToken) return false;
             try {
                 // First ensure headers exist (new column layout)
-                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/LiveData!A1:J1?valueInputOption=RAW`, {
+                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/LiveData-HED!A1:J1?valueInputOption=RAW`, {
                     method: 'PUT',
                     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ values: [['Date', 'Cal In', 'Protein', 'Sodium', 'Cal Out', 'Steps', 'Weight', 'Net', 'Workout', 'Entries']] })
                 });
                 
-                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/LiveData!A2:J2`, {
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/LiveData-HED!A2:J2`, {
                     headers: { Authorization: `Bearer ${accessToken}` }
                 });
                 
@@ -1348,7 +1350,7 @@
                     console.log('New day detected, archiving old LiveData');
                     await archiveToDaily(data.values[0]);
                     // Clear LiveData row (will be filled by syncToLiveData when user adds items)
-                    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/LiveData!A2:J2:clear`, {
+                    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/LiveData-HED!A2:J2:clear`, {
                         method: 'POST',
                         headers: { Authorization: `Bearer ${accessToken}` }
                     });
@@ -1387,7 +1389,7 @@
                 };
                 
                 // Check if date already exists in DailyLog
-                const checkRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog!A:A`, {
+                const checkRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog-HED!A:A`, {
                     headers: { Authorization: `Bearer ${accessToken}` }
                 });
                 const checkData = await checkRes.json();
@@ -1400,7 +1402,7 @@
                 }
                 
                 // Ensure headers - new column layout
-                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog!A1:J1?valueInputOption=RAW`, {
+                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog-HED!A1:J1?valueInputOption=RAW`, {
                     method: 'PUT',
                     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ values: [['Date', 'Cal In', 'Protein', 'Sodium', 'Cal Out', 'Steps', 'Weight', 'Net', 'Workout', 'Items']] })
@@ -1418,7 +1420,7 @@
                 // DailyLog row: Date, Cal In, Protein, Sodium, Cal Out, Steps, Weight, Net, Workout, Items
                 const archiveRow = [rowDate, row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], items];
                 
-                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog!A:J:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
+                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog-HED!A:J:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
                     method: 'POST',
                     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ values: [archiveRow] })
@@ -1456,7 +1458,7 @@
             
             try {
                 // Get existing dates in DailyLog
-                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog!A:A`, {
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog-HED!A:A`, {
                     headers: { Authorization: `Bearer ${accessToken}` }
                 });
                 const data = await res.json();
@@ -1532,7 +1534,7 @@
                     ];
                 });
                 
-                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog!A:J:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
+                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog-HED!A:J:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
                     method: 'POST',
                     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ values: rows })
@@ -1953,7 +1955,7 @@
             if (!accessToken) return;
             try {
                 // New columns: Date(A), Cal In(B), Protein(C), Sodium(D), Cal Out(E), Steps(F), Weight(G), Net(H), Workout(I), Items(J)
-                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog!A2:J100`, {
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog-HED!A2:J100`, {
                     headers: { Authorization: `Bearer ${accessToken}` }
                 });
                 if (res.status !== 200) return;
