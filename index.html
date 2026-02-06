@@ -371,7 +371,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v86</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v89</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -481,7 +481,11 @@
                         <span id="weightDisplay" style="font-weight:600;color:#667eea;">--</span>
                     </div>
                     <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;">
-                        <span>Weight Trend (7 days)</span>
+                        <span>Total Loss (since start)</span>
+                        <span id="weightTotal">--</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;">
+                        <span>Weekly Trend (7 days)</span>
                         <span id="weightTrend">--</span>
                     </div>
                     <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;">
@@ -1848,19 +1852,33 @@
             
             // Weight trend (7 calendar days) - compare today vs 7 days ago
             // Get all weights from history that have weight > 0
-            const historyWithWeights = history.filter(h => h.weight && h.weight > 0);
+            let historyWithWeights = history.filter(h => h.weight && h.weight > 0);
+            
+            // Add today's weight if available (from hed_weight)
+            const todayWeight = localStorage.getItem('hed_weight');
+            const today = new Date().toLocaleDateString('en-CA');
+            if (todayWeight && !historyWithWeights.find(h => h.date === today)) {
+                historyWithWeights.unshift({ date: today, weight: parseFloat(todayWeight) });
+            }
             
             if (historyWithWeights.length >= 2) {
                 // Get newest weight (most recent entry with weight)
                 const newest = historyWithWeights[0];
                 const newestDate = new Date(newest.date);
                 
+                // Get oldest weight (program start)
+                const programStart = historyWithWeights[historyWithWeights.length - 1];
+                const totalDiff = (newest.weight - programStart.weight).toFixed(1);
+                const totalTrend = totalDiff > 0 ? `+${totalDiff}kg ↑` : totalDiff < 0 ? `${totalDiff}kg ↓` : '0kg →';
+                document.getElementById('weightTotal').textContent = totalTrend;
+                document.getElementById('weightTotal').style.color = totalDiff <= 0 ? '#4CAF50' : '#f44336';
+                
                 // Find weight closest to 7 days ago
                 const sevenDaysAgo = new Date(newestDate);
                 sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
                 
                 // Find entry closest to 7 days ago (within +/- 2 days)
-                let oldest = null;
+                let weekAgo = null;
                 let closestDiff = Infinity;
                 for (const h of historyWithWeights) {
                     const hDate = new Date(h.date);
@@ -1868,12 +1886,12 @@
                     const daysDiff = diff / (1000 * 60 * 60 * 24);
                     if (daysDiff <= 2 && diff < closestDiff) {
                         closestDiff = diff;
-                        oldest = h;
+                        weekAgo = h;
                     }
                 }
                 
-                if (oldest && oldest.date !== newest.date) {
-                    const diff = (newest.weight - oldest.weight).toFixed(1);
+                if (weekAgo && weekAgo.date !== newest.date) {
+                    const diff = (newest.weight - weekAgo.weight).toFixed(1);
                     const trend = diff > 0 ? `+${diff}kg ↑` : diff < 0 ? `${diff}kg ↓` : '0kg →';
                     document.getElementById('weightTrend').textContent = trend;
                     document.getElementById('weightTrend').style.color = diff <= 0 ? '#4CAF50' : '#f44336';
@@ -1889,8 +1907,11 @@
                 const trend = diff > 0 ? `+${diff}kg ↑` : diff < 0 ? `${diff}kg ↓` : '0kg →';
                 document.getElementById('weightTrend').textContent = trend;
                 document.getElementById('weightTrend').style.color = diff <= 0 ? '#4CAF50' : '#f44336';
+                document.getElementById('weightTotal').textContent = trend;
+                document.getElementById('weightTotal').style.color = diff <= 0 ? '#4CAF50' : '#f44336';
             } else {
                 document.getElementById('weightTrend').textContent = 'Need more data';
+                document.getElementById('weightTotal').textContent = 'Need more data';
             }
             
             // Average daily deficit (last 7 days)
