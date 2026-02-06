@@ -371,7 +371,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v89</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v90</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -577,9 +577,9 @@
             
             <!-- 1. PILATES SET -->
             <div class="summary-card">
-                <div class="summary-header" style="color:#667eea;">
-                    <span>🧘 PILATES SET</span>
-                    <span style="font-size:11px;color:#888;">Target: 4-6×/week</span>
+                <div class="summary-header" style="color:#667eea;" onclick="toggleExerciseHints('pilates')">
+                    <span>🧘 PILATES SET <span style="font-size:10px;color:#999;">▶ tap for exercises</span></span>
+                    <span style="font-size:11px;color:#888;">4-6×/week</span>
                 </div>
                 <div class="quick-grid" style="margin-top:8px;">
                     <button class="qbtn exercise-btn" onclick="logExercise('Pilates Set', 90, 'pilates')" style="flex:1;justify-content:space-between;">
@@ -587,14 +587,23 @@
                         <span style="color:#4CAF50;font-weight:600;">90 cal</span>
                     </button>
                 </div>
-                <div style="font-size:10px;color:#888;margin-top:6px;">15-20 min • Ball balancing, leg extensions, bicycle, raises, foot circles, chest stretch, torso raises</div>
+                <div id="pilatesHints" style="display:none;margin-top:10px;padding:10px;background:#f8f8ff;border-radius:8px;font-size:11px;">
+                    <div style="font-weight:600;margin-bottom:6px;">15-20 min • Stability Ball</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">1. <b>Ball Balancing Tabletop</b> 2×10 — Sit on ball, lift feet to tabletop, hold balance</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">2. <b>Ball Leg Extensions</b> 2×8 each — On ball curved back, extend one leg out and back</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">3. <b>Tabletop Bicycle</b> 2×10 each — On ball in tabletop, pedal legs like cycling</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">4. <b>Single Leg Tabletop Raises</b> 2×10 each — On ball curved back, raise one leg up and down</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">5. <b>Ball Foot Circles</b> 2×8 each dir — Lie back, ball under ankles, circle foot in air</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">6. <b>Chest Stretch</b> 2×30 sec — Open chest stretching arms back, hold each side</div>
+                    <div style="padding:3px 0;">7. <b>Prone Torso Raises</b> 2×12 — Face down with ball, lift upper body, squeeze back</div>
+                </div>
             </div>
             
             <!-- 2. ABS & CORE -->
             <div class="summary-card">
-                <div class="summary-header" style="color:#f44336;">
-                    <span>🔥 ABS & CORE</span>
-                    <span style="font-size:11px;color:#888;">Target: 3-4×/week</span>
+                <div class="summary-header" style="color:#f44336;" onclick="toggleExerciseHints('abs')">
+                    <span>🔥 ABS & CORE <span style="font-size:10px;color:#999;">▶ tap for exercises</span></span>
+                    <span style="font-size:11px;color:#888;">3-4×/week</span>
                 </div>
                 <div class="quick-grid" style="margin-top:8px;flex-direction:column;gap:6px;">
                     <button class="qbtn exercise-btn" onclick="logExercise('Floor Ab Circuit', 200, 'abs')" style="width:100%;justify-content:space-between;">
@@ -610,14 +619,37 @@
                         <span style="color:#4CAF50;font-weight:600;">120 cal</span>
                     </button>
                 </div>
-                <div style="font-size:10px;color:#888;margin-top:6px;">Pick ONE option per session • Floor: mountain climbers, bicycle, flutter kicks, russian twists, leg raises, hollow body, plank</div>
+                <div id="absHints" style="display:none;margin-top:10px;padding:10px;background:#fff8f8;border-radius:8px;font-size:11px;">
+                    <div style="font-weight:600;color:#f44336;margin-bottom:6px;">Option A: Floor Ab Circuit (25-30 min)</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">1. <b>Mountain Climbers</b> 3×30 — Plank, drive knees to chest alternating fast</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">2. <b>Bicycle Crunches</b> 3×20 — On back, alternate elbow to opposite knee</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">3. <b>Flutter Kicks</b> 3×30 — On back, legs straight, small fast up/down kicks</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">4. <b>Russian Twists</b> 3×20 — Seated leaning back, rotate torso side to side</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">5. <b>Leg Raises</b> 3×15 — On back, lift straight legs to ceiling, lower slowly</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">6. <b>Hollow Body Hold</b> 3×30 sec — On back, arms/legs lifted, hold banana shape</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">7. <b>Plank</b> 3×45 sec — Forearms and toes, body straight, hold tight</div>
+                    
+                    <div style="font-weight:600;color:#f44336;margin:12px 0 6px 0;">Option B: Standing Abs (18-20 min)</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">1. <b>Standing Knee Raise</b> 40s×4 — Stand tall, lift knee to chest, alternate</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">2. <b>Standing Side Crunch</b> 40s×4 — Elbow down to same-side knee lifting up</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">3. <b>Standing Cross Crunch</b> 40s×4 — Elbow to opposite knee across body</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">4. <b>Standing Twist</b> 40s×4 — Arms up, rotate torso left/right, hips forward</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">5. <b>Jumping Arm Reach</b> 40s×4 — Wide stance, reach arms overhead, extend tall</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">6. <b>Squat Arm Extension</b> 40s×4 — Drop to squat, punch arms forward, stand</div>
+                    
+                    <div style="font-weight:600;color:#f44336;margin:12px 0 6px 0;">Option C: Chair Ab Cardio (10-15 min)</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">1. <b>Chair Step Up/Down</b> 40s×3-4 — Step feet toward chair then back, alternating</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">2. <b>Chair Cross Leg Over</b> 40s×3-4 — Cross one leg under body to opposite side</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">3. <b>Chair Jump In/Out</b> 40s×3-4 — Jump both feet forward toward chair, then back</div>
+                    <div style="padding:3px 0;">4. <b>Chair Feet Spread</b> 40s×3-4 — Jump feet wide apart then back together</div>
+                </div>
             </div>
             
             <!-- 3. UPPER BODY -->
             <div class="summary-card">
-                <div class="summary-header" style="color:#2196F3;">
-                    <span>💪 UPPER BODY</span>
-                    <span style="font-size:11px;color:#888;">Target: 2-3×/week</span>
+                <div class="summary-header" style="color:#2196F3;" onclick="toggleExerciseHints('upper')">
+                    <span>💪 UPPER BODY <span style="font-size:10px;color:#999;">▶ tap for exercises</span></span>
+                    <span style="font-size:11px;color:#888;">2-3×/week</span>
                 </div>
                 <div class="quick-grid" style="margin-top:8px;flex-direction:column;gap:6px;">
                     <button class="qbtn exercise-btn" onclick="logExercise('Bending Bar', 100, 'upper')" style="width:100%;justify-content:space-between;">
@@ -629,14 +661,28 @@
                         <span style="color:#4CAF50;font-weight:600;">120 cal</span>
                     </button>
                 </div>
-                <div style="font-size:10px;color:#888;margin-top:6px;">Can combine both in one session • Bar: chest press, overhead, behind-back, ab crunch, twists • Bands: push-ups, pull-aparts, punches, curls, fly</div>
+                <div id="upperHints" style="display:none;margin-top:10px;padding:10px;background:#f0f8ff;border-radius:8px;font-size:11px;">
+                    <div style="font-weight:600;color:#2196F3;margin-bottom:6px;">Option A: Bending Bar (15-20 min)</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">1. <b>Front Chest Press</b> 3×15 — Bar in front, squeeze handles together, hold 2 sec</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">2. <b>Overhead Press & Bend</b> 3×12 — Bar overhead, bend and squeeze down</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">3. <b>Behind-Back Squeeze</b> 3×15 — Bar behind lower back, squeeze handles together</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">4. <b>Ab Crunch with Bar</b> 3×15 — Squeeze bar at chest while crunching abs</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">5. <b>Rotational Twists</b> 3×10 each — Hold squeezed bar, rotate torso left/right</div>
+                    
+                    <div style="font-weight:600;color:#2196F3;margin:12px 0 6px 0;">Option B: Bands + Push-Ups (15-20 min)</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">1. <b>Push-Ups</b> 3×5-15 — Hands on floor, lower chest, push up (wall→knee→full)</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">2. <b>Band Pull-Aparts</b> 3×20 — Band in front, pull hands apart across chest</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">3. <b>Rapid Punches</b> 3×50 — Band behind back, punch forward fast alternating</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">4. <b>Cross Curls</b> 3×12 each — Stand on band, curl across body to opposite shoulder</div>
+                    <div style="padding:3px 0;">5. <b>Band Chest Fly</b> 3×15 — Band behind back, squeeze arms together in front</div>
+                </div>
             </div>
             
             <!-- 4. CARDIO -->
             <div class="summary-card">
                 <div class="summary-header" style="color:#FF9800;">
                     <span>🚴 CARDIO</span>
-                    <span style="font-size:11px;color:#888;">Target: 3-4×/week</span>
+                    <span style="font-size:11px;color:#888;">3-4×/week</span>
                 </div>
                 <div class="quick-grid" style="margin-top:8px;flex-direction:column;gap:6px;">
                     <button class="qbtn exercise-btn" onclick="logExercise('Stationary Bike', 400, 'cardio')" style="width:100%;justify-content:space-between;">
@@ -2352,13 +2398,21 @@
             toast('Added ' + name + ' (+' + cal + ' cal)');
         }
         
+        // Toggle exercise hints visibility
+        function toggleExerciseHints(category) {
+            const el = document.getElementById(category + 'Hints');
+            if (el) {
+                el.style.display = el.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+        
         // Get week identifier (Monday start)
         function getWeekKey() {
             const now = new Date();
-            const day = now.getDay();
-            const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Monday
-            const monday = new Date(now.setDate(diff));
-            return monday.toISOString().split('T')[0];
+            const day = now.getDay(); // 0 = Sunday
+            const diff = now.getDate() - day; // Go back to Sunday
+            const sunday = new Date(now.getFullYear(), now.getMonth(), diff);
+            return sunday.toISOString().split('T')[0];
         }
         
         // Update weekly progress display
