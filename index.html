@@ -371,7 +371,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v90</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v91</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -438,6 +438,10 @@
                     <div style="text-align:center;">
                         <div style="font-weight:600;" id="goalCal">0/1600</div>
                         <div style="color:#666;font-size:10px;">Net Cal</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <div style="font-weight:600;" id="goalBurn">0/400</div>
+                        <div style="color:#666;font-size:10px;">Burned</div>
                     </div>
                     <div style="text-align:center;">
                         <div style="font-weight:600;" id="goalProtein">0/110g</div>
@@ -578,24 +582,29 @@
             <!-- 1. PILATES SET -->
             <div class="summary-card">
                 <div class="summary-header" style="color:#667eea;" onclick="toggleExerciseHints('pilates')">
-                    <span>🧘 PILATES SET <span style="font-size:10px;color:#999;">▶ tap for exercises</span></span>
+                    <span>🧘 PILATES <span style="font-size:10px;color:#999;">▶ tap for exercises</span></span>
                     <span style="font-size:11px;color:#888;">4-6×/week</span>
                 </div>
-                <div class="quick-grid" style="margin-top:8px;">
-                    <button class="qbtn exercise-btn" onclick="logExercise('Pilates Set', 90, 'pilates')" style="flex:1;justify-content:space-between;">
-                        <span>Pilates Set (7 exercises)</span>
+                <div class="quick-grid" style="margin-top:8px;flex-direction:column;gap:6px;">
+                    <button class="qbtn exercise-btn" onclick="logExercise('Pilates Home', 90, 'pilates')" style="width:100%;justify-content:space-between;">
+                        <span>Pilates Home (8 exercises)</span>
                         <span style="color:#4CAF50;font-weight:600;">90 cal</span>
+                    </button>
+                    <button class="qbtn exercise-btn" onclick="logExercise('Pilates Class 1hr', 250, 'pilates')" style="width:100%;justify-content:space-between;">
+                        <span>Pilates Class (1 hr)</span>
+                        <span style="color:#4CAF50;font-weight:600;">250 cal</span>
                     </button>
                 </div>
                 <div id="pilatesHints" style="display:none;margin-top:10px;padding:10px;background:#f8f8ff;border-radius:8px;font-size:11px;">
                     <div style="font-weight:600;margin-bottom:6px;">15-20 min • Stability Ball</div>
-                    <div style="padding:3px 0;border-bottom:1px solid #eee;">1. <b>Ball Balancing Tabletop</b> 2×10 — Sit on ball, lift feet to tabletop, hold balance</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">1. <b>Ball Balancing Tabletop</b> 2×10 — Lay on ball, lift feet to tabletop, hold balance</div>
                     <div style="padding:3px 0;border-bottom:1px solid #eee;">2. <b>Ball Leg Extensions</b> 2×8 each — On ball curved back, extend one leg out and back</div>
                     <div style="padding:3px 0;border-bottom:1px solid #eee;">3. <b>Tabletop Bicycle</b> 2×10 each — On ball in tabletop, pedal legs like cycling</div>
                     <div style="padding:3px 0;border-bottom:1px solid #eee;">4. <b>Single Leg Tabletop Raises</b> 2×10 each — On ball curved back, raise one leg up and down</div>
-                    <div style="padding:3px 0;border-bottom:1px solid #eee;">5. <b>Ball Foot Circles</b> 2×8 each dir — Lie back, ball under ankles, circle foot in air</div>
-                    <div style="padding:3px 0;border-bottom:1px solid #eee;">6. <b>Chest Stretch</b> 2×30 sec — Open chest stretching arms back, hold each side</div>
-                    <div style="padding:3px 0;">7. <b>Prone Torso Raises</b> 2×12 — Face down with ball, lift upper body, squeeze back</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">5. <b>Ball Foot Circles - Back</b> 2×8 each dir — Lie back, ball under ankles, circle foot in air</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">6. <b>Ball Foot Circles - Sides</b> 2×8 each dir — Lie on sides, ball under ankles, circle foot in air</div>
+                    <div style="padding:3px 0;border-bottom:1px solid #eee;">7. <b>Chest Stretch</b> 2×30 sec — Open chest stretching arms back, hold each side</div>
+                    <div style="padding:3px 0;">8. <b>Prone Torso Raises</b> 2×12 — Face down, lift upper body and legs, swimming motion</div>
                 </div>
             </div>
             
@@ -699,6 +708,46 @@
                     </button>
                     <button class="qbtn exercise-btn" onclick="logExercise('Long Walk', 200, 'cardio')" style="width:100%;justify-content:space-between;">
                         <span>Long Walk (45-60 min)</span>
+                        <span style="color:#4CAF50;font-weight:600;">200 cal</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 5. GOLF -->
+            <div class="summary-card">
+                <div class="summary-header" style="color:#2E7D32;">
+                    <span>⛳ GOLF</span>
+                    <span style="font-size:11px;color:#888;">Optional</span>
+                </div>
+                <div class="quick-grid" style="margin-top:8px;flex-direction:column;gap:6px;">
+                    <button class="qbtn exercise-btn" onclick="logExercise('Golf Practice 1hr', 200, 'cardio')" style="width:100%;justify-content:space-between;">
+                        <span>Golf Practice (1 hr)</span>
+                        <span style="color:#4CAF50;font-weight:600;">200 cal</span>
+                    </button>
+                    <button class="qbtn exercise-btn" onclick="logExercise('Golf 9 Holes', 300, 'cardio')" style="width:100%;justify-content:space-between;">
+                        <span>Golf 9 Holes</span>
+                        <span style="color:#4CAF50;font-weight:600;">300 cal</span>
+                    </button>
+                    <button class="qbtn exercise-btn" onclick="logExercise('Golf 18 Holes', 600, 'cardio')" style="width:100%;justify-content:space-between;">
+                        <span>Golf 18 Holes</span>
+                        <span style="color:#4CAF50;font-weight:600;">600 cal</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 6. OTHER -->
+            <div class="summary-card">
+                <div class="summary-header" style="color:#795548;">
+                    <span>🏠 OTHER</span>
+                    <span style="font-size:11px;color:#888;">Misc activity</span>
+                </div>
+                <div class="quick-grid" style="margin-top:8px;flex-direction:column;gap:6px;">
+                    <button class="qbtn exercise-btn" onclick="logExercise('Housework 30 mins', 100, 'cardio')" style="width:100%;justify-content:space-between;">
+                        <span>Housework (30 min)</span>
+                        <span style="color:#4CAF50;font-weight:600;">100 cal</span>
+                    </button>
+                    <button class="qbtn exercise-btn" onclick="logExercise('Housework 1hr', 200, 'cardio')" style="width:100%;justify-content:space-between;">
+                        <span>Housework (1 hr)</span>
                         <span style="color:#4CAF50;font-weight:600;">200 cal</span>
                     </button>
                 </div>
@@ -1863,6 +1912,8 @@
             
             // Goals section
             document.getElementById('goalCal').textContent = net + '/1600';
+            document.getElementById('goalBurn').textContent = state.calOut + '/400';
+            document.getElementById('goalBurn').style.color = state.calOut >= 400 ? '#4CAF50' : '';
             document.getElementById('goalProtein').textContent = state.protein + '/110g';
             document.getElementById('goalSodium').textContent = (state.sodium || 0) + '/2300mg';
             document.getElementById('goalSteps').textContent = state.steps.toLocaleString() + '/7500';
