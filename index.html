@@ -424,6 +424,13 @@
     <div class="content">
         <!-- Today Pane -->
         <div class="pane active" id="todayPane">
+            <!-- Sync buttons -->
+            <div class="quick-grid" style="margin-bottom:12px;">
+                <button class="qbtn action" onclick="refreshFromSheets()">☁️ Refresh</button>
+                <button class="qbtn action" onclick="syncSteps()">🔄 Sync Steps</button>
+                <button class="qbtn action" onclick="syncWeight()">⚖️ Sync Weight</button>
+            </div>
+            
             <!-- Goals Section -->
             <div class="summary-card" style="margin-bottom:10px;">
                 <div class="summary-header">🎯 Daily Goals</div>
@@ -534,6 +541,13 @@
         
         <!-- Exercise Pane -->
         <div class="pane" id="planPane">
+            <!-- Sync buttons -->
+            <div class="quick-grid" style="margin-bottom:12px;">
+                <button class="qbtn action" onclick="refreshFromSheets()">☁️ Refresh</button>
+                <button class="qbtn action" onclick="syncSteps()">🔄 Sync Steps</button>
+                <button class="qbtn action" onclick="syncWeight()">⚖️ Sync Weight</button>
+            </div>
+            
             <!-- Weekly Progress Summary -->
             <div class="summary-card" style="margin-bottom:10px;">
                 <div class="summary-header">📊 Weekly Progress</div>
@@ -643,6 +657,13 @@
         
         <!-- History Pane -->
         <div class="pane" id="historyPane">
+            <!-- Sync buttons -->
+            <div class="quick-grid" style="margin-bottom:12px;">
+                <button class="qbtn action" onclick="refreshFromSheets()">☁️ Refresh</button>
+                <button class="qbtn action" onclick="syncSteps()">🔄 Sync Steps</button>
+                <button class="qbtn action" onclick="syncWeight()">⚖️ Sync Weight</button>
+            </div>
+            
             <div id="historyList"></div>
         </div>
     </div>
