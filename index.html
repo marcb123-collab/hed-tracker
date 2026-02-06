@@ -1350,10 +1350,20 @@
                 entries: state.entries,
                 lastModified: state.lastModified || Date.now()
             });
-            // Get weight from localStorage
+            // Get weight - check multiple sources
+            let weight = '';
+            // 1. Check today's weight in hed_weight_history
             const weightHistory = JSON.parse(localStorage.getItem('hed_weight_history') || '[]');
             const todayWeight = weightHistory.find(w => w.date === today);
-            const weight = todayWeight ? todayWeight.weight : '';
+            if (todayWeight) {
+                weight = todayWeight.weight;
+            } else {
+                // 2. Check hed_weight (most recent synced weight)
+                const recentWeight = localStorage.getItem('hed_weight');
+                if (recentWeight) {
+                    weight = parseFloat(recentWeight);
+                }
+            }
             // Auto-set workout if calOut >= 400
             const workoutDone = state.calOut >= 400 ? 'Yes' : 'No';
             // New columns: Date, Cal In, Protein, Sodium, Cal Out, Steps, Weight, Net, Workout, Entries
@@ -1836,8 +1846,42 @@
             const history = JSON.parse(localStorage.getItem('hed_history') || '[]');
             const weightHistory = JSON.parse(localStorage.getItem('hed_weight_history') || '[]');
             
-            // Weight trend (last 7 days)
-            if (weightHistory.length >= 2) {
+            // Weight trend (7 calendar days) - compare today vs 7 days ago
+            // Get all weights from history that have weight > 0
+            const historyWithWeights = history.filter(h => h.weight && h.weight > 0);
+            
+            if (historyWithWeights.length >= 2) {
+                // Get newest weight (most recent entry with weight)
+                const newest = historyWithWeights[0];
+                const newestDate = new Date(newest.date);
+                
+                // Find weight closest to 7 days ago
+                const sevenDaysAgo = new Date(newestDate);
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                
+                // Find entry closest to 7 days ago (within +/- 2 days)
+                let oldest = null;
+                let closestDiff = Infinity;
+                for (const h of historyWithWeights) {
+                    const hDate = new Date(h.date);
+                    const diff = Math.abs(hDate - sevenDaysAgo);
+                    const daysDiff = diff / (1000 * 60 * 60 * 24);
+                    if (daysDiff <= 2 && diff < closestDiff) {
+                        closestDiff = diff;
+                        oldest = h;
+                    }
+                }
+                
+                if (oldest && oldest.date !== newest.date) {
+                    const diff = (newest.weight - oldest.weight).toFixed(1);
+                    const trend = diff > 0 ? `+${diff}kg ↑` : diff < 0 ? `${diff}kg ↓` : '0kg →';
+                    document.getElementById('weightTrend').textContent = trend;
+                    document.getElementById('weightTrend').style.color = diff <= 0 ? '#4CAF50' : '#f44336';
+                } else {
+                    document.getElementById('weightTrend').textContent = 'Need 7 days';
+                }
+            } else if (weightHistory.length >= 2) {
+                // Fallback to separate weight history
                 const recent = weightHistory.slice(0, 7);
                 const oldest = recent[recent.length - 1]?.weight || 0;
                 const newest = recent[0]?.weight || 0;
