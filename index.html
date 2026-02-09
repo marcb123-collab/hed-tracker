@@ -371,7 +371,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v91</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v93</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -431,27 +431,45 @@
                 <button class="qbtn action" onclick="syncWeight()">⚖️ Sync Weight</button>
             </div>
             
-            <!-- Goals Section -->
+            <!-- Weight Section at Top -->
+            <div class="summary-card" style="margin-bottom:10px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <div style="font-size:11px;opacity:0.9;">Current Weight</div>
+                        <div style="font-size:24px;font-weight:700;" id="weightDisplay">--</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:11px;opacity:0.9;">Goal: 80.0 kg</div>
+                        <div style="font-size:14px;font-weight:600;" id="weightToGo">-- to go</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Daily Goals - 2 rows of 3 -->
             <div class="summary-card" style="margin-bottom:10px;">
                 <div class="summary-header">🎯 Daily Goals</div>
-                <div style="display:flex;justify-content:space-around;padding:8px 0;font-size:12px;">
-                    <div style="text-align:center;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:8px 0;font-size:12px;">
+                    <div style="text-align:center;padding:6px;background:#f8f8f8;border-radius:6px;">
                         <div style="font-weight:600;" id="goalCal">0/1600</div>
                         <div style="color:#666;font-size:10px;">Net Cal</div>
                     </div>
-                    <div style="text-align:center;">
+                    <div style="text-align:center;padding:6px;background:#f8f8f8;border-radius:6px;">
                         <div style="font-weight:600;" id="goalBurn">0/400</div>
                         <div style="color:#666;font-size:10px;">Burned</div>
                     </div>
-                    <div style="text-align:center;">
+                    <div style="text-align:center;padding:6px;background:#f8f8f8;border-radius:6px;">
                         <div style="font-weight:600;" id="goalProtein">0/110g</div>
                         <div style="color:#666;font-size:10px;">Protein</div>
                     </div>
-                    <div style="text-align:center;">
-                        <div style="font-weight:600;" id="goalSodium">0/2300mg</div>
+                    <div style="text-align:center;padding:6px;background:#f8f8f8;border-radius:6px;">
+                        <div style="font-weight:600;" id="goalSodium">0/2300</div>
                         <div style="color:#666;font-size:10px;">Sodium</div>
                     </div>
-                    <div style="text-align:center;">
+                    <div style="text-align:center;padding:6px;background:#f8f8f8;border-radius:6px;">
+                        <div style="font-weight:600;" id="goalFiber">0/28g</div>
+                        <div style="color:#666;font-size:10px;">Fiber</div>
+                    </div>
+                    <div style="text-align:center;padding:6px;background:#f8f8f8;border-radius:6px;">
                         <div style="font-weight:600;" id="goalSteps">0/7500</div>
                         <div style="color:#666;font-size:10px;">Steps</div>
                     </div>
@@ -472,58 +490,20 @@
                 </div>
             </div>
             
-            <!-- Nutrition Summary -->
+            <!-- Today's Nutrients -->
             <div class="summary-card" style="margin-top:10px;">
-                <div class="summary-header">
-                    <span>📊 Summary</span>
-                    <button class="qbtn action" onclick="copyDaySummary()" style="font-size:10px;padding:4px 8px;">📋 Copy</button>
+                <div class="summary-header">🥗 Today's Nutrients</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px;padding:8px 0;">
+                    <div style="display:flex;justify-content:space-between;"><span>Fiber</span><span id="fiberToday">0/28g</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span>Sugar</span><span id="sugarToday">0/25g</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span>Potassium</span><span id="potassiumToday">0/3500mg</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span>Calcium</span><span id="calciumToday">0/1000mg</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span>Iron</span><span id="ironToday">0/8mg</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span>Vitamin D</span><span id="vitDToday">0/800IU</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span>Magnesium</span><span id="magnesiumToday">0/420mg</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span>Fat (Sat)</span><span id="fatToday">0g (0g)</span></div>
                 </div>
-                <div id="nutritionSummary" style="font-size:12px;padding:8px 0;">
-                    <!-- Weight Section -->
-                    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee;background:#f8f9ff;margin:-8px -12px 8px -12px;padding:8px 12px;">
-                        <span style="font-weight:600;">⚖️ Current Weight</span>
-                        <span id="weightDisplay" style="font-weight:600;color:#667eea;">--</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;">
-                        <span>Total Loss (since start)</span>
-                        <span id="weightTotal">--</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;">
-                        <span>Weekly Trend (7 days)</span>
-                        <span id="weightTrend">--</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;">
-                        <span>Avg Daily Deficit</span>
-                        <span id="avgDeficit">--</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;">
-                        <span>Workout Streak</span>
-                        <span id="workoutStreak">--</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;">
-                        <span>Protein Avg (7 days)</span>
-                        <span id="proteinAvg">--</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;">
-                        <span>Sodium Avg (7 days)</span>
-                        <span id="sodiumAvg">--</span>
-                    </div>
-                    
-                    <!-- Today's Nutrients -->
-                    <div style="margin-top:10px;padding-top:8px;border-top:2px solid #eee;">
-                        <div style="font-weight:600;margin-bottom:6px;">Today's Nutrients*</div>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px;">
-                            <div style="display:flex;justify-content:space-between;"><span>Fiber</span><span id="fiberToday">0/28g</span></div>
-                            <div style="display:flex;justify-content:space-between;"><span>Sugar</span><span id="sugarToday">0/25g</span></div>
-                            <div style="display:flex;justify-content:space-between;"><span>Potassium</span><span id="potassiumToday">0/3500mg</span></div>
-                            <div style="display:flex;justify-content:space-between;"><span>Calcium</span><span id="calciumToday">0/1000mg</span></div>
-                            <div style="display:flex;justify-content:space-between;"><span>Iron</span><span id="ironToday">0/8mg</span></div>
-                            <div style="display:flex;justify-content:space-between;"><span>Vitamin D</span><span id="vitDToday">0/800IU</span></div>
-                            <div style="display:flex;justify-content:space-between;"><span>Magnesium</span><span id="magnesiumToday">0/420mg</span></div>
-                        </div>
-                        <div style="font-size:9px;color:#999;margin-top:6px;">*Estimates based on visual/textual food analysis</div>
-                    </div>
-                </div>
+                <div style="font-size:9px;color:#999;">*Estimates based on food analysis</div>
             </div>
         </div>
         
@@ -536,6 +516,13 @@
                 <button class="qbtn action" onclick="syncWeight()">⚖️ Sync Weight</button>
             </div>
             
+            <!-- Search box -->
+            <div style="margin-bottom:12px;">
+                <input type="text" id="foodSearch" placeholder="🔍 Search foods..." 
+                    oninput="filterFoods(this.value)"
+                    style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;">
+            </div>
+            
             <div class="section-title">🍽️ FOOD 
                 <span style="float:right;font-size:10px;">
                     <span id="foodSizeToggle" onclick="toggleFoodSize()" style="color:#667eea;cursor:pointer;">All ▼</span>
@@ -543,8 +530,25 @@
                     <span id="foodSortToggle" onclick="toggleFoodSort()" style="color:#667eea;cursor:pointer;">Recent</span>
                 </span>
             </div>
-            <div class="quick-grid" id="foodButtonsQuick"></div>
-            <div class="quick-grid" id="foodButtonsFull" style="display:none;"></div>
+            
+            <!-- Recent foods section -->
+            <div id="recentFoodsSection" style="margin-bottom:12px;">
+                <div style="font-size:11px;color:#888;margin-bottom:6px;">⭐ Recently Used</div>
+                <div class="quick-grid" id="recentFoodButtons"></div>
+            </div>
+            
+            <!-- All foods section -->
+            <div id="allFoodsSection">
+                <div style="font-size:11px;color:#888;margin-bottom:6px;">📋 All Foods (<span id="foodCount">0</span>)</div>
+                <div class="quick-grid" id="foodButtonsQuick"></div>
+                <div class="quick-grid" id="foodButtonsFull" style="display:none;"></div>
+            </div>
+            
+            <!-- Search results section (hidden by default) -->
+            <div id="searchResultsSection" style="display:none;">
+                <div style="font-size:11px;color:#888;margin-bottom:6px;">🔍 Search Results (<span id="searchCount">0</span>)</div>
+                <div class="quick-grid" id="searchFoodButtons"></div>
+            </div>
         </div>
         
         <!-- Exercise Pane -->
@@ -735,7 +739,29 @@
                 </div>
             </div>
             
-            <!-- 6. OTHER -->
+            <!-- 6. DRUMS -->
+            <div class="summary-card">
+                <div class="summary-header" style="color:#9C27B0;">
+                    <span>🥁 DRUMS</span>
+                    <span style="font-size:11px;color:#888;">Rock drumming</span>
+                </div>
+                <div class="quick-grid" style="margin-top:8px;flex-direction:column;gap:6px;">
+                    <button class="qbtn exercise-btn" onclick="logExercise('Drums 1hr', 275, 'cardio')" style="width:100%;justify-content:space-between;">
+                        <span>Drums (1 hr)</span>
+                        <span style="color:#4CAF50;font-weight:600;">275 cal</span>
+                    </button>
+                    <button class="qbtn exercise-btn" onclick="logExercise('Drums 2hr', 550, 'cardio')" style="width:100%;justify-content:space-between;">
+                        <span>Drums (2 hr)</span>
+                        <span style="color:#4CAF50;font-weight:600;">550 cal</span>
+                    </button>
+                    <button class="qbtn exercise-btn" onclick="logExercise('Drums 3hr', 825, 'cardio')" style="width:100%;justify-content:space-between;">
+                        <span>Drums (3 hr)</span>
+                        <span style="color:#4CAF50;font-weight:600;">825 cal</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 7. OTHER -->
             <div class="summary-card">
                 <div class="summary-header" style="color:#795548;">
                     <span>🏠 OTHER</span>
@@ -763,7 +789,100 @@
                 <button class="qbtn action" onclick="syncWeight()">⚖️ Sync Weight</button>
             </div>
             
-            <div id="historyList"></div>
+            <!-- Comprehensive Summary Section -->
+            <div class="summary-card" style="margin-bottom:12px;">
+                <div class="summary-header">
+                    <span>📊 Progress Summary</span>
+                    <button class="qbtn action" onclick="copyDaySummary()" style="font-size:10px;padding:4px 8px;">📋 Copy</button>
+                </div>
+                
+                <!-- Weight Progress -->
+                <div style="background:#f8f9ff;margin:8px -12px;padding:10px 12px;border-radius:6px;">
+                    <div style="font-weight:600;font-size:11px;color:#667eea;margin-bottom:6px;">⚖️ WEIGHT</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:11px;">
+                        <div style="text-align:center;">
+                            <div style="font-weight:600;font-size:14px;" id="summaryWeightCurrent">--</div>
+                            <div style="color:#888;font-size:9px;">Current</div>
+                        </div>
+                        <div style="text-align:center;">
+                            <div style="font-weight:600;" id="summaryWeightTotal">--</div>
+                            <div style="color:#888;font-size:9px;">Total Loss</div>
+                        </div>
+                        <div style="text-align:center;">
+                            <div style="font-weight:600;" id="summaryWeightWeek">--</div>
+                            <div style="color:#888;font-size:9px;">This Week</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Calories & Deficit -->
+                <div style="margin:10px 0;padding-bottom:10px;border-bottom:1px solid #eee;">
+                    <div style="font-weight:600;font-size:11px;color:#f44336;margin-bottom:6px;">🔥 CALORIES</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
+                        <div style="display:flex;justify-content:space-between;"><span>Avg Net (3d)</span><span id="summaryCalNet3">--</span></div>
+                        <div style="display:flex;justify-content:space-between;"><span>Avg Net (7d)</span><span id="summaryCalNet7">--</span></div>
+                        <div style="display:flex;justify-content:space-between;"><span>Avg Burned (3d)</span><span id="summaryCalBurn3">--</span></div>
+                        <div style="display:flex;justify-content:space-between;"><span>Avg Burned (7d)</span><span id="summaryCalBurn7">--</span></div>
+                        <div style="display:flex;justify-content:space-between;"><span>Avg Deficit (3d)</span><span id="summaryDeficit3">--</span></div>
+                        <div style="display:flex;justify-content:space-between;"><span>Avg Deficit (7d)</span><span id="summaryDeficit7">--</span></div>
+                    </div>
+                </div>
+                
+                <!-- Protein -->
+                <div style="margin:10px 0;padding-bottom:10px;border-bottom:1px solid #eee;">
+                    <div style="font-weight:600;font-size:11px;color:#4CAF50;margin-bottom:6px;">💪 PROTEIN</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
+                        <div style="display:flex;justify-content:space-between;"><span>Avg (3d)</span><span id="summaryProtein3">--</span></div>
+                        <div style="display:flex;justify-content:space-between;"><span>Avg (7d)</span><span id="summaryProtein7">--</span></div>
+                        <div style="display:flex;justify-content:space-between;"><span>Days at goal (7d)</span><span id="summaryProteinGoal">--</span></div>
+                    </div>
+                </div>
+                
+                <!-- Sodium -->
+                <div style="margin:10px 0;padding-bottom:10px;border-bottom:1px solid #eee;">
+                    <div style="font-weight:600;font-size:11px;color:#FF9800;margin-bottom:6px;">🧂 SODIUM</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
+                        <div style="display:flex;justify-content:space-between;"><span>Avg (3d)</span><span id="summarySodium3">--</span></div>
+                        <div style="display:flex;justify-content:space-between;"><span>Avg (7d)</span><span id="summarySodium7">--</span></div>
+                        <div style="display:flex;justify-content:space-between;"><span>Days under limit (7d)</span><span id="summarySodiumGoal">--</span></div>
+                    </div>
+                </div>
+                
+                <!-- Fiber -->
+                <div style="margin:10px 0;padding-bottom:10px;border-bottom:1px solid #eee;">
+                    <div style="font-weight:600;font-size:11px;color:#8BC34A;margin-bottom:6px;">🥬 FIBER</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
+                        <div style="display:flex;justify-content:space-between;"><span>Avg (3d)</span><span id="summaryFiber3">--</span></div>
+                        <div style="display:flex;justify-content:space-between;"><span>Avg (7d)</span><span id="summaryFiber7">--</span></div>
+                    </div>
+                </div>
+                
+                <!-- Steps & Activity -->
+                <div style="margin:10px 0;padding-bottom:10px;border-bottom:1px solid #eee;">
+                    <div style="font-weight:600;font-size:11px;color:#2196F3;margin-bottom:6px;">🚶 ACTIVITY</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
+                        <div style="display:flex;justify-content:space-between;"><span>Avg Steps (3d)</span><span id="summarySteps3">--</span></div>
+                        <div style="display:flex;justify-content:space-between;"><span>Avg Steps (7d)</span><span id="summarySteps7">--</span></div>
+                        <div style="display:flex;justify-content:space-between;"><span>Workout Days (7d)</span><span id="summaryWorkouts">--</span></div>
+                        <div style="display:flex;justify-content:space-between;"><span>Workout Streak</span><span id="summaryStreak">--</span></div>
+                    </div>
+                </div>
+                
+                <!-- Program Stats -->
+                <div style="margin-top:10px;">
+                    <div style="font-weight:600;font-size:11px;color:#9C27B0;margin-bottom:6px;">📈 PROGRAM</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
+                        <div style="display:flex;justify-content:space-between;"><span>Days Tracked</span><span id="summaryDaysTracked">--</span></div>
+                        <div style="display:flex;justify-content:space-between;"><span>Start Date</span><span id="summaryStartDate">--</span></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Daily History -->
+            <div class="summary-card">
+                <div class="summary-header">📅 Daily History</div>
+                <div id="historyList"></div>
+            </div>
         </div>
     </div>
     
@@ -1128,6 +1247,8 @@
         function renderButtons() {
             const foodQuickEl = document.getElementById('foodButtonsQuick');
             const foodFullEl = document.getElementById('foodButtonsFull');
+            const recentFoodEl = document.getElementById('recentFoodButtons');
+            const foodCountEl = document.getElementById('foodCount');
             const exQuickEl = document.getElementById('exerciseButtonsQuick');
             const exFullEl = document.getElementById('exerciseButtonsFull');
             if (!foodQuickEl || !foodFullEl) {
@@ -1135,12 +1256,31 @@
                 return;
             }
             
+            // Update food count
+            if (foodCountEl) foodCountEl.textContent = ALL_FOODS.length;
+            
             // Sort foods based on current sort setting
             let sortedFoods;
             if (foodSortAZ) {
                 sortedFoods = [...ALL_FOODS].sort((a, b) => a.name.localeCompare(b.name));
             } else {
                 sortedFoods = [...ALL_FOODS].sort((a, b) => (itemLastUsed[b.name] || 0) - (itemLastUsed[a.name] || 0));
+            }
+            
+            // Recent foods - top 6 most recently used (only if has usage)
+            if (recentFoodEl) {
+                const recentFoods = [...ALL_FOODS]
+                    .filter(f => itemLastUsed[f.name])
+                    .sort((a, b) => (itemLastUsed[b.name] || 0) - (itemLastUsed[a.name] || 0))
+                    .slice(0, 6);
+                if (recentFoods.length > 0) {
+                    recentFoodEl.innerHTML = recentFoods.map(f => 
+                        `<button class="qbtn food" onclick="addFoodByName('${f.name}')">${f.icon} ${f.short || f.name} <span class="qbtn-cal">${f.cal}/${f.protein}g</span></button>`
+                    ).join('');
+                    document.getElementById('recentFoodsSection').style.display = 'block';
+                } else {
+                    document.getElementById('recentFoodsSection').style.display = 'none';
+                }
             }
             
             // Quick view - top 8
@@ -1179,6 +1319,45 @@
                     `<button class="qbtn exercise" onclick="addExercise('${e.name}',${e.cal})">${e.icon} ${e.name} <span class="qbtn-cal">${e.cal}</span></button>`
                 ).join('');
                 exFullEl.innerHTML = exFullHtml;
+            }
+        }
+        
+        // Filter foods by search term
+        function filterFoods(term) {
+            const searchSection = document.getElementById('searchResultsSection');
+            const recentSection = document.getElementById('recentFoodsSection');
+            const allSection = document.getElementById('allFoodsSection');
+            const searchButtons = document.getElementById('searchFoodButtons');
+            const searchCount = document.getElementById('searchCount');
+            
+            if (!term || term.length < 2) {
+                // Show normal view
+                searchSection.style.display = 'none';
+                recentSection.style.display = 'block';
+                allSection.style.display = 'block';
+                return;
+            }
+            
+            // Filter foods
+            const termLower = term.toLowerCase();
+            const matches = ALL_FOODS.filter(f => 
+                f.name.toLowerCase().includes(termLower) || 
+                (f.short && f.short.toLowerCase().includes(termLower))
+            );
+            
+            // Show search results
+            searchSection.style.display = 'block';
+            recentSection.style.display = 'none';
+            allSection.style.display = 'none';
+            
+            searchCount.textContent = matches.length;
+            
+            if (matches.length === 0) {
+                searchButtons.innerHTML = '<div style="padding:12px;color:#888;text-align:center;">No matches found. Try the input bar below.</div>';
+            } else {
+                searchButtons.innerHTML = matches.map(f => 
+                    `<button class="qbtn food" onclick="addFoodByName('${f.name}')">${f.icon} ${f.name} <span class="qbtn-cal">${f.cal}/${f.protein}g/${f.sodium || 0}mg</span></button>`
+                ).join('') + `<button class="qbtn food" onclick="openCustom()">➕ Custom</button>`;
             }
         }
         
@@ -1915,14 +2094,20 @@
             document.getElementById('goalBurn').textContent = state.calOut + '/400';
             document.getElementById('goalBurn').style.color = state.calOut >= 400 ? '#4CAF50' : '';
             document.getElementById('goalProtein').textContent = state.protein + '/110g';
-            document.getElementById('goalSodium').textContent = (state.sodium || 0) + '/2300mg';
+            document.getElementById('goalSodium').textContent = (state.sodium || 0) + '/2300';
+            document.getElementById('goalFiber').textContent = (state.fiber || 0) + '/28g';
             document.getElementById('goalSteps').textContent = state.steps.toLocaleString() + '/7500';
             
-            // Weight display in Summary section
+            // Weight display at top
             const weight = localStorage.getItem('hed_weight') || '--';
+            const weightNum = parseFloat(weight) || 0;
             document.getElementById('weightDisplay').textContent = weight + 'kg';
+            if (weightNum > 0) {
+                const toGo = (weightNum - 80).toFixed(1);
+                document.getElementById('weightToGo').textContent = toGo > 0 ? toGo + ' kg to go' : 'Goal reached! 🎉';
+            }
             
-            // Today's nutrients in Summary
+            // Today's nutrients
             document.getElementById('fiberToday').textContent = (state.fiber || 0) + '/' + TARGETS.fiber + 'g';
             document.getElementById('sugarToday').textContent = (state.sugar || 0) + '/' + TARGETS.sugar + 'g';
             document.getElementById('potassiumToday').textContent = (state.potassium || 0) + '/' + TARGETS.potassium + 'mg';
@@ -1930,6 +2115,7 @@
             document.getElementById('ironToday').textContent = (state.iron || 0) + '/' + TARGETS.iron + 'mg';
             document.getElementById('vitDToday').textContent = (state.vitD || 0) + '/' + TARGETS.vitD + 'IU';
             document.getElementById('magnesiumToday').textContent = (state.magnesium || 0) + '/' + TARGETS.magnesium + 'mg';
+            document.getElementById('fatToday').textContent = (state.fatTotal || 0) + 'g (' + (state.fatSaturated || 0) + 'g sat)';
             
             // Update nutrition summary
             updateNutritionSummary();
@@ -1947,99 +2133,153 @@
             const history = JSON.parse(localStorage.getItem('hed_history') || '[]');
             const weightHistory = JSON.parse(localStorage.getItem('hed_weight_history') || '[]');
             
-            // Weight trend (7 calendar days) - compare today vs 7 days ago
-            // Get all weights from history that have weight > 0
-            let historyWithWeights = history.filter(h => h.weight && h.weight > 0);
+            // Helper to calculate averages
+            const avg = (arr, key, days) => {
+                const slice = arr.slice(0, days);
+                if (slice.length === 0) return 0;
+                return Math.round(slice.reduce((sum, d) => sum + (d[key] || 0), 0) / slice.length);
+            };
             
-            // Add today's weight if available (from hed_weight)
+            // Weight calculations
+            let historyWithWeights = history.filter(h => h.weight && h.weight > 0);
             const todayWeight = localStorage.getItem('hed_weight');
             const today = new Date().toLocaleDateString('en-CA');
             if (todayWeight && !historyWithWeights.find(h => h.date === today)) {
                 historyWithWeights.unshift({ date: today, weight: parseFloat(todayWeight) });
             }
             
-            if (historyWithWeights.length >= 2) {
-                // Get newest weight (most recent entry with weight)
+            // Update History Summary section
+            const summaryCurrentEl = document.getElementById('summaryWeightCurrent');
+            const summaryTotalEl = document.getElementById('summaryWeightTotal');
+            const summaryWeekEl = document.getElementById('summaryWeightWeek');
+            
+            if (historyWithWeights.length >= 1 && summaryCurrentEl) {
                 const newest = historyWithWeights[0];
-                const newestDate = new Date(newest.date);
+                summaryCurrentEl.textContent = newest.weight + 'kg';
                 
-                // Get oldest weight (program start)
-                const programStart = historyWithWeights[historyWithWeights.length - 1];
-                const totalDiff = (newest.weight - programStart.weight).toFixed(1);
-                const totalTrend = totalDiff > 0 ? `+${totalDiff}kg ↑` : totalDiff < 0 ? `${totalDiff}kg ↓` : '0kg →';
-                document.getElementById('weightTotal').textContent = totalTrend;
-                document.getElementById('weightTotal').style.color = totalDiff <= 0 ? '#4CAF50' : '#f44336';
-                
-                // Find weight closest to 7 days ago
-                const sevenDaysAgo = new Date(newestDate);
-                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-                
-                // Find entry closest to 7 days ago (within +/- 2 days)
-                let weekAgo = null;
-                let closestDiff = Infinity;
-                for (const h of historyWithWeights) {
-                    const hDate = new Date(h.date);
-                    const diff = Math.abs(hDate - sevenDaysAgo);
-                    const daysDiff = diff / (1000 * 60 * 60 * 24);
-                    if (daysDiff <= 2 && diff < closestDiff) {
-                        closestDiff = diff;
-                        weekAgo = h;
+                if (historyWithWeights.length >= 2) {
+                    // Total loss since start
+                    const programStart = historyWithWeights[historyWithWeights.length - 1];
+                    const totalDiff = (newest.weight - programStart.weight).toFixed(1);
+                    const totalTrend = totalDiff > 0 ? `+${totalDiff}kg` : `${totalDiff}kg`;
+                    summaryTotalEl.textContent = totalTrend;
+                    summaryTotalEl.style.color = totalDiff <= 0 ? '#4CAF50' : '#f44336';
+                    
+                    // Weekly trend
+                    const newestDate = new Date(newest.date);
+                    const sevenDaysAgo = new Date(newestDate);
+                    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                    
+                    let weekAgo = null;
+                    let closestDiff = Infinity;
+                    for (const h of historyWithWeights) {
+                        const hDate = new Date(h.date);
+                        const diff = Math.abs(hDate - sevenDaysAgo);
+                        const daysDiff = diff / (1000 * 60 * 60 * 24);
+                        if (daysDiff <= 2 && diff < closestDiff) {
+                            closestDiff = diff;
+                            weekAgo = h;
+                        }
+                    }
+                    
+                    if (weekAgo && weekAgo.date !== newest.date) {
+                        const weekDiff = (newest.weight - weekAgo.weight).toFixed(1);
+                        const weekTrend = weekDiff > 0 ? `+${weekDiff}kg` : `${weekDiff}kg`;
+                        summaryWeekEl.textContent = weekTrend;
+                        summaryWeekEl.style.color = weekDiff <= 0 ? '#4CAF50' : '#f44336';
+                    } else {
+                        summaryWeekEl.textContent = '--';
                     }
                 }
-                
-                if (weekAgo && weekAgo.date !== newest.date) {
-                    const diff = (newest.weight - weekAgo.weight).toFixed(1);
-                    const trend = diff > 0 ? `+${diff}kg ↑` : diff < 0 ? `${diff}kg ↓` : '0kg →';
-                    document.getElementById('weightTrend').textContent = trend;
-                    document.getElementById('weightTrend').style.color = diff <= 0 ? '#4CAF50' : '#f44336';
-                } else {
-                    document.getElementById('weightTrend').textContent = 'Need 7 days';
-                }
-            } else if (weightHistory.length >= 2) {
-                // Fallback to separate weight history
-                const recent = weightHistory.slice(0, 7);
-                const oldest = recent[recent.length - 1]?.weight || 0;
-                const newest = recent[0]?.weight || 0;
-                const diff = (newest - oldest).toFixed(1);
-                const trend = diff > 0 ? `+${diff}kg ↑` : diff < 0 ? `${diff}kg ↓` : '0kg →';
-                document.getElementById('weightTrend').textContent = trend;
-                document.getElementById('weightTrend').style.color = diff <= 0 ? '#4CAF50' : '#f44336';
-                document.getElementById('weightTotal').textContent = trend;
-                document.getElementById('weightTotal').style.color = diff <= 0 ? '#4CAF50' : '#f44336';
-            } else {
-                document.getElementById('weightTrend').textContent = 'Need more data';
-                document.getElementById('weightTotal').textContent = 'Need more data';
             }
             
-            // Average daily deficit (last 7 days)
+            // Calorie stats
             if (history.length > 0) {
-                const recent = history.slice(0, 7);
-                const avgDeficit = Math.round(recent.reduce((sum, d) => sum + (TARGETS.cal - (d.calIn - d.calOut)), 0) / recent.length);
-                document.getElementById('avgDeficit').textContent = avgDeficit > 0 ? `-${avgDeficit} cal` : `+${Math.abs(avgDeficit)} cal`;
-                document.getElementById('avgDeficit').style.color = avgDeficit > 0 ? '#4CAF50' : '#f44336';
+                const recent3 = history.slice(0, 3);
+                const recent7 = history.slice(0, 7);
                 
-                // Protein average
-                const avgProtein = Math.round(recent.reduce((sum, d) => sum + d.protein, 0) / recent.length);
-                document.getElementById('proteinAvg').textContent = avgProtein + 'g';
-                document.getElementById('proteinAvg').style.color = avgProtein >= TARGETS.protein ? '#4CAF50' : '#f44336';
+                // Net calories (calIn - calOut)
+                const avgNet3 = Math.round(recent3.reduce((sum, d) => sum + (d.calIn - d.calOut), 0) / recent3.length);
+                const avgNet7 = Math.round(recent7.reduce((sum, d) => sum + (d.calIn - d.calOut), 0) / recent7.length);
+                const el1 = document.getElementById('summaryCalNet3');
+                const el2 = document.getElementById('summaryCalNet7');
+                if (el1) { el1.textContent = avgNet3; el1.style.color = avgNet3 <= TARGETS.cal ? '#4CAF50' : '#f44336'; }
+                if (el2) { el2.textContent = avgNet7; el2.style.color = avgNet7 <= TARGETS.cal ? '#4CAF50' : '#f44336'; }
                 
-                // Sodium average
-                const avgSodium = Math.round(recent.reduce((sum, d) => sum + (d.sodium || 0), 0) / recent.length);
-                document.getElementById('sodiumAvg').textContent = avgSodium > 0 ? avgSodium + 'mg' : '--';
-                document.getElementById('sodiumAvg').style.color = avgSodium <= TARGETS.sodium ? '#4CAF50' : '#ff6b6b';
+                // Burned
+                const avgBurn3 = avg(history, 'calOut', 3);
+                const avgBurn7 = avg(history, 'calOut', 7);
+                const el3 = document.getElementById('summaryCalBurn3');
+                const el4 = document.getElementById('summaryCalBurn7');
+                if (el3) { el3.textContent = avgBurn3; el3.style.color = avgBurn3 >= 400 ? '#4CAF50' : '#f44336'; }
+                if (el4) { el4.textContent = avgBurn7; el4.style.color = avgBurn7 >= 400 ? '#4CAF50' : '#f44336'; }
                 
-                // Workout streak
+                // Deficit
+                const avgDeficit3 = Math.round(recent3.reduce((sum, d) => sum + (TARGETS.cal - (d.calIn - d.calOut)), 0) / recent3.length);
+                const avgDeficit7 = Math.round(recent7.reduce((sum, d) => sum + (TARGETS.cal - (d.calIn - d.calOut)), 0) / recent7.length);
+                const el5 = document.getElementById('summaryDeficit3');
+                const el6 = document.getElementById('summaryDeficit7');
+                if (el5) { el5.textContent = avgDeficit3 > 0 ? '-' + avgDeficit3 : '+' + Math.abs(avgDeficit3); el5.style.color = avgDeficit3 > 0 ? '#4CAF50' : '#f44336'; }
+                if (el6) { el6.textContent = avgDeficit7 > 0 ? '-' + avgDeficit7 : '+' + Math.abs(avgDeficit7); el6.style.color = avgDeficit7 > 0 ? '#4CAF50' : '#f44336'; }
+                
+                // Protein
+                const avgProtein3 = avg(history, 'protein', 3);
+                const avgProtein7 = avg(history, 'protein', 7);
+                const proteinGoalDays = recent7.filter(d => d.protein >= TARGETS.protein).length;
+                const el7 = document.getElementById('summaryProtein3');
+                const el8 = document.getElementById('summaryProtein7');
+                const el9 = document.getElementById('summaryProteinGoal');
+                if (el7) { el7.textContent = avgProtein3 + 'g'; el7.style.color = avgProtein3 >= TARGETS.protein ? '#4CAF50' : '#f44336'; }
+                if (el8) { el8.textContent = avgProtein7 + 'g'; el8.style.color = avgProtein7 >= TARGETS.protein ? '#4CAF50' : '#f44336'; }
+                if (el9) { el9.textContent = proteinGoalDays + '/7'; el9.style.color = proteinGoalDays >= 5 ? '#4CAF50' : '#f44336'; }
+                
+                // Sodium
+                const avgSodium3 = avg(history, 'sodium', 3);
+                const avgSodium7 = avg(history, 'sodium', 7);
+                const sodiumGoalDays = recent7.filter(d => (d.sodium || 0) <= TARGETS.sodium).length;
+                const el10 = document.getElementById('summarySodium3');
+                const el11 = document.getElementById('summarySodium7');
+                const el12 = document.getElementById('summarySodiumGoal');
+                if (el10) { el10.textContent = avgSodium3 + 'mg'; el10.style.color = avgSodium3 <= TARGETS.sodium ? '#4CAF50' : '#f44336'; }
+                if (el11) { el11.textContent = avgSodium7 + 'mg'; el11.style.color = avgSodium7 <= TARGETS.sodium ? '#4CAF50' : '#f44336'; }
+                if (el12) { el12.textContent = sodiumGoalDays + '/7'; el12.style.color = sodiumGoalDays >= 5 ? '#4CAF50' : '#f44336'; }
+                
+                // Fiber
+                const avgFiber3 = avg(history, 'fiber', 3);
+                const avgFiber7 = avg(history, 'fiber', 7);
+                const el13 = document.getElementById('summaryFiber3');
+                const el14 = document.getElementById('summaryFiber7');
+                if (el13) { el13.textContent = avgFiber3 + 'g'; el13.style.color = avgFiber3 >= TARGETS.fiber ? '#4CAF50' : '#f44336'; }
+                if (el14) { el14.textContent = avgFiber7 + 'g'; el14.style.color = avgFiber7 >= TARGETS.fiber ? '#4CAF50' : '#f44336'; }
+                
+                // Steps
+                const avgSteps3 = avg(history, 'steps', 3);
+                const avgSteps7 = avg(history, 'steps', 7);
+                const el15 = document.getElementById('summarySteps3');
+                const el16 = document.getElementById('summarySteps7');
+                if (el15) { el15.textContent = avgSteps3.toLocaleString(); el15.style.color = avgSteps3 >= 7500 ? '#4CAF50' : '#f44336'; }
+                if (el16) { el16.textContent = avgSteps7.toLocaleString(); el16.style.color = avgSteps7 >= 7500 ? '#4CAF50' : '#f44336'; }
+                
+                // Workouts
+                const workoutDays = recent7.filter(d => d.workout || d.calOut >= 400).length;
                 let streak = 0;
                 for (const d of history) {
-                    if (d.workout) streak++;
+                    if (d.workout || d.calOut >= 400) streak++;
                     else break;
                 }
-                document.getElementById('workoutStreak').textContent = streak + ' days';
-            } else {
-                document.getElementById('avgDeficit').textContent = 'No data';
-                document.getElementById('proteinAvg').textContent = 'No data';
-                document.getElementById('sodiumAvg').textContent = '--';
-                document.getElementById('workoutStreak').textContent = '0 days';
+                const el17 = document.getElementById('summaryWorkouts');
+                const el18 = document.getElementById('summaryStreak');
+                if (el17) { el17.textContent = workoutDays + '/7'; el17.style.color = workoutDays >= 5 ? '#4CAF50' : '#f44336'; }
+                if (el18) { el18.textContent = streak + ' days'; el18.style.color = streak >= 3 ? '#4CAF50' : ''; }
+                
+                // Program stats
+                const el19 = document.getElementById('summaryDaysTracked');
+                const el20 = document.getElementById('summaryStartDate');
+                if (el19) el19.textContent = history.length + ' days';
+                if (el20 && history.length > 0) {
+                    const startDate = history[history.length - 1].date;
+                    el20.textContent = startDate;
+                }
             }
         }
         
