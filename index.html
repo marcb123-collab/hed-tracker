@@ -371,7 +371,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v93</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v95</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -1102,23 +1102,25 @@
                 const data = await res.json();
                 if (!data.values || data.values.length === 0) return;
                 
-                // New FoodDB columns: Name(0), Cal(1), Protein(2), Sodium(3), FatTotal(4), FatSaturated(5), 
+                // FoodDB columns: Name(0), Cal(1), Protein(2), Sodium(3), FatTotal(4), FatSaturated(5), 
                 // OmegaScore(6), Flags(7), Fiber(8), Sugar(9), Potassium(10), Calcium(11), Iron(12), VitD(13), Magnesium(14), Icon(15), Short(16)
-                // HED only uses: Name, Cal, Protein, Sodium, Fiber, Sugar, Potassium, Calcium, Iron, VitD, Magnesium, Icon, Short
                 ALL_FOODS = data.values.map(row => ({
                     name: row[0] || '',
                     cal: parseInt(row[1]) || 0,
                     protein: parseInt(row[2]) || 0,
                     sodium: parseInt(row[3]) || 0,
-                    fiber: parseInt(row[8]) || 0,      // Column I (index 8)
-                    sugar: parseInt(row[9]) || 0,      // Column J (index 9)
-                    potassium: parseInt(row[10]) || 0, // Column K (index 10)
-                    calcium: parseInt(row[11]) || 0,   // Column L (index 11)
-                    iron: parseInt(row[12]) || 0,      // Column M (index 12)
-                    vitD: parseInt(row[13]) || 0,      // Column N (index 13)
-                    magnesium: parseInt(row[14]) || 0, // Column O (index 14)
-                    icon: row[15] || '🍽️',            // Column P (index 15)
-                    short: row[16] || ''               // Column Q (index 16)
+                    fatTotal: parseInt(row[4]) || 0,      // Column E (index 4)
+                    fatSaturated: parseInt(row[5]) || 0,  // Column F (index 5)
+                    omegaScore: parseInt(row[6]) || 0,    // Column G (index 6)
+                    fiber: parseInt(row[8]) || 0,         // Column I (index 8)
+                    sugar: parseInt(row[9]) || 0,         // Column J (index 9)
+                    potassium: parseInt(row[10]) || 0,    // Column K (index 10)
+                    calcium: parseInt(row[11]) || 0,      // Column L (index 11)
+                    iron: parseInt(row[12]) || 0,         // Column M (index 12)
+                    vitD: parseInt(row[13]) || 0,         // Column N (index 13)
+                    magnesium: parseInt(row[14]) || 0,    // Column O (index 14)
+                    icon: row[15] || '🍽️',               // Column P (index 15)
+                    short: row[16] || ''                  // Column Q (index 16)
                 })).filter(f => f.name); // Filter out empty rows
                 
                 console.log('Loaded ' + ALL_FOODS.length + ' foods from FoodDB');
@@ -1368,7 +1370,9 @@
                 addFood(food.name, food.cal, food.protein, {
                     sodium: food.sodium || 0, fiber: food.fiber || 0, sugar: food.sugar || 0,
                     potassium: food.potassium || 0, calcium: food.calcium || 0, iron: food.iron || 0,
-                    vitD: food.vitD || 0, magnesium: food.magnesium || 0
+                    vitD: food.vitD || 0, magnesium: food.magnesium || 0,
+                    fatTotal: food.fatTotal || 0, fatSaturated: food.fatSaturated || 0,
+                    omegaScore: food.omegaScore || 0
                 });
             }
         }
@@ -1994,6 +1998,8 @@
                 calOut: data.calOut, 
                 protein: data.protein, 
                 sodium: data.sodium || 0,
+                fiber: data.fiber || 0,
+                sugar: data.sugar || 0,
                 steps: data.steps, 
                 workout: data.workout,
                 weight: dayWeight ? dayWeight.weight : null,
@@ -2652,6 +2658,8 @@
             state.iron = (state.iron || 0) + (nutrients.iron || 0);
             state.vitD = (state.vitD || 0) + (nutrients.vitD || 0);
             state.magnesium = (state.magnesium || 0) + (nutrients.magnesium || 0);
+            state.fatTotal = (state.fatTotal || 0) + (nutrients.fatTotal || 0);
+            state.fatSaturated = (state.fatSaturated || 0) + (nutrients.fatSaturated || 0);
             state.entries.push({ type: 'food', name, cal, protein, ...nutrients, time: Date.now() });
             trackUsage(name);
             saveState();
