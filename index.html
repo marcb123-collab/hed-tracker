@@ -371,7 +371,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v95</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v96</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -418,6 +418,7 @@
         <button class="tab" onclick="showPane('add')">Food</button>
         <button class="tab" onclick="showPane('plan')">Exercise</button>
         <button class="tab" onclick="showPane('history')">History</button>
+        <button class="tab" onclick="showPane('alerts')" id="alertsTab">⚠️</button>
     </div>
     
     <!-- Content -->
@@ -450,19 +451,19 @@
                 <div class="summary-header">🎯 Daily Goals</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:8px 0;font-size:12px;">
                     <div style="text-align:center;padding:6px;background:#f8f8f8;border-radius:6px;">
-                        <div style="font-weight:600;" id="goalCal">0/1600</div>
+                        <div style="font-weight:600;" id="goalCal">0/1350</div>
                         <div style="color:#666;font-size:10px;">Net Cal</div>
                     </div>
                     <div style="text-align:center;padding:6px;background:#f8f8f8;border-radius:6px;">
-                        <div style="font-weight:600;" id="goalBurn">0/400</div>
+                        <div style="font-weight:600;" id="goalBurn">0/850</div>
                         <div style="color:#666;font-size:10px;">Burned</div>
                     </div>
                     <div style="text-align:center;padding:6px;background:#f8f8f8;border-radius:6px;">
-                        <div style="font-weight:600;" id="goalProtein">0/110g</div>
+                        <div style="font-weight:600;" id="goalProtein">0/100g</div>
                         <div style="color:#666;font-size:10px;">Protein</div>
                     </div>
                     <div style="text-align:center;padding:6px;background:#f8f8f8;border-radius:6px;">
-                        <div style="font-weight:600;" id="goalSodium">0/2300</div>
+                        <div style="font-weight:600;" id="goalSodium">0/2000</div>
                         <div style="color:#666;font-size:10px;">Sodium</div>
                     </div>
                     <div style="text-align:center;padding:6px;background:#f8f8f8;border-radius:6px;">
@@ -470,7 +471,7 @@
                         <div style="color:#666;font-size:10px;">Fiber</div>
                     </div>
                     <div style="text-align:center;padding:6px;background:#f8f8f8;border-radius:6px;">
-                        <div style="font-weight:600;" id="goalSteps">0/7500</div>
+                        <div style="font-weight:600;" id="goalSteps">0/8000</div>
                         <div style="color:#666;font-size:10px;">Steps</div>
                     </div>
                 </div>
@@ -884,6 +885,14 @@
                 <div id="historyList"></div>
             </div>
         </div>
+        
+        <!-- Alerts Pane -->
+        <div class="pane" id="alertsPane">
+            <div class="summary-card">
+                <div class="summary-header">⚠️ Daily Alerts</div>
+                <div id="alertsList" style="font-size:12px;"></div>
+            </div>
+        </div>
     </div>
     
     <!-- Input Bar -->
@@ -947,7 +956,7 @@
         const SCOPES = 'https://www.googleapis.com/auth/fitness.activity.read https://www.googleapis.com/auth/fitness.body.read https://www.googleapis.com/auth/spreadsheets';
         const SHEET_ID = '13jRxb7mOAZUyi1mO3z005W6gtG5Kh4X5PZPM4FTwNMY';
         const TARGETS = { 
-            cal: 1600, protein: 110, sodium: 2300, 
+            cal: 1350, protein: 100, sodium: 2000, burned: 850, steps: 8000,
             fiber: 28, sugar: 25, potassium: 3500, 
             calcium: 1000, iron: 8, vitD: 800, magnesium: 420 
         };
@@ -2095,14 +2104,21 @@
             // Color sodium bar red if over limit
             document.getElementById('sodiumBar').style.background = sodiumPct > 100 ? '#ff6b6b' : '#ff9800';
             
-            // Goals section
-            document.getElementById('goalCal').textContent = net + '/1600';
-            document.getElementById('goalBurn').textContent = state.calOut + '/400';
-            document.getElementById('goalBurn').style.color = state.calOut >= 400 ? '#4CAF50' : '';
-            document.getElementById('goalProtein').textContent = state.protein + '/110g';
-            document.getElementById('goalSodium').textContent = (state.sodium || 0) + '/2300';
-            document.getElementById('goalFiber').textContent = (state.fiber || 0) + '/28g';
-            document.getElementById('goalSteps').textContent = state.steps.toLocaleString() + '/7500';
+            // Goals section - use TARGETS
+            document.getElementById('goalCal').textContent = net + '/' + TARGETS.cal;
+            document.getElementById('goalCal').style.color = net > TARGETS.cal ? '#f44336' : (net <= TARGETS.cal ? '#4CAF50' : '');
+            document.getElementById('goalBurn').textContent = state.calOut + '/' + TARGETS.burned;
+            document.getElementById('goalBurn').style.color = state.calOut >= TARGETS.burned ? '#4CAF50' : '';
+            document.getElementById('goalProtein').textContent = state.protein + '/' + TARGETS.protein + 'g';
+            document.getElementById('goalProtein').style.color = state.protein >= TARGETS.protein ? '#4CAF50' : '';
+            document.getElementById('goalSodium').textContent = (state.sodium || 0) + '/' + TARGETS.sodium;
+            document.getElementById('goalSodium').style.color = (state.sodium || 0) > TARGETS.sodium ? '#f44336' : '';
+            document.getElementById('goalFiber').textContent = (state.fiber || 0) + '/' + TARGETS.fiber + 'g';
+            document.getElementById('goalSteps').textContent = state.steps.toLocaleString() + '/' + TARGETS.steps;
+            document.getElementById('goalSteps').style.color = state.steps >= TARGETS.steps ? '#4CAF50' : '';
+            
+            // Update alerts
+            updateAlerts();
             
             // Weight display at top
             const weight = localStorage.getItem('hed_weight') || '--';
@@ -2285,6 +2301,77 @@
                 if (el20 && history.length > 0) {
                     const startDate = history[history.length - 1].date;
                     el20.textContent = startDate;
+                }
+            }
+        }
+        
+        // Update alerts based on current state
+        function updateAlerts() {
+            const alerts = [];
+            const net = state.calIn - state.calOut;
+            const hour = new Date().getHours();
+            
+            // Calorie alerts
+            if (net > TARGETS.cal) {
+                alerts.push({ type: 'error', msg: `🔴 Net calories over target: ${net}/${TARGETS.cal}` });
+            } else if (net > TARGETS.cal * 0.9 && hour >= 12) {
+                alerts.push({ type: 'warn', msg: `🟡 Net calories at ${Math.round(net/TARGETS.cal*100)}% of target` });
+            }
+            
+            // Sodium alert
+            if ((state.sodium || 0) > TARGETS.sodium) {
+                alerts.push({ type: 'error', msg: `🔴 Sodium over limit: ${state.sodium}/${TARGETS.sodium}mg` });
+            } else if ((state.sodium || 0) > TARGETS.sodium * 0.9) {
+                alerts.push({ type: 'warn', msg: `🟡 Sodium at ${Math.round(state.sodium/TARGETS.sodium*100)}% of limit` });
+            }
+            
+            // Protein alert (end of day)
+            if (hour >= 18 && state.protein < TARGETS.protein * 0.7) {
+                alerts.push({ type: 'warn', msg: `🟡 Protein low: ${state.protein}/${TARGETS.protein}g - add protein!` });
+            }
+            
+            // Burned calories alert (afternoon)
+            if (hour >= 14 && state.calOut < TARGETS.burned * 0.3) {
+                alerts.push({ type: 'warn', msg: `🟡 Low activity: ${state.calOut}/${TARGETS.burned} cal burned` });
+            }
+            
+            // Steps alert (evening)
+            if (hour >= 17 && state.steps < TARGETS.steps * 0.5) {
+                alerts.push({ type: 'warn', msg: `🟡 Steps behind: ${state.steps.toLocaleString()}/${TARGETS.steps.toLocaleString()}` });
+            }
+            
+            // Restaurant meal count
+            const restaurantMeals = state.entries.filter(e => e.type === 'food' && e.isRestaurant).length;
+            if (restaurantMeals > 1) {
+                alerts.push({ type: 'warn', msg: `🟡 Multiple restaurant meals today: ${restaurantMeals}` });
+            }
+            
+            // Update alerts tab indicator
+            const alertsTab = document.getElementById('alertsTab');
+            if (alertsTab) {
+                const errorCount = alerts.filter(a => a.type === 'error').length;
+                const warnCount = alerts.filter(a => a.type === 'warn').length;
+                if (errorCount > 0) {
+                    alertsTab.textContent = '🔴 ' + errorCount;
+                    alertsTab.style.color = '#f44336';
+                } else if (warnCount > 0) {
+                    alertsTab.textContent = '🟡 ' + warnCount;
+                    alertsTab.style.color = '#FF9800';
+                } else {
+                    alertsTab.textContent = '✅';
+                    alertsTab.style.color = '#4CAF50';
+                }
+            }
+            
+            // Render alerts list
+            const alertsList = document.getElementById('alertsList');
+            if (alertsList) {
+                if (alerts.length === 0) {
+                    alertsList.innerHTML = '<div style="padding:12px;color:#4CAF50;text-align:center;">✅ All on track!</div>';
+                } else {
+                    alertsList.innerHTML = alerts.map(a => 
+                        `<div style="padding:8px;margin:4px 0;background:${a.type === 'error' ? '#ffebee' : '#fff8e1'};border-radius:6px;border-left:3px solid ${a.type === 'error' ? '#f44336' : '#FF9800'};">${a.msg}</div>`
+                    ).join('');
                 }
             }
         }
@@ -3027,8 +3114,11 @@
             input = input.replace(/^['"""']+|['"""']+$/g, '');
             input = input.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, ''); // zero-width chars, nbsp
             
-            // Remove flags [V], [P], [S], [O+], [O-] - HED ignores these
-            input = input.replace(/\s*\[[VPSvps]\]\s*/gi, ' ').replace(/\s*\[O[\+\-]\]\s*/gi, ' ').trim();
+            // Check for [R] restaurant flag
+            const isRestaurant = /\[R\]/i.test(input);
+            
+            // Remove flags [V], [P], [S], [O+], [O-], [R] - process separately
+            input = input.replace(/\s*\[[VPSRvpsr]\]\s*/gi, ' ').replace(/\s*\[O[\+\-]\]\s*/gi, ' ').trim();
             
             // Match Opu Light format: Name 000cal 00g 000mg 00g fat (0g sat) 0g fiber
             // HED extracts: name, cal, protein, sodium, fiber (ignores fat)
@@ -3039,7 +3129,7 @@
                 const protein = parseInt(matchOpu[3]);
                 const sodium = parseInt(matchOpu[4]);
                 const fiber = parseInt(matchOpu[7]);
-                addFood(name, cal, protein, { sodium, fiber });
+                addFood(name, cal, protein, { sodium, fiber, isRestaurant });
                 saveToFoodDB(name, cal, protein, sodium);
                 document.getElementById('inputField').value = '';
                 return;
@@ -3060,7 +3150,8 @@
                     calcium: parseInt(matchFull[8]),
                     iron: parseInt(matchFull[9]),
                     vitD: parseInt(matchFull[10]),
-                    magnesium: parseInt(matchFull[11])
+                    magnesium: parseInt(matchFull[11]),
+                    isRestaurant
                 };
                 addFood(name, cal, protein, nutrients);
                 saveToFoodDBFull(name, cal, protein, nutrients);
@@ -3075,7 +3166,7 @@
                 const cal = parseInt(matchWithSodium[2]);
                 const protein = parseInt(matchWithSodium[3]);
                 const sodium = parseInt(matchWithSodium[4]);
-                addFood(name, cal, protein, { sodium });
+                addFood(name, cal, protein, { sodium, isRestaurant });
                 saveToFoodDB(name, cal, protein, sodium);
                 document.getElementById('inputField').value = '';
                 return;
@@ -3088,7 +3179,7 @@
                 const cal = parseInt(match[2]);
                 const protein = parseInt(match[3]);
                 const estimatedSodium = Math.round(cal * 0.5);
-                addFood(name, cal, protein, { sodium: estimatedSodium });
+                addFood(name, cal, protein, { sodium: estimatedSodium, isRestaurant });
                 saveToFoodDB(name, cal, protein, estimatedSodium); // Auto-save to sheet
                 document.getElementById('inputField').value = '';
                 return;
@@ -3101,7 +3192,7 @@
                 const cal = parseInt(match1b[2]);
                 const protein = parseInt(match1b[3]);
                 const estimatedSodium = Math.round(cal * 0.5);
-                addFood(name, cal, protein, { sodium: estimatedSodium });
+                addFood(name, cal, protein, { sodium: estimatedSodium, isRestaurant });
                 saveToFoodDB(name, cal, protein, estimatedSodium); // Auto-save to sheet
                 document.getElementById('inputField').value = '';
                 return;
