@@ -2730,13 +2730,18 @@
             // Helper to update ring
             function updateRing(fillId, value, target, isLowerBetter = false) {
                 const pct = Math.min((value / target) * 100, 150); // Cap at 150%
-                const offset = circumference - (circumference * Math.min(pct, 100) / 100);
+                // Show at least 2% of ring even if value is 0 (visual indicator)
+                const displayPct = value > 0 ? Math.max(pct, 2) : 0;
+                const offset = circumference - (circumference * Math.min(displayPct, 100) / 100);
                 const fill = document.getElementById(fillId);
+                console.log('updateRing:', fillId, 'value:', value, 'target:', target, 'pct:', pct, 'offset:', offset);
                 if (fill) {
                     fill.setAttribute('stroke-dashoffset', offset);
                     // Color logic
                     fill.classList.remove('ring-green', 'ring-red', 'ring-yellow');
-                    if (isLowerBetter) {
+                    if (value === 0) {
+                        // No color for empty
+                    } else if (isLowerBetter) {
                         // For calories/sodium: green under, yellow near, red over
                         if (pct > 100) fill.classList.add('ring-red');
                         else if (pct > 85) fill.classList.add('ring-yellow');
@@ -2746,6 +2751,8 @@
                         if (pct >= 100) fill.classList.add('ring-green');
                         else if (pct >= 70) fill.classList.add('ring-yellow');
                     }
+                } else {
+                    console.log('Ring element not found:', fillId);
                 }
             }
             
@@ -2786,12 +2793,15 @@
             // Helper for small rings
             function updateRingSm(fillId, value, target, isLowerBetter = false) {
                 const pct = Math.min((value / target) * 100, 150);
-                const offset = circumferenceSm - (circumferenceSm * Math.min(pct, 100) / 100);
+                const displayPct = value > 0 ? Math.max(pct, 2) : 0;
+                const offset = circumferenceSm - (circumferenceSm * Math.min(displayPct, 100) / 100);
                 const fill = document.getElementById(fillId);
                 if (fill) {
                     fill.setAttribute('stroke-dashoffset', offset);
                     fill.classList.remove('ring-green', 'ring-red', 'ring-yellow');
-                    if (isLowerBetter) {
+                    if (value === 0) {
+                        // No color for empty
+                    } else if (isLowerBetter) {
                         if (pct > 100) fill.classList.add('ring-red');
                         else if (pct > 85) fill.classList.add('ring-yellow');
                         else fill.classList.add('ring-green');
