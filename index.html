@@ -365,13 +365,111 @@
         
         /* Hidden */
         #photoInput, #cameraInput { display: none; }
+        
+        /* Circular Progress Rings */
+        .progress-ring {
+            position: relative;
+            width: 70px;
+            height: 70px;
+            margin: 0 auto;
+        }
+        .progress-ring svg {
+            transform: rotate(-90deg);
+            width: 100%;
+            height: 100%;
+        }
+        .progress-ring .ring-bg {
+            fill: none;
+            stroke: #e8e8e8;
+            stroke-width: 6;
+        }
+        .progress-ring .ring-fill {
+            fill: none;
+            stroke: #667eea;
+            stroke-width: 6;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.5s ease, stroke 0.3s ease;
+        }
+        .progress-ring .ring-fill.ring-green {
+            stroke: #4CAF50;
+        }
+        .progress-ring .ring-fill.ring-red {
+            stroke: #f44336;
+        }
+        .progress-ring .ring-fill.ring-yellow {
+            stroke: #FF9800;
+        }
+        .progress-ring .ring-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        .progress-ring .ring-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: #333;
+            line-height: 1.1;
+        }
+        .progress-ring .ring-label {
+            font-size: 9px;
+            color: #888;
+            text-transform: uppercase;
+        }
+        
+        /* Smaller rings for nutrients */
+        .progress-ring-sm {
+            position: relative;
+            width: 50px;
+            height: 50px;
+            margin: 0 auto;
+        }
+        .progress-ring-sm svg {
+            transform: rotate(-90deg);
+            width: 100%;
+            height: 100%;
+        }
+        .progress-ring-sm .ring-bg {
+            fill: none;
+            stroke: #e8e8e8;
+            stroke-width: 5;
+        }
+        .progress-ring-sm .ring-fill {
+            fill: none;
+            stroke: #667eea;
+            stroke-width: 5;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.5s ease, stroke 0.3s ease;
+        }
+        .progress-ring-sm .ring-fill.ring-green {
+            stroke: #4CAF50;
+        }
+        .progress-ring-sm .ring-fill.ring-red {
+            stroke: #f44336;
+        }
+        .progress-ring-sm .ring-fill.ring-yellow {
+            stroke: #FF9800;
+        }
+        .progress-ring-sm .ring-text-sm {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        .progress-ring-sm .ring-value-sm {
+            font-size: 11px;
+            font-weight: 700;
+            color: #333;
+        }
     </style>
 </head>
 <body>
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v98</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v100</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -430,10 +528,10 @@
                 <select id="dateSelector" onchange="switchDate(this.value)" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;font-weight:600;background:white;">
                     <option value="today">📅 Today</option>
                 </select>
-                <div class="quick-grid" style="gap:6px;">
-                    <button class="qbtn action" onclick="refreshFromSheets()" style="padding:6px 10px;">☁️</button>
-                    <button class="qbtn action" onclick="syncSteps()" style="padding:6px 10px;">🔄</button>
-                    <button class="qbtn action" onclick="syncWeight()" style="padding:6px 10px;">⚖️</button>
+                <div style="display:flex;gap:8px;">
+                    <button class="qbtn action" onclick="refreshFromSheets()" style="padding:8px 12px;font-size:12px;">☁️ Refresh</button>
+                    <button class="qbtn action" onclick="syncSteps()" style="padding:8px 12px;font-size:12px;">🔄 Steps</button>
+                    <button class="qbtn action" onclick="syncWeight()" style="padding:8px 12px;font-size:12px;">⚖️ Weight</button>
                 </div>
             </div>
             
@@ -451,33 +549,93 @@
                 </div>
             </div>
             
-            <!-- Daily Goals - 2 rows of 3 -->
+            <!-- Daily Goals - Circular Progress -->
             <div class="summary-card" style="margin-bottom:10px;">
                 <div class="summary-header">🎯 Daily Goals</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:8px 0;font-size:12px;">
-                    <div style="text-align:center;padding:6px;background:#f8f8f8;border-radius:6px;">
-                        <div style="font-weight:600;" id="goalCal">0/1350</div>
-                        <div style="color:#666;font-size:10px;">Net Cal</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:12px 0;">
+                    <!-- Net Cal -->
+                    <div style="text-align:center;">
+                        <div class="progress-ring" id="ringCal">
+                            <svg viewBox="0 0 80 80">
+                                <circle class="ring-bg" cx="40" cy="40" r="34"></circle>
+                                <circle class="ring-fill" id="ringCalFill" cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="213.6"></circle>
+                            </svg>
+                            <div class="ring-text">
+                                <div class="ring-value" id="goalCal">0</div>
+                                <div class="ring-label">Net</div>
+                            </div>
+                        </div>
+                        <div style="font-size:10px;color:#666;margin-top:4px;">/ 1350</div>
                     </div>
-                    <div style="text-align:center;padding:6px;background:#f8f8f8;border-radius:6px;">
-                        <div style="font-weight:600;" id="goalBurn">0/850</div>
-                        <div style="color:#666;font-size:10px;">Burned</div>
+                    <!-- Burned -->
+                    <div style="text-align:center;">
+                        <div class="progress-ring" id="ringBurn">
+                            <svg viewBox="0 0 80 80">
+                                <circle class="ring-bg" cx="40" cy="40" r="34"></circle>
+                                <circle class="ring-fill ring-green" id="ringBurnFill" cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="213.6"></circle>
+                            </svg>
+                            <div class="ring-text">
+                                <div class="ring-value" id="goalBurn">0</div>
+                                <div class="ring-label">Burn</div>
+                            </div>
+                        </div>
+                        <div style="font-size:10px;color:#666;margin-top:4px;">/ 850</div>
                     </div>
-                    <div style="text-align:center;padding:6px;background:#f8f8f8;border-radius:6px;">
-                        <div style="font-weight:600;" id="goalProtein">0/100g</div>
-                        <div style="color:#666;font-size:10px;">Protein</div>
+                    <!-- Protein -->
+                    <div style="text-align:center;">
+                        <div class="progress-ring" id="ringProtein">
+                            <svg viewBox="0 0 80 80">
+                                <circle class="ring-bg" cx="40" cy="40" r="34"></circle>
+                                <circle class="ring-fill ring-green" id="ringProteinFill" cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="213.6"></circle>
+                            </svg>
+                            <div class="ring-text">
+                                <div class="ring-value" id="goalProtein">0</div>
+                                <div class="ring-label">Protein</div>
+                            </div>
+                        </div>
+                        <div style="font-size:10px;color:#666;margin-top:4px;">/ 100g</div>
                     </div>
-                    <div style="text-align:center;padding:6px;background:#f8f8f8;border-radius:6px;">
-                        <div style="font-weight:600;" id="goalSodium">0/2000</div>
-                        <div style="color:#666;font-size:10px;">Sodium</div>
+                    <!-- Sodium -->
+                    <div style="text-align:center;">
+                        <div class="progress-ring" id="ringSodium">
+                            <svg viewBox="0 0 80 80">
+                                <circle class="ring-bg" cx="40" cy="40" r="34"></circle>
+                                <circle class="ring-fill" id="ringSodiumFill" cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="213.6"></circle>
+                            </svg>
+                            <div class="ring-text">
+                                <div class="ring-value" id="goalSodium">0</div>
+                                <div class="ring-label">Sodium</div>
+                            </div>
+                        </div>
+                        <div style="font-size:10px;color:#666;margin-top:4px;">/ 2000</div>
                     </div>
-                    <div style="text-align:center;padding:6px;background:#f8f8f8;border-radius:6px;">
-                        <div style="font-weight:600;" id="goalFiber">0/28g</div>
-                        <div style="color:#666;font-size:10px;">Fiber</div>
+                    <!-- Fiber -->
+                    <div style="text-align:center;">
+                        <div class="progress-ring" id="ringFiber">
+                            <svg viewBox="0 0 80 80">
+                                <circle class="ring-bg" cx="40" cy="40" r="34"></circle>
+                                <circle class="ring-fill ring-green" id="ringFiberFill" cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="213.6"></circle>
+                            </svg>
+                            <div class="ring-text">
+                                <div class="ring-value" id="goalFiber">0</div>
+                                <div class="ring-label">Fiber</div>
+                            </div>
+                        </div>
+                        <div style="font-size:10px;color:#666;margin-top:4px;">/ 28g</div>
                     </div>
-                    <div style="text-align:center;padding:6px;background:#f8f8f8;border-radius:6px;">
-                        <div style="font-weight:600;" id="goalSteps">0/8000</div>
-                        <div style="color:#666;font-size:10px;">Steps</div>
+                    <!-- Steps -->
+                    <div style="text-align:center;">
+                        <div class="progress-ring" id="ringSteps">
+                            <svg viewBox="0 0 80 80">
+                                <circle class="ring-bg" cx="40" cy="40" r="34"></circle>
+                                <circle class="ring-fill ring-green" id="ringStepsFill" cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="213.6"></circle>
+                            </svg>
+                            <div class="ring-text">
+                                <div class="ring-value" id="goalSteps">0</div>
+                                <div class="ring-label">Steps</div>
+                            </div>
+                        </div>
+                        <div style="font-size:10px;color:#666;margin-top:4px;">/ 8000</div>
                     </div>
                 </div>
             </div>
@@ -496,20 +654,115 @@
                 </div>
             </div>
             
-            <!-- Today's Nutrients -->
+            <!-- Today's Nutrients - Circular Progress -->
             <div class="summary-card" style="margin-top:10px;">
-                <div class="summary-header">🥗 Today's Nutrients</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px;padding:8px 0;">
-                    <div style="display:flex;justify-content:space-between;"><span>Fiber</span><span id="fiberToday">0/28g</span></div>
-                    <div style="display:flex;justify-content:space-between;"><span>Sugar</span><span id="sugarToday">0/25g</span></div>
-                    <div style="display:flex;justify-content:space-between;"><span>Potassium</span><span id="potassiumToday">0/3500mg</span></div>
-                    <div style="display:flex;justify-content:space-between;"><span>Calcium</span><span id="calciumToday">0/1000mg</span></div>
-                    <div style="display:flex;justify-content:space-between;"><span>Iron</span><span id="ironToday">0/8mg</span></div>
-                    <div style="display:flex;justify-content:space-between;"><span>Vitamin D</span><span id="vitDToday">0/800IU</span></div>
-                    <div style="display:flex;justify-content:space-between;"><span>Magnesium</span><span id="magnesiumToday">0/420mg</span></div>
-                    <div style="display:flex;justify-content:space-between;"><span>Fat (Sat)</span><span id="fatToday">0g (0g)</span></div>
+                <div class="summary-header">🥗 Nutrients</div>
+                <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:8px;padding:8px 0;">
+                    <!-- Sugar (lower is better) -->
+                    <div style="text-align:center;">
+                        <div class="progress-ring-sm">
+                            <svg viewBox="0 0 60 60">
+                                <circle class="ring-bg" cx="30" cy="30" r="24"></circle>
+                                <circle class="ring-fill" id="ringSugarFill" cx="30" cy="30" r="24" stroke-dasharray="150.8" stroke-dashoffset="150.8"></circle>
+                            </svg>
+                            <div class="ring-text-sm">
+                                <div class="ring-value-sm" id="sugarToday">0</div>
+                            </div>
+                        </div>
+                        <div style="font-size:9px;color:#666;">Sugar /25</div>
+                    </div>
+                    <!-- Potassium -->
+                    <div style="text-align:center;">
+                        <div class="progress-ring-sm">
+                            <svg viewBox="0 0 60 60">
+                                <circle class="ring-bg" cx="30" cy="30" r="24"></circle>
+                                <circle class="ring-fill ring-green" id="ringPotassiumFill" cx="30" cy="30" r="24" stroke-dasharray="150.8" stroke-dashoffset="150.8"></circle>
+                            </svg>
+                            <div class="ring-text-sm">
+                                <div class="ring-value-sm" id="potassiumToday">0</div>
+                            </div>
+                        </div>
+                        <div style="font-size:9px;color:#666;">K /3500</div>
+                    </div>
+                    <!-- Calcium -->
+                    <div style="text-align:center;">
+                        <div class="progress-ring-sm">
+                            <svg viewBox="0 0 60 60">
+                                <circle class="ring-bg" cx="30" cy="30" r="24"></circle>
+                                <circle class="ring-fill ring-green" id="ringCalciumFill" cx="30" cy="30" r="24" stroke-dasharray="150.8" stroke-dashoffset="150.8"></circle>
+                            </svg>
+                            <div class="ring-text-sm">
+                                <div class="ring-value-sm" id="calciumToday">0</div>
+                            </div>
+                        </div>
+                        <div style="font-size:9px;color:#666;">Ca /1000</div>
+                    </div>
+                    <!-- Iron -->
+                    <div style="text-align:center;">
+                        <div class="progress-ring-sm">
+                            <svg viewBox="0 0 60 60">
+                                <circle class="ring-bg" cx="30" cy="30" r="24"></circle>
+                                <circle class="ring-fill ring-green" id="ringIronFill" cx="30" cy="30" r="24" stroke-dasharray="150.8" stroke-dashoffset="150.8"></circle>
+                            </svg>
+                            <div class="ring-text-sm">
+                                <div class="ring-value-sm" id="ironToday">0</div>
+                            </div>
+                        </div>
+                        <div style="font-size:9px;color:#666;">Fe /8</div>
+                    </div>
+                    <!-- Vitamin D -->
+                    <div style="text-align:center;">
+                        <div class="progress-ring-sm">
+                            <svg viewBox="0 0 60 60">
+                                <circle class="ring-bg" cx="30" cy="30" r="24"></circle>
+                                <circle class="ring-fill ring-green" id="ringVitDFill" cx="30" cy="30" r="24" stroke-dasharray="150.8" stroke-dashoffset="150.8"></circle>
+                            </svg>
+                            <div class="ring-text-sm">
+                                <div class="ring-value-sm" id="vitDToday">0</div>
+                            </div>
+                        </div>
+                        <div style="font-size:9px;color:#666;">VitD /800</div>
+                    </div>
+                    <!-- Magnesium -->
+                    <div style="text-align:center;">
+                        <div class="progress-ring-sm">
+                            <svg viewBox="0 0 60 60">
+                                <circle class="ring-bg" cx="30" cy="30" r="24"></circle>
+                                <circle class="ring-fill ring-green" id="ringMagnesiumFill" cx="30" cy="30" r="24" stroke-dasharray="150.8" stroke-dashoffset="150.8"></circle>
+                            </svg>
+                            <div class="ring-text-sm">
+                                <div class="ring-value-sm" id="magnesiumToday">0</div>
+                            </div>
+                        </div>
+                        <div style="font-size:9px;color:#666;">Mg /420</div>
+                    </div>
+                    <!-- Fat -->
+                    <div style="text-align:center;">
+                        <div class="progress-ring-sm">
+                            <svg viewBox="0 0 60 60">
+                                <circle class="ring-bg" cx="30" cy="30" r="24"></circle>
+                                <circle class="ring-fill" id="ringFatFill" cx="30" cy="30" r="24" stroke-dasharray="150.8" stroke-dashoffset="150.8"></circle>
+                            </svg>
+                            <div class="ring-text-sm">
+                                <div class="ring-value-sm" id="fatToday">0</div>
+                            </div>
+                        </div>
+                        <div style="font-size:9px;color:#666;">Fat /65</div>
+                    </div>
+                    <!-- Sat Fat -->
+                    <div style="text-align:center;">
+                        <div class="progress-ring-sm">
+                            <svg viewBox="0 0 60 60">
+                                <circle class="ring-bg" cx="30" cy="30" r="24"></circle>
+                                <circle class="ring-fill" id="ringSatFatFill" cx="30" cy="30" r="24" stroke-dasharray="150.8" stroke-dashoffset="150.8"></circle>
+                            </svg>
+                            <div class="ring-text-sm">
+                                <div class="ring-value-sm" id="satFatToday">0</div>
+                            </div>
+                        </div>
+                        <div style="font-size:9px;color:#666;">Sat /20</div>
+                    </div>
                 </div>
-                <div style="font-size:9px;color:#999;">*Estimates based on food analysis</div>
             </div>
         </div>
         
@@ -2471,18 +2724,49 @@
             // Color sodium bar red if over limit
             document.getElementById('sodiumBar').style.background = sodiumPct > 100 ? '#ff6b6b' : '#ff9800';
             
-            // Goals section - use TARGETS
-            document.getElementById('goalCal').textContent = net + '/' + TARGETS.cal;
-            document.getElementById('goalCal').style.color = net > TARGETS.cal ? '#f44336' : (net <= TARGETS.cal ? '#4CAF50' : '');
-            document.getElementById('goalBurn').textContent = state.calOut + '/' + TARGETS.burned;
-            document.getElementById('goalBurn').style.color = state.calOut >= TARGETS.burned ? '#4CAF50' : '';
-            document.getElementById('goalProtein').textContent = state.protein + '/' + TARGETS.protein + 'g';
-            document.getElementById('goalProtein').style.color = state.protein >= TARGETS.protein ? '#4CAF50' : '';
-            document.getElementById('goalSodium').textContent = (state.sodium || 0) + '/' + TARGETS.sodium;
-            document.getElementById('goalSodium').style.color = (state.sodium || 0) > TARGETS.sodium ? '#f44336' : '';
-            document.getElementById('goalFiber').textContent = (state.fiber || 0) + '/' + TARGETS.fiber + 'g';
-            document.getElementById('goalSteps').textContent = state.steps.toLocaleString() + '/' + TARGETS.steps;
-            document.getElementById('goalSteps').style.color = state.steps >= TARGETS.steps ? '#4CAF50' : '';
+            // Goals section - Circular Progress Rings
+            const circumference = 213.6; // 2 * PI * 34
+            
+            // Helper to update ring
+            function updateRing(fillId, value, target, isLowerBetter = false) {
+                const pct = Math.min((value / target) * 100, 150); // Cap at 150%
+                const offset = circumference - (circumference * Math.min(pct, 100) / 100);
+                const fill = document.getElementById(fillId);
+                if (fill) {
+                    fill.style.strokeDashoffset = offset;
+                    // Color logic
+                    fill.classList.remove('ring-green', 'ring-red', 'ring-yellow');
+                    if (isLowerBetter) {
+                        // For calories/sodium: green under, yellow near, red over
+                        if (pct > 100) fill.classList.add('ring-red');
+                        else if (pct > 85) fill.classList.add('ring-yellow');
+                        else fill.classList.add('ring-green');
+                    } else {
+                        // For protein/burned/steps/fiber: green when met
+                        if (pct >= 100) fill.classList.add('ring-green');
+                        else if (pct >= 70) fill.classList.add('ring-yellow');
+                    }
+                }
+            }
+            
+            // Update ring values and fills
+            document.getElementById('goalCal').textContent = net;
+            updateRing('ringCalFill', net, TARGETS.cal, true);
+            
+            document.getElementById('goalBurn').textContent = state.calOut;
+            updateRing('ringBurnFill', state.calOut, TARGETS.burned, false);
+            
+            document.getElementById('goalProtein').textContent = state.protein + 'g';
+            updateRing('ringProteinFill', state.protein, TARGETS.protein, false);
+            
+            document.getElementById('goalSodium').textContent = (state.sodium || 0);
+            updateRing('ringSodiumFill', state.sodium || 0, TARGETS.sodium, true);
+            
+            document.getElementById('goalFiber').textContent = (state.fiber || 0) + 'g';
+            updateRing('ringFiberFill', state.fiber || 0, TARGETS.fiber, false);
+            
+            document.getElementById('goalSteps').textContent = state.steps >= 1000 ? (state.steps / 1000).toFixed(1) + 'k' : state.steps;
+            updateRing('ringStepsFill', state.steps, TARGETS.steps, false);
             
             // Update alerts
             updateAlerts();
@@ -2496,15 +2780,52 @@
                 document.getElementById('weightToGo').textContent = toGo > 0 ? toGo + ' kg to go' : 'Goal reached! 🎉';
             }
             
-            // Today's nutrients
-            document.getElementById('fiberToday').textContent = (state.fiber || 0) + '/' + TARGETS.fiber + 'g';
-            document.getElementById('sugarToday').textContent = (state.sugar || 0) + '/' + TARGETS.sugar + 'g';
-            document.getElementById('potassiumToday').textContent = (state.potassium || 0) + '/' + TARGETS.potassium + 'mg';
-            document.getElementById('calciumToday').textContent = (state.calcium || 0) + '/' + TARGETS.calcium + 'mg';
-            document.getElementById('ironToday').textContent = (state.iron || 0) + '/' + TARGETS.iron + 'mg';
-            document.getElementById('vitDToday').textContent = (state.vitD || 0) + '/' + TARGETS.vitD + 'IU';
-            document.getElementById('magnesiumToday').textContent = (state.magnesium || 0) + '/' + TARGETS.magnesium + 'mg';
-            document.getElementById('fatToday').textContent = (state.fatTotal || 0) + 'g (' + (state.fatSaturated || 0) + 'g sat)';
+            // Today's nutrients - Circular rings
+            const circumferenceSm = 150.8; // 2 * PI * 24
+            
+            // Helper for small rings
+            function updateRingSm(fillId, value, target, isLowerBetter = false) {
+                const pct = Math.min((value / target) * 100, 150);
+                const offset = circumferenceSm - (circumferenceSm * Math.min(pct, 100) / 100);
+                const fill = document.getElementById(fillId);
+                if (fill) {
+                    fill.style.strokeDashoffset = offset;
+                    fill.classList.remove('ring-green', 'ring-red', 'ring-yellow');
+                    if (isLowerBetter) {
+                        if (pct > 100) fill.classList.add('ring-red');
+                        else if (pct > 85) fill.classList.add('ring-yellow');
+                        else fill.classList.add('ring-green');
+                    } else {
+                        if (pct >= 100) fill.classList.add('ring-green');
+                        else if (pct >= 70) fill.classList.add('ring-yellow');
+                    }
+                }
+            }
+            
+            // Update nutrient rings - values only (no units inside ring)
+            document.getElementById('sugarToday').textContent = (state.sugar || 0);
+            updateRingSm('ringSugarFill', state.sugar || 0, TARGETS.sugar, true);
+            
+            document.getElementById('potassiumToday').textContent = ((state.potassium || 0) / 1000).toFixed(1) + 'k';
+            updateRingSm('ringPotassiumFill', state.potassium || 0, TARGETS.potassium, false);
+            
+            document.getElementById('calciumToday').textContent = (state.calcium || 0);
+            updateRingSm('ringCalciumFill', state.calcium || 0, TARGETS.calcium, false);
+            
+            document.getElementById('ironToday').textContent = (state.iron || 0);
+            updateRingSm('ringIronFill', state.iron || 0, TARGETS.iron, false);
+            
+            document.getElementById('vitDToday').textContent = (state.vitD || 0);
+            updateRingSm('ringVitDFill', state.vitD || 0, TARGETS.vitD, false);
+            
+            document.getElementById('magnesiumToday').textContent = (state.magnesium || 0);
+            updateRingSm('ringMagnesiumFill', state.magnesium || 0, TARGETS.magnesium, false);
+            
+            document.getElementById('fatToday').textContent = (state.fatTotal || 0);
+            updateRingSm('ringFatFill', state.fatTotal || 0, 65, true); // ~65g fat target
+            
+            document.getElementById('satFatToday').textContent = (state.fatSaturated || 0);
+            updateRingSm('ringSatFatFill', state.fatSaturated || 0, 20, true); // ~20g sat fat limit
             
             // Update nutrition summary
             updateNutritionSummary();
