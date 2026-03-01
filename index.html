@@ -371,7 +371,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v97</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v98</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -414,7 +414,7 @@
     
     <!-- Tabs -->
     <div class="tabs">
-        <button class="tab active" onclick="showPane('today')">Today</button>
+        <button class="tab active" onclick="showPane('today')">Daily</button>
         <button class="tab" onclick="showPane('add')">Food</button>
         <button class="tab" onclick="showPane('plan')">Exercise</button>
         <button class="tab" onclick="showPane('history')">History</button>
@@ -485,7 +485,7 @@
             <!-- Today's Log -->
             <div class="summary-card">
                 <div class="summary-header">
-                    <span>Today's Log</span>
+                    <span id="logHeader">Today's Log</span>
                     <div style="display:flex;gap:4px;">
                         <button class="qbtn action" onclick="copySummary()" style="font-size:10px;padding:4px 8px;">📋 Summary</button>
                         <button class="qbtn action" onclick="copyFull()" style="font-size:10px;padding:4px 8px;">📋 Full</button>
@@ -2204,67 +2204,113 @@
             ).join('');
         }
         
-        function switchDate(dateStr) {
-            // Save current state first
-            if (state.entries.length > 0) {
-                saveState();
-                archiveDay(state);
+        async function switchDate(dateStr) {
+            // Save current state first (only if we have entries)
+            const today = new Date().toLocaleDateString('en-CA');
+            if (state.entries.length > 0 && selectedDate) {
+                if (selectedDate === today) {
+                    saveState();
+                } else {
+                    savePastDateToHistory();
+                }
             }
             
             // Switch to new date
             selectedDate = dateStr;
-            const today = new Date().toLocaleDateString('en-CA');
+            
+            // Reset state first
+            state = {
+                date: dateStr,
+                calIn: 0, calOut: 0, protein: 0, sodium: 0,
+                fiber: 0, sugar: 0, potassium: 0, calcium: 0, iron: 0, vitD: 0, magnesium: 0,
+                fatTotal: 0, fatSaturated: 0,
+                steps: 0, workout: false, entries: []
+            };
             
             if (dateStr === today) {
                 // Load today's state from localStorage
                 loadState();
             } else {
                 // Load past date from history or sheets
-                loadPastDate(dateStr);
+                await loadPastDate(dateStr);
             }
             
             updateUI();
+            toast(dateStr === today ? 'Showing Today' : 'Showing ' + dateStr);
         }
         
-        function loadPastDate(dateStr) {
+        async function loadPastDate(dateStr) {
             // First check localStorage history
             const history = JSON.parse(localStorage.getItem('hed_history') || '[]');
             const pastDay = history.find(h => h.date === dateStr);
             
             if (pastDay && pastDay.entries && pastDay.entries.length > 0) {
-                // Found in local history with entries
-                state = {
-                    date: dateStr,
-                    calIn: pastDay.calIn || 0,
-                    calOut: pastDay.calOut || 0,
-                    protein: pastDay.protein || 0,
-                    sodium: pastDay.sodium || 0,
-                    fiber: pastDay.fiber || 0,
-                    sugar: pastDay.sugar || 0,
-                    potassium: pastDay.potassium || 0,
-                    calcium: pastDay.calcium || 0,
-                    iron: pastDay.iron || 0,
-                    vitD: pastDay.vitD || 0,
-                    magnesium: pastDay.magnesium || 0,
-                    fatTotal: pastDay.fatTotal || 0,
-                    fatSaturated: pastDay.fatSaturated || 0,
-                    steps: pastDay.steps || 0,
-                    workout: pastDay.workout || false,
-                    entries: pastDay.entries || []
-                };
-            } else {
-                // Initialize empty state for past date
+                // Found in local history with entries - recalculate nutrients from entries
                 state = {
                     date: dateStr,
                     calIn: 0, calOut: 0, protein: 0, sodium: 0,
                     fiber: 0, sugar: 0, potassium: 0, calcium: 0, iron: 0, vitD: 0, magnesium: 0,
                     fatTotal: 0, fatSaturated: 0,
-                    steps: 0, workout: false, entries: []
+                    steps: pastDay.steps || 0,
+                    workout: pastDay.workout || false,
+                    entries: []
                 };
                 
-                // Try to load from DailyLog sheet
-                loadPastDateFromSheets(dateStr);
+                // Rebuild entries with full nutrient data from FoodDB
+                pastDay.entries.forEach(entry => {
+                    if (entry.type === 'food') {
+                        // Look up food in ALL_FOODS to get latest nutrient data
+                        const food = ALL_FOODS.find(f => f.name === entry.name);
+                        if (food) {
+                            const fullEntry = {
+                                type: 'food',
+                                name: entry.name,
+                                cal: food.cal,
+                                protein: food.protein,
+                                sodium: food.sodium || 0,
+                                fiber: food.fiber || 0,
+                                sugar: food.sugar || 0,
+                                potassium: food.potassium || 0,
+                                calcium: food.calcium || 0,
+                                iron: food.iron || 0,
+                                vitD: food.vitD || 0,
+                                magnesium: food.magnesium || 0,
+                                fatTotal: food.fatTotal || 0,
+                                fatSaturated: food.fatSaturated || 0,
+                                isRestaurant: entry.isRestaurant || false
+                            };
+                            state.entries.push(fullEntry);
+                            state.calIn += fullEntry.cal;
+                            state.protein += fullEntry.protein;
+                            state.sodium += fullEntry.sodium;
+                            state.fiber += fullEntry.fiber;
+                            state.sugar += fullEntry.sugar;
+                            state.potassium += fullEntry.potassium;
+                            state.calcium += fullEntry.calcium;
+                            state.iron += fullEntry.iron;
+                            state.vitD += fullEntry.vitD;
+                            state.magnesium += fullEntry.magnesium;
+                            state.fatTotal += fullEntry.fatTotal;
+                            state.fatSaturated += fullEntry.fatSaturated;
+                        } else {
+                            // Food not in DB, use stored values
+                            state.entries.push(entry);
+                            state.calIn += entry.cal || 0;
+                            state.protein += entry.protein || 0;
+                            state.sodium += entry.sodium || 0;
+                            state.fiber += entry.fiber || 0;
+                        }
+                    } else if (entry.type === 'exercise') {
+                        state.entries.push(entry);
+                        state.calOut += entry.cal || 0;
+                        if (entry.steps) state.steps = entry.steps;
+                    }
+                });
+                return; // Found in history, done
             }
+            
+            // Not in history, try to load from DailyLog sheet
+            await loadPastDateFromSheets(dateStr);
         }
         
         async function loadPastDateFromSheets(dateStr) {
@@ -2288,21 +2334,80 @@
                     state.steps = parseInt(row[5]) || 0;
                     state.workout = row[8] === 'Yes';
                     
-                    // Parse Items column to rebuild entries
+                    // Parse Items column to rebuild entries with full nutrient data
                     if (row[9]) {
                         const itemNames = row[9].split(', ').map(n => n.trim()).filter(n => n && n !== 'No Data Available');
-                        state.entries = itemNames.map(name => {
+                        state.entries = [];
+                        
+                        // Reset nutrient totals - will recalculate from entries
+                        state.fiber = 0;
+                        state.sugar = 0;
+                        state.potassium = 0;
+                        state.calcium = 0;
+                        state.iron = 0;
+                        state.vitD = 0;
+                        state.magnesium = 0;
+                        state.fatTotal = 0;
+                        state.fatSaturated = 0;
+                        
+                        itemNames.forEach(name => {
                             const food = ALL_FOODS.find(f => f.name === name);
                             if (food) {
-                                return { type: 'food', name, cal: food.cal, protein: food.protein, sodium: food.sodium || 0, fiber: food.fiber || 0 };
-                            }
-                            // Check if it's an exercise
-                            if (name.includes('Steps') || name.includes('Pilates') || name.includes('Drums') || 
+                                const entry = { 
+                                    type: 'food', 
+                                    name, 
+                                    cal: food.cal, 
+                                    protein: food.protein, 
+                                    sodium: food.sodium || 0,
+                                    fiber: food.fiber || 0,
+                                    sugar: food.sugar || 0,
+                                    potassium: food.potassium || 0,
+                                    calcium: food.calcium || 0,
+                                    iron: food.iron || 0,
+                                    vitD: food.vitD || 0,
+                                    magnesium: food.magnesium || 0,
+                                    fatTotal: food.fatTotal || 0,
+                                    fatSaturated: food.fatSaturated || 0
+                                };
+                                state.entries.push(entry);
+                                
+                                // Add to totals
+                                state.fiber += entry.fiber;
+                                state.sugar += entry.sugar;
+                                state.potassium += entry.potassium;
+                                state.calcium += entry.calcium;
+                                state.iron += entry.iron;
+                                state.vitD += entry.vitD;
+                                state.magnesium += entry.magnesium;
+                                state.fatTotal += entry.fatTotal;
+                                state.fatSaturated += entry.fatSaturated;
+                            } else if (name.includes('Steps (Synced)')) {
+                                // Steps entry - cal already in calOut
+                                const stepsCal = Math.round(state.steps * 0.04);
+                                state.entries.push({ type: 'exercise', name: 'Steps (Synced)', cal: stepsCal, steps: state.steps });
+                            } else if (name.includes('Steps') || name.includes('Pilates') || name.includes('Drums') || 
                                 name.includes('Walk') || name.includes('Bike') || name.includes('Ab Circuit') ||
-                                name.includes('Housework') || name.includes('Golf')) {
-                                return { type: 'exercise', name, cal: 0 };
+                                name.includes('Housework') || name.includes('Golf') || name.includes('Calisthenics') ||
+                                name.includes('Jump Rope')) {
+                                // Exercise entry - estimate calories
+                                let cal = 100; // default
+                                if (name.includes('Long Walk')) cal = 300;
+                                else if (name.includes('Pilates Lesson')) cal = 250;
+                                else if (name.includes('Pilates Home')) cal = 90;
+                                else if (name.includes('Drums 1hr')) cal = 275;
+                                else if (name.includes('Drums 2hr')) cal = 550;
+                                else if (name.includes('Ab Circuit')) cal = 200;
+                                else if (name.includes('Housework 1hr')) cal = 200;
+                                else if (name.includes('Housework 30')) cal = 100;
+                                else if (name.includes('Golf Practice')) cal = 200;
+                                else if (name.includes('Golf 9')) cal = 300;
+                                else if (name.includes('Calisthenics')) cal = 200;
+                                else if (name.includes('Jump Rope')) cal = 150;
+                                state.entries.push({ type: 'exercise', name, cal });
+                            } else {
+                                // Unknown food - just add with name
+                                state.entries.push({ type: 'food', name, cal: 0, protein: 0 });
                             }
-                            return { type: 'food', name, cal: 0, protein: 0 };
                         });
                     }
                     
@@ -2329,6 +2434,13 @@
                 dateSelector.style.background = isToday ? 'white' : '#fff3cd';
                 dateSelector.style.borderColor = isToday ? '#ddd' : '#ffc107';
             }
+            
+            // Update log header
+            const logHeader = document.getElementById('logHeader');
+            if (logHeader) {
+                logHeader.textContent = isToday ? "Today's Log" : dateLabel + "'s Log";
+            }
+            
             document.getElementById('calIn').textContent = state.calIn;
             document.getElementById('protein').textContent = state.protein + 'g';
             document.getElementById('burned').textContent = state.calOut;
