@@ -1765,7 +1765,8 @@
         // Init
         async function init() {
             selectedDate = new Date().toLocaleDateString('en-CA');
-            state.date = new Date().toDateString();
+            state.date = selectedDate; // Use same format
+            console.log('init: selectedDate=', selectedDate);
             loadState();
             seedUsageFromState();
             populateDateSelector();
@@ -1878,19 +1879,34 @@
         
         // State
         function loadState() {
-            const today = new Date().toDateString();
+            const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
             const saved = localStorage.getItem('hed_state');
+            console.log('loadState: today=', today, 'saved=', saved ? 'exists' : 'none');
             if (saved) {
                 const parsed = JSON.parse(saved);
-                if (parsed.date === today) {
+                // Normalize saved date for comparison
+                let savedDate = parsed.date;
+                if (savedDate && savedDate.includes(' ')) {
+                    // Convert old format "Sat Mar 01 2026" to "2026-03-01"
+                    try {
+                        savedDate = new Date(savedDate).toLocaleDateString('en-CA');
+                    } catch(e) {}
+                }
+                console.log('loadState: savedDate=', savedDate, 'matches today=', savedDate === today);
+                if (savedDate === today) {
                     state = parsed;
+                    state.date = today; // Ensure normalized format
+                    console.log('loadState: loaded today state, calIn=', state.calIn, 'entries=', state.entries?.length);
                 } else {
+                    // Old data - archive it
                     saveToHistory(parsed);
                     saveToSheets(parsed);
                     state.date = today;
+                    console.log('loadState: archived old data, starting fresh');
                 }
             } else {
                 state.date = today;
+                console.log('loadState: no saved state, starting fresh');
             }
         }
         
