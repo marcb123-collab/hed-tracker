@@ -2733,7 +2733,7 @@
                 const offset = circumference - (circumference * Math.min(pct, 100) / 100);
                 const fill = document.getElementById(fillId);
                 if (fill) {
-                    fill.style.strokeDashoffset = offset;
+                    fill.setAttribute('stroke-dashoffset', offset);
                     // Color logic
                     fill.classList.remove('ring-green', 'ring-red', 'ring-yellow');
                     if (isLowerBetter) {
@@ -2789,7 +2789,7 @@
                 const offset = circumferenceSm - (circumferenceSm * Math.min(pct, 100) / 100);
                 const fill = document.getElementById(fillId);
                 if (fill) {
-                    fill.style.strokeDashoffset = offset;
+                    fill.setAttribute('stroke-dashoffset', offset);
                     fill.classList.remove('ring-green', 'ring-red', 'ring-yellow');
                     if (isLowerBetter) {
                         if (pct > 100) fill.classList.add('ring-red');
