@@ -371,7 +371,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v96</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v97</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -425,11 +425,16 @@
     <div class="content">
         <!-- Today Pane -->
         <div class="pane active" id="todayPane">
-            <!-- Sync buttons -->
-            <div class="quick-grid" style="margin-bottom:12px;">
-                <button class="qbtn action" onclick="refreshFromSheets()">☁️ Refresh</button>
-                <button class="qbtn action" onclick="syncSteps()">🔄 Sync Steps</button>
-                <button class="qbtn action" onclick="syncWeight()">⚖️ Sync Weight</button>
+            <!-- Date selector and sync buttons -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <select id="dateSelector" onchange="switchDate(this.value)" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;font-weight:600;background:white;">
+                    <option value="today">📅 Today</option>
+                </select>
+                <div class="quick-grid" style="gap:6px;">
+                    <button class="qbtn action" onclick="refreshFromSheets()" style="padding:6px 10px;">☁️</button>
+                    <button class="qbtn action" onclick="syncSteps()" style="padding:6px 10px;">🔄</button>
+                    <button class="qbtn action" onclick="syncWeight()" style="padding:6px 10px;">⚖️</button>
+                </div>
             </div>
             
             <!-- Weight Section at Top -->
@@ -769,6 +774,14 @@
                     <span style="font-size:11px;color:#888;">Misc activity</span>
                 </div>
                 <div class="quick-grid" style="margin-top:8px;flex-direction:column;gap:6px;">
+                    <button class="qbtn exercise-btn" onclick="logExercise('Calisthenics 30min', 200, 'cardio')" style="width:100%;justify-content:space-between;">
+                        <span>Calisthenics (30 min)</span>
+                        <span style="color:#4CAF50;font-weight:600;">200 cal</span>
+                    </button>
+                    <button class="qbtn exercise-btn" onclick="logExercise('Jump Rope 8x20', 150, 'cardio')" style="width:100%;justify-content:space-between;">
+                        <span>Jump Rope (20 reps × 8)</span>
+                        <span style="color:#4CAF50;font-weight:600;">150 cal</span>
+                    </button>
                     <button class="qbtn exercise-btn" onclick="logExercise('Housework 30 mins', 100, 'cardio')" style="width:100%;justify-content:space-between;">
                         <span>Housework (30 min)</span>
                         <span style="color:#4CAF50;font-weight:600;">100 cal</span>
@@ -964,9 +977,11 @@
         let tokenClient, accessToken = localStorage.getItem('hed_token');
         let tokenExpiry = parseInt(localStorage.getItem('hed_token_expiry')) || 0;
         let authInProgress = false; // Prevent multiple simultaneous auth attempts
+        let selectedDate = new Date().toLocaleDateString('en-CA'); // Default to today (YYYY-MM-DD)
         let state = { 
             date: '', calIn: 0, calOut: 0, protein: 0, sodium: 0, 
             fiber: 0, sugar: 0, potassium: 0, calcium: 0, iron: 0, vitD: 0, magnesium: 0,
+            fatTotal: 0, fatSaturated: 0,
             steps: 0, workout: false, entries: [] 
         };
         let photoData = null;
@@ -1496,9 +1511,11 @@
         
         // Init
         async function init() {
+            selectedDate = new Date().toLocaleDateString('en-CA');
             state.date = new Date().toDateString();
             loadState();
             seedUsageFromState();
+            populateDateSelector();
             updateUI();
             initGoogle();
             scheduleMidnightSave();
@@ -1625,10 +1642,91 @@
         }
         
         function saveState() {
-            state.date = new Date().toDateString();
-            state.lastModified = Date.now(); // Track when state was last modified
-            localStorage.setItem('hed_state', JSON.stringify(state));
-            syncToLiveData(); // Sync to Sheets on every save
+            const today = new Date().toLocaleDateString('en-CA');
+            state.date = selectedDate || today;
+            state.lastModified = Date.now();
+            
+            // Only save to hed_state if it's today
+            if (selectedDate === today || !selectedDate) {
+                localStorage.setItem('hed_state', JSON.stringify(state));
+                syncToLiveData();
+            } else {
+                // For past dates, update history directly
+                savePastDateToHistory();
+            }
+        }
+        
+        function savePastDateToHistory() {
+            let history = JSON.parse(localStorage.getItem('hed_history') || '[]');
+            const existingIndex = history.findIndex(h => h.date === selectedDate);
+            
+            const historyEntry = {
+                date: selectedDate,
+                calIn: state.calIn,
+                calOut: state.calOut,
+                protein: state.protein,
+                sodium: state.sodium || 0,
+                fiber: state.fiber || 0,
+                sugar: state.sugar || 0,
+                steps: state.steps,
+                workout: state.calOut >= 200,
+                entries: state.entries
+            };
+            
+            if (existingIndex >= 0) {
+                history[existingIndex] = historyEntry;
+            } else {
+                history.unshift(historyEntry);
+                history.sort((a, b) => new Date(b.date) - new Date(a.date));
+            }
+            
+            localStorage.setItem('hed_history', JSON.stringify(history.slice(0, 30)));
+            
+            // Also save to sheets
+            savePastDateToSheets();
+        }
+        
+        async function savePastDateToSheets() {
+            if (!accessToken) return;
+            
+            try {
+                // First, find if this date exists in sheet
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog-HED!A2:A50`, {
+                    headers: { Authorization: `Bearer ${accessToken}` }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                
+                let rowIndex = -1;
+                if (data.values) {
+                    rowIndex = data.values.findIndex(r => r[0] === selectedDate);
+                }
+                
+                const net = state.calIn - state.calOut;
+                const workout = state.calOut >= 200 ? 'Yes' : 'No';
+                const itemNames = state.entries.map(e => e.name).join(', ');
+                const row = [[selectedDate, state.calIn, state.protein, state.sodium || 0, state.calOut, state.steps, '', net, workout, itemNames]];
+                
+                if (rowIndex >= 0) {
+                    // Update existing row
+                    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog-HED!A${rowIndex + 2}:J${rowIndex + 2}?valueInputOption=USER_ENTERED`, {
+                        method: 'PUT',
+                        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ values: row })
+                    });
+                } else {
+                    // Append new row
+                    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog-HED!A2:J2:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`, {
+                        method: 'POST',
+                        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ values: row })
+                    });
+                }
+                
+                toast('Saved ' + selectedDate);
+            } catch (e) {
+                console.error('Save past date error:', e);
+            }
         }
         
         // Sync current state to LiveData sheet
@@ -2082,9 +2180,155 @@
             }, ms);
         }
         
+        // Date selector functions
+        function populateDateSelector() {
+            const select = document.getElementById('dateSelector');
+            if (!select) return;
+            
+            const today = new Date();
+            const options = [];
+            
+            // Add today and past 7 days
+            for (let i = 0; i < 8; i++) {
+                const d = new Date(today);
+                d.setDate(d.getDate() - i);
+                const dateStr = d.toLocaleDateString('en-CA'); // YYYY-MM-DD
+                const label = i === 0 ? '📅 Today' : 
+                              i === 1 ? '📅 Yesterday' :
+                              d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                options.push({ value: dateStr, label });
+            }
+            
+            select.innerHTML = options.map(o => 
+                `<option value="${o.value}" ${o.value === selectedDate ? 'selected' : ''}>${o.label}</option>`
+            ).join('');
+        }
+        
+        function switchDate(dateStr) {
+            // Save current state first
+            if (state.entries.length > 0) {
+                saveState();
+                archiveDay(state);
+            }
+            
+            // Switch to new date
+            selectedDate = dateStr;
+            const today = new Date().toLocaleDateString('en-CA');
+            
+            if (dateStr === today) {
+                // Load today's state from localStorage
+                loadState();
+            } else {
+                // Load past date from history or sheets
+                loadPastDate(dateStr);
+            }
+            
+            updateUI();
+        }
+        
+        function loadPastDate(dateStr) {
+            // First check localStorage history
+            const history = JSON.parse(localStorage.getItem('hed_history') || '[]');
+            const pastDay = history.find(h => h.date === dateStr);
+            
+            if (pastDay && pastDay.entries && pastDay.entries.length > 0) {
+                // Found in local history with entries
+                state = {
+                    date: dateStr,
+                    calIn: pastDay.calIn || 0,
+                    calOut: pastDay.calOut || 0,
+                    protein: pastDay.protein || 0,
+                    sodium: pastDay.sodium || 0,
+                    fiber: pastDay.fiber || 0,
+                    sugar: pastDay.sugar || 0,
+                    potassium: pastDay.potassium || 0,
+                    calcium: pastDay.calcium || 0,
+                    iron: pastDay.iron || 0,
+                    vitD: pastDay.vitD || 0,
+                    magnesium: pastDay.magnesium || 0,
+                    fatTotal: pastDay.fatTotal || 0,
+                    fatSaturated: pastDay.fatSaturated || 0,
+                    steps: pastDay.steps || 0,
+                    workout: pastDay.workout || false,
+                    entries: pastDay.entries || []
+                };
+            } else {
+                // Initialize empty state for past date
+                state = {
+                    date: dateStr,
+                    calIn: 0, calOut: 0, protein: 0, sodium: 0,
+                    fiber: 0, sugar: 0, potassium: 0, calcium: 0, iron: 0, vitD: 0, magnesium: 0,
+                    fatTotal: 0, fatSaturated: 0,
+                    steps: 0, workout: false, entries: []
+                };
+                
+                // Try to load from DailyLog sheet
+                loadPastDateFromSheets(dateStr);
+            }
+        }
+        
+        async function loadPastDateFromSheets(dateStr) {
+            if (!accessToken) return;
+            
+            try {
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog-HED!A2:J50`, {
+                    headers: { Authorization: `Bearer ${accessToken}` }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (!data.values) return;
+                
+                // Find row matching dateStr
+                const row = data.values.find(r => r[0] === dateStr);
+                if (row) {
+                    state.calIn = parseInt(row[1]) || 0;
+                    state.protein = parseInt(row[2]) || 0;
+                    state.sodium = parseInt(row[3]) || 0;
+                    state.calOut = parseInt(row[4]) || 0;
+                    state.steps = parseInt(row[5]) || 0;
+                    state.workout = row[8] === 'Yes';
+                    
+                    // Parse Items column to rebuild entries
+                    if (row[9]) {
+                        const itemNames = row[9].split(', ').map(n => n.trim()).filter(n => n && n !== 'No Data Available');
+                        state.entries = itemNames.map(name => {
+                            const food = ALL_FOODS.find(f => f.name === name);
+                            if (food) {
+                                return { type: 'food', name, cal: food.cal, protein: food.protein, sodium: food.sodium || 0, fiber: food.fiber || 0 };
+                            }
+                            // Check if it's an exercise
+                            if (name.includes('Steps') || name.includes('Pilates') || name.includes('Drums') || 
+                                name.includes('Walk') || name.includes('Bike') || name.includes('Ab Circuit') ||
+                                name.includes('Housework') || name.includes('Golf')) {
+                                return { type: 'exercise', name, cal: 0 };
+                            }
+                            return { type: 'food', name, cal: 0, protein: 0 };
+                        });
+                    }
+                    
+                    updateUI();
+                    toast('Loaded ' + dateStr);
+                }
+            } catch (e) {
+                console.error('Load past date error:', e);
+            }
+        }
+        
         // UI
         function updateUI() {
-            document.getElementById('dateDisplay').textContent = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            // Update date display based on selected date
+            const displayDate = new Date(selectedDate + 'T12:00:00');
+            const today = new Date().toLocaleDateString('en-CA');
+            const isToday = selectedDate === today;
+            const dateLabel = isToday ? 'Today' : displayDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            document.getElementById('dateDisplay').textContent = dateLabel;
+            
+            // Show visual indicator if viewing past date
+            const dateSelector = document.getElementById('dateSelector');
+            if (dateSelector) {
+                dateSelector.style.background = isToday ? 'white' : '#fff3cd';
+                dateSelector.style.borderColor = isToday ? '#ddd' : '#ffc107';
+            }
             document.getElementById('calIn').textContent = state.calIn;
             document.getElementById('protein').textContent = state.protein + 'g';
             document.getElementById('burned').textContent = state.calOut;
