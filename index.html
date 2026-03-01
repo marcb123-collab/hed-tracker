@@ -2244,6 +2244,8 @@
             const history = JSON.parse(localStorage.getItem('hed_history') || '[]');
             const pastDay = history.find(h => h.date === dateStr);
             
+            console.log('loadPastDate:', dateStr, 'found in history:', !!pastDay, 'entries:', pastDay?.entries?.length || 0);
+            
             if (pastDay && pastDay.entries && pastDay.entries.length > 0) {
                 // Found in local history with entries - recalculate nutrients from entries
                 state = {
@@ -2306,26 +2308,34 @@
                         if (entry.steps) state.steps = entry.steps;
                     }
                 });
+                console.log('Loaded from history, entries:', state.entries.length);
                 return; // Found in history, done
             }
             
-            // Not in history, try to load from DailyLog sheet
+            // Not in history or no entries, try to load from DailyLog sheet
+            console.log('Loading from sheets...');
             await loadPastDateFromSheets(dateStr);
+            console.log('After loadPastDateFromSheets, entries:', state.entries.length);
         }
         
         async function loadPastDateFromSheets(dateStr) {
             if (!accessToken) return;
             
             try {
-                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog-HED!A2:J50`, {
+                // Fetch more rows to get all history
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog-HED!A2:J200`, {
                     headers: { Authorization: `Bearer ${accessToken}` }
                 });
-                if (!res.ok) return;
+                if (!res.ok) { console.log('Sheet fetch failed:', res.status); return; }
                 const data = await res.json();
-                if (!data.values) return;
+                if (!data.values) { console.log('No values in sheet'); return; }
                 
-                // Find row matching dateStr
-                const row = data.values.find(r => r[0] === dateStr);
+                console.log('Sheet has', data.values.length, 'rows');
+                
+                // Find row matching dateStr (there may be duplicates, get first one with Items)
+                const row = data.values.find(r => r[0] === dateStr && r[9] && r[9] !== '');
+                console.log('Looking for', dateStr, 'found row:', !!row, row ? 'Items: ' + (row[9] || '').substring(0, 50) + '...' : 'no row');
+                
                 if (row) {
                     state.calIn = parseInt(row[1]) || 0;
                     state.protein = parseInt(row[2]) || 0;
@@ -2337,6 +2347,7 @@
                     // Parse Items column to rebuild entries with full nutrient data
                     if (row[9]) {
                         const itemNames = row[9].split(', ').map(n => n.trim()).filter(n => n && n !== 'No Data Available');
+                        console.log('Item names to parse:', itemNames.length, itemNames);
                         state.entries = [];
                         
                         // Reset nutrient totals - will recalculate from entries
