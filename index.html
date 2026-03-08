@@ -469,7 +469,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v100</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v101</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -1806,6 +1806,8 @@
                         await syncHistoryToSheets(true);
                         seedUsageFromSheets();
                         syncSteps();
+                        // Run daily cleanup
+                        await runDailyCleanup();
                     }
                 }
             });
@@ -1821,6 +1823,7 @@
                     }
                     updateUI(); // Always update UI after attempting load
                     syncHistoryToSheets(true); // Run AFTER loadFromLiveData completes to avoid race condition
+                    runDailyCleanup(); // Daily cleanup
                 });
                 loadFoodDB().then(() => { console.log('FoodDB loaded'); renderButtons(); });
                 loadExerciseDB().then(() => { console.log('ExerciseDB loaded'); renderButtons(); });
@@ -1995,6 +1998,128 @@
                 toast('Saved ' + selectedDate);
             } catch (e) {
                 console.error('Save past date error:', e);
+            }
+        }
+        
+        // Daily cleanup - runs once per day on load
+        async function runDailyCleanup() {
+            const today = new Date().toLocaleDateString('en-CA');
+            const lastCleanup = localStorage.getItem('hed_last_cleanup');
+            
+            // Only run once per day
+            if (lastCleanup === today) {
+                console.log('Daily cleanup: already ran today');
+                return;
+            }
+            
+            console.log('Running daily cleanup...');
+            await ensureValidToken();
+            if (!accessToken) return;
+            
+            let fixes = [];
+            
+            try {
+                // 1. Clean LiveData-HED - remove duplicate rows
+                const liveRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/LiveData-HED!A2:J10`, {
+                    headers: { Authorization: `Bearer ${accessToken}` }
+                });
+                const liveData = await liveRes.json();
+                
+                if (liveData.values && liveData.values.length > 1) {
+                    // More than one data row - keep only first, clear rest
+                    const clearRequests = [];
+                    for (let i = 3; i <= liveData.values.length + 1; i++) {
+                        clearRequests.push({
+                            range: `LiveData-HED!A${i}:J${i}`,
+                            values: [['', '', '', '', '', '', '', '', '', '']]
+                        });
+                    }
+                    
+                    if (clearRequests.length > 0) {
+                        await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchUpdate`, {
+                            method: 'POST',
+                            headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                valueInputOption: 'RAW',
+                                data: clearRequests
+                            })
+                        });
+                        fixes.push(`Cleared ${clearRequests.length} duplicate LiveData rows`);
+                    }
+                }
+                
+                // 2. Enrich today's entries with missing nutrients from FoodDB
+                if (state.entries && state.entries.length > 0) {
+                    let enriched = 0;
+                    state.entries = state.entries.map(entry => {
+                        if (entry.type !== 'food') return entry;
+                        
+                        // Check if missing key nutrients
+                        const missingNutrients = !entry.sugar && !entry.potassium && !entry.calcium && !entry.vitD;
+                        
+                        if (missingNutrients) {
+                            // Look up in FoodDB
+                            const food = ALL_FOODS.find(f => f.name.toLowerCase() === entry.name.toLowerCase());
+                            if (food) {
+                                enriched++;
+                                return {
+                                    ...entry,
+                                    sugar: food.sugar || 0,
+                                    potassium: food.potassium || 0,
+                                    calcium: food.calcium || 0,
+                                    iron: food.iron || 0,
+                                    vitD: food.vitD || 0,
+                                    magnesium: food.magnesium || 0,
+                                    fatTotal: food.fatTotal || 0,
+                                    fatSaturated: food.fatSaturated || 0,
+                                    fiber: entry.fiber || food.fiber || 0
+                                };
+                            }
+                        }
+                        return entry;
+                    });
+                    
+                    if (enriched > 0) {
+                        // Recalculate nutrient totals
+                        state.sugar = state.entries.filter(e => e.type === 'food').reduce((sum, e) => sum + (e.sugar || 0), 0);
+                        state.potassium = state.entries.filter(e => e.type === 'food').reduce((sum, e) => sum + (e.potassium || 0), 0);
+                        state.calcium = state.entries.filter(e => e.type === 'food').reduce((sum, e) => sum + (e.calcium || 0), 0);
+                        state.iron = state.entries.filter(e => e.type === 'food').reduce((sum, e) => sum + (e.iron || 0), 0);
+                        state.vitD = state.entries.filter(e => e.type === 'food').reduce((sum, e) => sum + (e.vitD || 0), 0);
+                        state.magnesium = state.entries.filter(e => e.type === 'food').reduce((sum, e) => sum + (e.magnesium || 0), 0);
+                        state.fatTotal = state.entries.filter(e => e.type === 'food').reduce((sum, e) => sum + (e.fatTotal || 0), 0);
+                        state.fatSaturated = state.entries.filter(e => e.type === 'food').reduce((sum, e) => sum + (e.fatSaturated || 0), 0);
+                        
+                        saveState();
+                        updateUI();
+                        fixes.push(`Enriched ${enriched} entries with nutrients from FoodDB`);
+                    }
+                }
+                
+                // 3. Clean up old localStorage data (keep last 60 days)
+                let history = JSON.parse(localStorage.getItem('hed_history') || '[]');
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - 60);
+                const cutoffStr = cutoffDate.toLocaleDateString('en-CA');
+                const oldCount = history.length;
+                history = history.filter(h => h.date >= cutoffStr);
+                if (history.length < oldCount) {
+                    localStorage.setItem('hed_history', JSON.stringify(history));
+                    fixes.push(`Cleaned ${oldCount - history.length} old history entries`);
+                }
+                
+                // Mark cleanup as done for today
+                localStorage.setItem('hed_last_cleanup', today);
+                
+                if (fixes.length > 0) {
+                    console.log('Daily cleanup completed:', fixes);
+                    toast('Cleanup: ' + fixes.length + ' fixes');
+                } else {
+                    console.log('Daily cleanup: nothing to fix');
+                }
+                
+            } catch (e) {
+                console.error('Daily cleanup error:', e);
             }
         }
         
