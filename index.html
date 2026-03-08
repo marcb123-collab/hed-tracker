@@ -469,7 +469,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v101</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v102</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -1053,7 +1053,7 @@
             <div class="quick-grid" style="margin-bottom:12px;">
                 <button class="qbtn action" onclick="refreshFromSheets()">☁️ Refresh</button>
                 <button class="qbtn action" onclick="syncSteps()">🔄 Sync Steps</button>
-                <button class="qbtn action" onclick="syncWeight()">⚖️ Sync Weight</button>
+                <button class="qbtn action" onclick="repairAllData()">🔧 Repair Data</button>
             </div>
             
             <!-- Comprehensive Summary Section -->
@@ -2012,9 +2012,20 @@
                 return;
             }
             
-            console.log('Running daily cleanup...');
+            await repairAllData(true); // silent mode for daily
+            localStorage.setItem('hed_last_cleanup', today);
+        }
+        
+        // Comprehensive data repair - fixes all known issues
+        async function repairAllData(silent = false) {
+            if (!silent) toast('Repairing data...');
+            console.log('Running comprehensive data repair...');
+            
             await ensureValidToken();
-            if (!accessToken) return;
+            if (!accessToken) {
+                if (!silent) toast('Please sign in first');
+                return;
+            }
             
             let fixes = [];
             
@@ -2026,7 +2037,6 @@
                 const liveData = await liveRes.json();
                 
                 if (liveData.values && liveData.values.length > 1) {
-                    // More than one data row - keep only first, clear rest
                     const clearRequests = [];
                     for (let i = 3; i <= liveData.values.length + 1; i++) {
                         clearRequests.push({
@@ -2039,40 +2049,52 @@
                         await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchUpdate`, {
                             method: 'POST',
                             headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                valueInputOption: 'RAW',
-                                data: clearRequests
-                            })
+                            body: JSON.stringify({ valueInputOption: 'RAW', data: clearRequests })
                         });
-                        fixes.push(`Cleared ${clearRequests.length} duplicate LiveData rows`);
+                        fixes.push(`LiveData: cleared ${clearRequests.length} duplicate rows`);
                     }
                 }
                 
-                // 2. Enrich today's entries with missing nutrients from FoodDB
+                // 2. Update FoodDB with correct Fat/VitD values
+                const foodDbFixes = await repairFoodDB();
+                if (foodDbFixes > 0) {
+                    fixes.push(`FoodDB: updated ${foodDbFixes} foods with Fat/VitD`);
+                }
+                
+                // 3. Clean DailyLog duplicates
+                const dailyLogFixes = await repairDailyLog();
+                if (dailyLogFixes > 0) {
+                    fixes.push(`DailyLog: cleaned ${dailyLogFixes} duplicate rows`);
+                }
+                
+                // 4. Reload FoodDB to get updated values
+                await loadFoodDB();
+                
+                // 5. Enrich today's entries with missing nutrients
                 if (state.entries && state.entries.length > 0) {
                     let enriched = 0;
                     state.entries = state.entries.map(entry => {
                         if (entry.type !== 'food') return entry;
                         
-                        // Check if missing key nutrients
-                        const missingNutrients = !entry.sugar && !entry.potassium && !entry.calcium && !entry.vitD;
+                        // Check if missing key nutrients (fat or vitD)
+                        const missingNutrients = (entry.fatTotal === undefined || entry.fatTotal === 0) && 
+                                                  (entry.vitD === undefined || entry.vitD === 0);
                         
-                        if (missingNutrients) {
-                            // Look up in FoodDB
+                        if (missingNutrients || !entry.sugar) {
                             const food = ALL_FOODS.find(f => f.name.toLowerCase() === entry.name.toLowerCase());
                             if (food) {
                                 enriched++;
                                 return {
                                     ...entry,
-                                    sugar: food.sugar || 0,
-                                    potassium: food.potassium || 0,
-                                    calcium: food.calcium || 0,
-                                    iron: food.iron || 0,
-                                    vitD: food.vitD || 0,
-                                    magnesium: food.magnesium || 0,
-                                    fatTotal: food.fatTotal || 0,
-                                    fatSaturated: food.fatSaturated || 0,
-                                    fiber: entry.fiber || food.fiber || 0
+                                    sugar: food.sugar || entry.sugar || 0,
+                                    potassium: food.potassium || entry.potassium || 0,
+                                    calcium: food.calcium || entry.calcium || 0,
+                                    iron: food.iron || entry.iron || 0,
+                                    vitD: food.vitD || entry.vitD || 0,
+                                    magnesium: food.magnesium || entry.magnesium || 0,
+                                    fatTotal: food.fatTotal || entry.fatTotal || 0,
+                                    fatSaturated: food.fatSaturated || entry.fatSaturated || 0,
+                                    fiber: food.fiber || entry.fiber || 0
                                 };
                             }
                         }
@@ -2080,23 +2102,14 @@
                     });
                     
                     if (enriched > 0) {
-                        // Recalculate nutrient totals
-                        state.sugar = state.entries.filter(e => e.type === 'food').reduce((sum, e) => sum + (e.sugar || 0), 0);
-                        state.potassium = state.entries.filter(e => e.type === 'food').reduce((sum, e) => sum + (e.potassium || 0), 0);
-                        state.calcium = state.entries.filter(e => e.type === 'food').reduce((sum, e) => sum + (e.calcium || 0), 0);
-                        state.iron = state.entries.filter(e => e.type === 'food').reduce((sum, e) => sum + (e.iron || 0), 0);
-                        state.vitD = state.entries.filter(e => e.type === 'food').reduce((sum, e) => sum + (e.vitD || 0), 0);
-                        state.magnesium = state.entries.filter(e => e.type === 'food').reduce((sum, e) => sum + (e.magnesium || 0), 0);
-                        state.fatTotal = state.entries.filter(e => e.type === 'food').reduce((sum, e) => sum + (e.fatTotal || 0), 0);
-                        state.fatSaturated = state.entries.filter(e => e.type === 'food').reduce((sum, e) => sum + (e.fatSaturated || 0), 0);
-                        
+                        // Recalculate all nutrient totals
+                        recalculateNutrientTotals();
                         saveState();
-                        updateUI();
-                        fixes.push(`Enriched ${enriched} entries with nutrients from FoodDB`);
+                        fixes.push(`Entries: enriched ${enriched} with nutrients`);
                     }
                 }
                 
-                // 3. Clean up old localStorage data (keep last 60 days)
+                // 6. Clean old localStorage
                 let history = JSON.parse(localStorage.getItem('hed_history') || '[]');
                 const cutoffDate = new Date();
                 cutoffDate.setDate(cutoffDate.getDate() - 60);
@@ -2105,22 +2118,197 @@
                 history = history.filter(h => h.date >= cutoffStr);
                 if (history.length < oldCount) {
                     localStorage.setItem('hed_history', JSON.stringify(history));
-                    fixes.push(`Cleaned ${oldCount - history.length} old history entries`);
+                    fixes.push(`History: cleaned ${oldCount - history.length} old entries`);
                 }
                 
-                // Mark cleanup as done for today
-                localStorage.setItem('hed_last_cleanup', today);
+                updateUI();
                 
                 if (fixes.length > 0) {
-                    console.log('Daily cleanup completed:', fixes);
-                    toast('Cleanup: ' + fixes.length + ' fixes');
+                    console.log('Data repair completed:', fixes);
+                    if (!silent) {
+                        alert('Data Repair Complete:\n\n• ' + fixes.join('\n• '));
+                    } else {
+                        toast('Repaired: ' + fixes.length + ' fixes');
+                    }
                 } else {
-                    console.log('Daily cleanup: nothing to fix');
+                    console.log('Data repair: nothing to fix');
+                    if (!silent) toast('All data looks good!');
                 }
                 
             } catch (e) {
-                console.error('Daily cleanup error:', e);
+                console.error('Data repair error:', e);
+                if (!silent) toast('Repair error: ' + e.message);
             }
+        }
+        
+        // Recalculate nutrient totals from entries
+        function recalculateNutrientTotals() {
+            const foods = state.entries.filter(e => e.type === 'food');
+            state.calIn = foods.reduce((sum, e) => sum + (e.cal || 0), 0);
+            state.protein = foods.reduce((sum, e) => sum + (e.protein || 0), 0);
+            state.sodium = foods.reduce((sum, e) => sum + (e.sodium || 0), 0);
+            state.fiber = foods.reduce((sum, e) => sum + (e.fiber || 0), 0);
+            state.sugar = foods.reduce((sum, e) => sum + (e.sugar || 0), 0);
+            state.potassium = foods.reduce((sum, e) => sum + (e.potassium || 0), 0);
+            state.calcium = foods.reduce((sum, e) => sum + (e.calcium || 0), 0);
+            state.iron = foods.reduce((sum, e) => sum + (e.iron || 0), 0);
+            state.vitD = foods.reduce((sum, e) => sum + (e.vitD || 0), 0);
+            state.magnesium = foods.reduce((sum, e) => sum + (e.magnesium || 0), 0);
+            state.fatTotal = foods.reduce((sum, e) => sum + (e.fatTotal || 0), 0);
+            state.fatSaturated = foods.reduce((sum, e) => sum + (e.fatSaturated || 0), 0);
+            
+            const exercises = state.entries.filter(e => e.type === 'exercise');
+            state.calOut = exercises.reduce((sum, e) => sum + (e.cal || 0), 0);
+            state.steps = exercises.reduce((sum, e) => sum + (e.steps || 0), 0);
+        }
+        
+        // Repair FoodDB - update foods with correct Fat/VitD values
+        async function repairFoodDB() {
+            // Known correct Fat/VitD values
+            const corrections = {
+                // Fish - high VitD
+                'Grilled Salmon Set with Rice and Miso': [18, 3, 400],
+                'Saba Set Half Fish with Rice Miso and Veggies': [20, 5, 400],
+                'Saba Shioyaki Teishoku with Miso': [24, 5, 400],
+                'Buri Daikon Set with Rice Salad and Mozuku': [18, 4, 400],
+                'Buri Teriyaki Teishoku': [22, 5, 400],
+                'Buri with Rice Veggie Salad and Mozuku Low Salt': [18, 4, 400],
+                'Unagi Jyu Set': [28, 7, 400],
+                'Unagi Don with Clear Soup': [22, 5, 400],
+                'Unagi Rice with Veggies Edamame and Soup': [16, 4, 400],
+                'Grilled Fish with Veggies Rice and Miso Set': [16, 3, 300],
+                'Grilled Fish Teishoku with Tamagoyaki': [22, 5, 350],
+                'Fish Dinner with Rice Half Miso and Yakiimo': [14, 3, 300],
+                'Salmon Veggie Dinner with Bread Yakiimo and Miso': [20, 4, 400],
+                'Salmon Ikura Bento': [18, 3, 400],
+                'Salmon Ekiben Half': [10, 2, 200],
+                'Nishin Soba Half Broth': [14, 3, 200],
+                'Sashimi Dinner with Kampyo Roll Yuzu Cabbage Mozuku Hasaku and Cookie': [8, 2, 300],
+                'Takoyaki Pork 10pc with Grilled Salmon Half and Swordfish Half': [22, 6, 300],
+                'Home Dinner Fish Korokke': [22, 5, 300],
+                // Sushi
+                'Sushi Set Lunch': [12, 2, 150],
+                'Sushizanmai Set with Extras': [18, 3, 200],
+                'Setsubun Temaki Dinner': [16, 3, 150],
+                'Sushi 5 Plates with Miso Soup': [8, 2, 150],
+                'Sushi Lunch Light Soy': [10, 2, 150],
+                // Eggs
+                'Tamagoyaki 2 Pieces': [5, 2, 80],
+                'Hard Boiled Egg': [5, 2, 40],
+                'Egg Sandwich': [14, 4, 40],
+                'Oyakodon Set': [18, 5, 80],
+                'Maki Omurice Demi': [28, 8, 40],
+                'Spinach Feta Omelette with Ham Potatoes and Toast': [28, 10, 80],
+                // Chicken
+                'Chicken Soba Set with Karaage and Salad': [22, 5, 0],
+                'Chicken Veggie Plate with Bread and Veggie Juice': [14, 3, 10],
+                'Chicken Stew with Rice and Salad': [24, 6, 10],
+                // Pork
+                'Pork Saute Teishoku': [28, 10, 20],
+                'Pork Soup with Brown Rice Gyoza Sausage Satsumaimo Kabocha and Mozuku': [24, 7, 0],
+                'Pork Bun': [12, 4, 0],
+                // Other
+                'Komeko Bread Soy Cheese': [6, 2, 0],
+                'Combination Salad Half': [6, 1, 0],
+                'Cherry Tomatoes Blueberries': [0, 0, 0],
+                'Tea Break Snacks Mixed': [16, 5, 0],
+                'Rice Bread Avocado Tomato Hummus': [16, 2, 0],
+            };
+            
+            let updateCount = 0;
+            const updates = [];
+            
+            // Get current FoodDB
+            const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/FoodDB!A2:Q200`, {
+                headers: { Authorization: `Bearer ${accessToken}` }
+            });
+            const data = await res.json();
+            if (!data.values) return 0;
+            
+            // Find rows to update
+            data.values.forEach((row, idx) => {
+                const name = row[0];
+                if (name && corrections[name]) {
+                    const [fat, sat, vitd] = corrections[name];
+                    const currentFat = parseInt(row[4]) || 0;
+                    const currentSat = parseInt(row[5]) || 0;
+                    const currentVitD = parseInt(row[13]) || 0;
+                    
+                    // Only update if values are different
+                    if (currentFat !== fat || currentSat !== sat || currentVitD !== vitd) {
+                        const rowNum = idx + 2;
+                        updates.push({
+                            range: `FoodDB!E${rowNum}:F${rowNum}`,
+                            values: [[fat, sat]]
+                        });
+                        updates.push({
+                            range: `FoodDB!N${rowNum}`,
+                            values: [[vitd]]
+                        });
+                        updateCount++;
+                    }
+                }
+            });
+            
+            // Apply updates
+            if (updates.length > 0) {
+                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchUpdate`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ valueInputOption: 'RAW', data: updates })
+                });
+            }
+            
+            return updateCount;
+        }
+        
+        // Repair DailyLog - remove duplicate rows
+        async function repairDailyLog() {
+            const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog-HED!A2:J500`, {
+                headers: { Authorization: `Bearer ${accessToken}` }
+            });
+            const data = await res.json();
+            if (!data.values) return 0;
+            
+            const seenDates = {};
+            const rowsToClear = [];
+            
+            data.values.forEach((row, idx) => {
+                const date = row[0];
+                const items = row[9] || '';
+                
+                if (!date) return;
+                
+                const dateStr = String(date).split(' ')[0].split('T')[0];
+                
+                if (seenDates[dateStr]) {
+                    // Duplicate - keep the one with more data
+                    if (items && items.length > (seenDates[dateStr].items || '').length) {
+                        rowsToClear.push(seenDates[dateStr].rowNum);
+                        seenDates[dateStr] = { rowNum: idx + 2, items };
+                    } else {
+                        rowsToClear.push(idx + 2);
+                    }
+                } else {
+                    seenDates[dateStr] = { rowNum: idx + 2, items };
+                }
+            });
+            
+            // Clear duplicate rows
+            if (rowsToClear.length > 0) {
+                const clearRequests = rowsToClear.map(rowNum => ({
+                    range: `DailyLog-HED!A${rowNum}:J${rowNum}`,
+                    values: [['', '', '', '', '', '', '', '', '', '']]
+                }));
+                
+                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchUpdate`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ valueInputOption: 'RAW', data: clearRequests })
+                });
+            }
+            
+            return rowsToClear.length;
         }
         
         // Sync current state to LiveData sheet
