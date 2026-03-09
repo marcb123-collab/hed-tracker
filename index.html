@@ -469,7 +469,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v103</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v104</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -4144,34 +4144,41 @@
             // Check for [R] restaurant flag
             const isRestaurant = /\[R\]/i.test(input);
             
-            // Check for second line with +nutrients
+            // Extract +nutrients from anywhere in the input (same line or second line)
             let extraNutrients = {};
-            const lines = input.split('\n');
-            if (lines.length >= 2) {
-                const nutLine = lines[1];
-                // Parse: +sugar 10g +K 550mg +Ca 120mg +Fe 3mg +VitD 0 +Mg 45mg
-                const sugarMatch = nutLine.match(/\+sugar\s+(\d+)/i);
-                const kMatch = nutLine.match(/\+K\s+(\d+)/i);
-                const caMatch = nutLine.match(/\+Ca\s+(\d+)/i);
-                const feMatch = nutLine.match(/\+Fe\s+(\d+)/i);
-                const vitDMatch = nutLine.match(/\+VitD\s+(\d+)/i);
-                const mgMatch = nutLine.match(/\+Mg\s+(\d+)/i);
-                
-                if (sugarMatch) extraNutrients.sugar = parseInt(sugarMatch[1]);
-                if (kMatch) extraNutrients.potassium = parseInt(kMatch[1]);
-                if (caMatch) extraNutrients.calcium = parseInt(caMatch[1]);
-                if (feMatch) extraNutrients.iron = parseInt(feMatch[1]);
-                if (vitDMatch) extraNutrients.vitD = parseInt(vitDMatch[1]);
-                if (mgMatch) extraNutrients.magnesium = parseInt(mgMatch[1]);
-                
-                input = lines[0]; // Use first line for main parsing
+            const sugarMatch = input.match(/\+sugar\s+(\d+)/i);
+            const kMatch = input.match(/\+K\s+(\d+)/i);
+            const caMatch = input.match(/\+Ca\s+(\d+)/i);
+            const feMatch = input.match(/\+Fe\s+(\d+)/i);
+            const vitDMatch = input.match(/\+VitD\s+(\d+)/i);
+            const mgMatch = input.match(/\+Mg\s+(\d+)/i);
+            
+            if (sugarMatch) extraNutrients.sugar = parseInt(sugarMatch[1]);
+            if (kMatch) extraNutrients.potassium = parseInt(kMatch[1]);
+            if (caMatch) extraNutrients.calcium = parseInt(caMatch[1]);
+            if (feMatch) extraNutrients.iron = parseInt(feMatch[1]);
+            if (vitDMatch) extraNutrients.vitD = parseInt(vitDMatch[1]);
+            if (mgMatch) extraNutrients.magnesium = parseInt(mgMatch[1]);
+            
+            // Remove the +nutrients part from input for main parsing
+            input = input.replace(/\+sugar\s+\d+\s*m?g?/gi, '')
+                         .replace(/\+K\s+\d+\s*m?g?/gi, '')
+                         .replace(/\+Ca\s+\d+\s*m?g?/gi, '')
+                         .replace(/\+Fe\s+\d+\s*m?g?/gi, '')
+                         .replace(/\+VitD\s+\d+/gi, '')
+                         .replace(/\+Mg\s+\d+\s*m?g?/gi, '')
+                         .trim();
+            
+            // Also handle newlines - take first line
+            if (input.includes('\n')) {
+                input = input.split('\n')[0].trim();
             }
             
             // Remove flags [V], [P], [S], [O+], [O-], [R] - process separately
             input = input.replace(/\s*\[[VPSRvpsr]\]\s*/gi, ' ').replace(/\s*\[O[\+\-]\]\s*/gi, ' ').trim();
             
             // Match NEW format: Name 350cal 15g 650mg 14g fat (2g sat) 6g fiber
-            const matchNew = input.match(/^(.+?)\s+(\d+)\s*cal\s+(\d+)\s*g\s+(\d+)\s*mg\s+(\d+)\s*g\s*fat\s*\((\d+)\s*g\s*sat\)\s+(\d+)\s*g\s*fiber$/i);
+            const matchNew = input.match(/^(.+?)\s+(\d+)\s*cal\s+(\d+)\s*g\s+(\d+)\s*mg\s+(\d+)\s*g\s*fat\s*\((\d+)\s*g\s*sat\)\s+(\d+)\s*g\s*fiber/i);
             if (matchNew) {
                 const name = matchNew[1].trim();
                 const cal = parseInt(matchNew[2]);
