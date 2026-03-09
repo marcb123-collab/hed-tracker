@@ -469,7 +469,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v102</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v103</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -4144,8 +4144,53 @@
             // Check for [R] restaurant flag
             const isRestaurant = /\[R\]/i.test(input);
             
+            // Check for second line with +nutrients
+            let extraNutrients = {};
+            const lines = input.split('\n');
+            if (lines.length >= 2) {
+                const nutLine = lines[1];
+                // Parse: +sugar 10g +K 550mg +Ca 120mg +Fe 3mg +VitD 0 +Mg 45mg
+                const sugarMatch = nutLine.match(/\+sugar\s+(\d+)/i);
+                const kMatch = nutLine.match(/\+K\s+(\d+)/i);
+                const caMatch = nutLine.match(/\+Ca\s+(\d+)/i);
+                const feMatch = nutLine.match(/\+Fe\s+(\d+)/i);
+                const vitDMatch = nutLine.match(/\+VitD\s+(\d+)/i);
+                const mgMatch = nutLine.match(/\+Mg\s+(\d+)/i);
+                
+                if (sugarMatch) extraNutrients.sugar = parseInt(sugarMatch[1]);
+                if (kMatch) extraNutrients.potassium = parseInt(kMatch[1]);
+                if (caMatch) extraNutrients.calcium = parseInt(caMatch[1]);
+                if (feMatch) extraNutrients.iron = parseInt(feMatch[1]);
+                if (vitDMatch) extraNutrients.vitD = parseInt(vitDMatch[1]);
+                if (mgMatch) extraNutrients.magnesium = parseInt(mgMatch[1]);
+                
+                input = lines[0]; // Use first line for main parsing
+            }
+            
             // Remove flags [V], [P], [S], [O+], [O-], [R] - process separately
             input = input.replace(/\s*\[[VPSRvpsr]\]\s*/gi, ' ').replace(/\s*\[O[\+\-]\]\s*/gi, ' ').trim();
+            
+            // Match NEW format: Name 350cal 15g 650mg 14g fat (2g sat) 6g fiber
+            const matchNew = input.match(/^(.+?)\s+(\d+)\s*cal\s+(\d+)\s*g\s+(\d+)\s*mg\s+(\d+)\s*g\s*fat\s*\((\d+)\s*g\s*sat\)\s+(\d+)\s*g\s*fiber$/i);
+            if (matchNew) {
+                const name = matchNew[1].trim();
+                const cal = parseInt(matchNew[2]);
+                const protein = parseInt(matchNew[3]);
+                const sodium = parseInt(matchNew[4]);
+                const fatTotal = parseInt(matchNew[5]);
+                const fatSaturated = parseInt(matchNew[6]);
+                const fiber = parseInt(matchNew[7]);
+                
+                const nutrients = {
+                    sodium, fiber, fatTotal, fatSaturated, isRestaurant,
+                    ...extraNutrients
+                };
+                
+                addFood(name, cal, protein, nutrients);
+                saveToFoodDBFull(name, cal, protein, nutrients);
+                document.getElementById('inputField').value = '';
+                return;
+            }
             
             // Match Opu Light format: Name 000cal 00g 000mg 00g fat (0g sat) 0g fiber
             // HED extracts: name, cal, protein, sodium, fiber (ignores fat)
@@ -4155,8 +4200,10 @@
                 const cal = parseInt(matchOpu[2]);
                 const protein = parseInt(matchOpu[3]);
                 const sodium = parseInt(matchOpu[4]);
+                const fatTotal = parseInt(matchOpu[5]);
+                const fatSaturated = parseInt(matchOpu[6]);
                 const fiber = parseInt(matchOpu[7]);
-                addFood(name, cal, protein, { sodium, fiber, isRestaurant });
+                addFood(name, cal, protein, { sodium, fiber, fatTotal, fatSaturated, isRestaurant, ...extraNutrients });
                 saveToFoodDB(name, cal, protein, sodium);
                 document.getElementById('inputField').value = '';
                 return;
@@ -4193,7 +4240,7 @@
                 const cal = parseInt(matchWithSodium[2]);
                 const protein = parseInt(matchWithSodium[3]);
                 const sodium = parseInt(matchWithSodium[4]);
-                addFood(name, cal, protein, { sodium, isRestaurant });
+                addFood(name, cal, protein, { sodium, isRestaurant, ...extraNutrients });
                 saveToFoodDB(name, cal, protein, sodium);
                 document.getElementById('inputField').value = '';
                 return;
@@ -4206,7 +4253,7 @@
                 const cal = parseInt(match[2]);
                 const protein = parseInt(match[3]);
                 const estimatedSodium = Math.round(cal * 0.5);
-                addFood(name, cal, protein, { sodium: estimatedSodium, isRestaurant });
+                addFood(name, cal, protein, { sodium: estimatedSodium, isRestaurant, ...extraNutrients });
                 saveToFoodDB(name, cal, protein, estimatedSodium); // Auto-save to sheet
                 document.getElementById('inputField').value = '';
                 return;
