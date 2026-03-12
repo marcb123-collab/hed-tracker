@@ -469,7 +469,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v104</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v105</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -1052,7 +1052,7 @@
             <!-- Sync buttons -->
             <div class="quick-grid" style="margin-bottom:12px;">
                 <button class="qbtn action" onclick="refreshFromSheets()">☁️ Refresh</button>
-                <button class="qbtn action" onclick="syncSteps()">🔄 Sync Steps</button>
+                <button class="qbtn action" onclick="syncStepsBackfill()">🔄 Sync 7 Days</button>
                 <button class="qbtn action" onclick="repairAllData()">🔧 Repair Data</button>
             </div>
             
@@ -3878,8 +3878,13 @@
             await ensureValidToken();
             if (!accessToken) { googleSignIn(); return; }
             toast('Syncing steps...');
-            const now = new Date();
-            const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            
+            // Use selected date or today
+            const targetDate = selectedDate || new Date().toLocaleDateString('en-CA');
+            const dateParts = targetDate.split('-');
+            const start = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2])).getTime();
+            const end = start + 86400000; // 24 hours later
+            
             try {
                 const res = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
                     method: 'POST',
@@ -3888,7 +3893,7 @@
                         aggregateBy: [{ dataTypeName: 'com.google.step_count.delta', dataSourceId: 'derived:com.google.step_count.delta:com.google.android.gms:estimated_steps' }],
                         bucketByTime: { durationMillis: 86400000 },
                         startTimeMillis: start,
-                        endTimeMillis: now.getTime()
+                        endTimeMillis: end
                     })
                 });
                 if (res.status === 401) {
@@ -3910,10 +3915,126 @@
                 
                 saveState();
                 updateUI();
-                toast(steps.toLocaleString() + ' steps synced');
+                toast(steps.toLocaleString() + ' steps synced for ' + targetDate);
             } catch (e) {
                 console.error(e);
                 toast('Sync failed');
+            }
+        }
+        
+        // Sync steps for multiple past days (backfill)
+        async function syncStepsBackfill() {
+            await ensureValidToken();
+            if (!accessToken) { googleSignIn(); return; }
+            toast('Syncing last 7 days of steps...');
+            
+            const today = new Date();
+            const results = [];
+            
+            try {
+                // Fetch 7 days of data in one request
+                const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6).getTime();
+                const end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).getTime();
+                
+                const res = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        aggregateBy: [{ dataTypeName: 'com.google.step_count.delta', dataSourceId: 'derived:com.google.step_count.delta:com.google.android.gms:estimated_steps' }],
+                        bucketByTime: { durationMillis: 86400000 },
+                        startTimeMillis: start,
+                        endTimeMillis: end
+                    })
+                });
+                
+                if (res.status === 401) {
+                    handleAuthError();
+                    return;
+                }
+                
+                const data = await res.json();
+                
+                // Process each day's bucket
+                for (const bucket of (data.bucket || [])) {
+                    const bucketDate = new Date(parseInt(bucket.startTimeMillis));
+                    const dateStr = bucketDate.toLocaleDateString('en-CA');
+                    let steps = 0;
+                    bucket.dataset?.forEach(d => d.point?.forEach(p => { steps += p.value?.[0]?.intVal || 0; }));
+                    
+                    if (steps > 0) {
+                        results.push({ date: dateStr, steps });
+                        // Update DailyLog in sheet for this date
+                        await updateDailyLogSteps(dateStr, steps);
+                    }
+                }
+                
+                // Also update current state if viewing today
+                const todayStr = today.toLocaleDateString('en-CA');
+                const todayData = results.find(r => r.date === todayStr);
+                if (todayData && selectedDate === todayStr) {
+                    const oldCal = Math.round(state.steps * 0.04);
+                    const newCal = Math.round(todayData.steps * 0.04);
+                    state.calOut = state.calOut - oldCal + newCal;
+                    state.steps = todayData.steps;
+                    
+                    const idx = state.entries.findIndex(e => e.name?.includes('Steps'));
+                    if (idx >= 0) state.entries[idx] = { type: 'exercise', name: 'Steps (Synced)', cal: newCal, steps: todayData.steps, time: Date.now() };
+                    else state.entries.push({ type: 'exercise', name: 'Steps (Synced)', cal: newCal, steps: todayData.steps, time: Date.now() });
+                    
+                    saveState();
+                    updateUI();
+                }
+                
+                toast(`Synced ${results.length} days of steps`);
+                console.log('Steps backfill results:', results);
+                
+            } catch (e) {
+                console.error('Steps backfill error:', e);
+                toast('Backfill failed');
+            }
+        }
+        
+        // Update steps in DailyLog for a specific date
+        async function updateDailyLogSteps(dateStr, steps) {
+            if (!accessToken) return;
+            
+            try {
+                // Find the row for this date
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog-HED!A2:J500`, {
+                    headers: { Authorization: `Bearer ${accessToken}` }
+                });
+                const data = await res.json();
+                if (!data.values) return;
+                
+                let rowNum = -1;
+                for (let i = 0; i < data.values.length; i++) {
+                    const rowDate = String(data.values[i][0] || '').split('T')[0].split(' ')[0];
+                    if (rowDate === dateStr) {
+                        rowNum = i + 2; // +2 for header row and 0-index
+                        break;
+                    }
+                }
+                
+                if (rowNum > 0) {
+                    const stepsCal = Math.round(steps * 0.04);
+                    
+                    // Get current values
+                    const currentCalOut = parseInt(data.values[rowNum - 2][4]) || 0;
+                    const currentSteps = parseInt(data.values[rowNum - 2][5]) || 0;
+                    const oldStepsCal = Math.round(currentSteps * 0.04);
+                    const newCalOut = currentCalOut - oldStepsCal + stepsCal;
+                    
+                    // Update Cal Out (E) and Steps (F)
+                    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog-HED!E${rowNum}:F${rowNum}?valueInputOption=RAW`, {
+                        method: 'PUT',
+                        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ values: [[newCalOut, steps]] })
+                    });
+                    
+                    console.log(`Updated ${dateStr}: ${steps} steps, ${newCalOut} cal out`);
+                }
+            } catch (e) {
+                console.error('Update daily log steps error:', e);
             }
         }
         
