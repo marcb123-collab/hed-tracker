@@ -469,7 +469,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v105</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v107</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -1918,6 +1918,21 @@
             state.date = selectedDate || today;
             state.lastModified = Date.now();
             
+            // SAFEGUARD: Don't save if state appears to be empty/reset but we had data before
+            const foodEntries = state.entries.filter(e => e.type === 'food');
+            if (foodEntries.length === 0 && state.calIn === 0) {
+                // Check if there's existing data we'd be overwriting
+                const existingState = localStorage.getItem('hed_state');
+                if (existingState) {
+                    const existing = JSON.parse(existingState);
+                    const existingFoods = (existing.entries || []).filter(e => e.type === 'food');
+                    if (existingFoods.length > 0 || existing.calIn > 0) {
+                        console.warn('SAFEGUARD: Prevented saving empty state over existing data');
+                        return; // Don't overwrite good data with empty state
+                    }
+                }
+            }
+            
             // Only save to hed_state if it's today
             if (selectedDate === today || !selectedDate) {
                 localStorage.setItem('hed_state', JSON.stringify(state));
@@ -1960,6 +1975,13 @@
         
         async function savePastDateToSheets() {
             if (!accessToken) return;
+            
+            // SAFEGUARD: Don't save empty state to sheets
+            const foodEntries = state.entries.filter(e => e.type === 'food');
+            if (foodEntries.length === 0 && state.calIn === 0) {
+                console.warn('SAFEGUARD: Prevented saving empty past date to sheets');
+                return;
+            }
             
             try {
                 // First, find if this date exists in sheet
@@ -2315,6 +2337,29 @@
         async function syncToLiveData() {
             await ensureValidToken();
             if (!accessToken) return;
+            
+            // SAFEGUARD: Don't sync empty state to LiveData if we have existing data
+            const foodEntries = state.entries.filter(e => e.type === 'food');
+            if (foodEntries.length === 0 && state.calIn === 0) {
+                // Check if LiveData has data we'd be overwriting
+                try {
+                    const checkRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/LiveData-HED!B2:C2`, {
+                        headers: { Authorization: `Bearer ${accessToken}` }
+                    });
+                    const checkData = await checkRes.json();
+                    if (checkData.values && checkData.values[0]) {
+                        const existingCalIn = parseInt(checkData.values[0][0]) || 0;
+                        const existingProtein = parseInt(checkData.values[0][1]) || 0;
+                        if (existingCalIn > 0 || existingProtein > 0) {
+                            console.warn('SAFEGUARD: Prevented syncing empty state over existing LiveData');
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    console.error('Safeguard check error:', e);
+                }
+            }
+            
             const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
             // Store entries with lastModified for proper sync
             const entriesData = JSON.stringify({
