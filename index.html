@@ -469,7 +469,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v107</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v108</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -3287,68 +3287,75 @@
                 }
             }
             
-            // Calorie stats
+            // Calorie stats - filter out days with 0 calIn (incomplete/missing days)
             if (history.length > 0) {
-                const recent3 = history.slice(0, 3);
-                const recent7 = history.slice(0, 7);
+                const validDays = history.filter(d => d.calIn > 0);
+                const recent3 = validDays.slice(0, 3);
+                const recent7 = validDays.slice(0, 7);
+                
+                // Helper for valid-day averages
+                const avgValid = (arr, key) => {
+                    if (arr.length === 0) return 0;
+                    return Math.round(arr.reduce((sum, d) => sum + (d[key] || 0), 0) / arr.length);
+                };
                 
                 // Net calories (calIn - calOut)
-                const avgNet3 = Math.round(recent3.reduce((sum, d) => sum + (d.calIn - d.calOut), 0) / recent3.length);
-                const avgNet7 = Math.round(recent7.reduce((sum, d) => sum + (d.calIn - d.calOut), 0) / recent7.length);
+                const avgNet3 = recent3.length > 0 ? Math.round(recent3.reduce((sum, d) => sum + (d.calIn - d.calOut), 0) / recent3.length) : 0;
+                const avgNet7 = recent7.length > 0 ? Math.round(recent7.reduce((sum, d) => sum + (d.calIn - d.calOut), 0) / recent7.length) : 0;
                 const el1 = document.getElementById('summaryCalNet3');
                 const el2 = document.getElementById('summaryCalNet7');
                 if (el1) { el1.textContent = avgNet3; el1.style.color = avgNet3 <= TARGETS.cal ? '#4CAF50' : '#f44336'; }
                 if (el2) { el2.textContent = avgNet7; el2.style.color = avgNet7 <= TARGETS.cal ? '#4CAF50' : '#f44336'; }
                 
                 // Burned
-                const avgBurn3 = avg(history, 'calOut', 3);
-                const avgBurn7 = avg(history, 'calOut', 7);
+                const avgBurn3 = avgValid(recent3, 'calOut');
+                const avgBurn7 = avgValid(recent7, 'calOut');
                 const el3 = document.getElementById('summaryCalBurn3');
                 const el4 = document.getElementById('summaryCalBurn7');
                 if (el3) { el3.textContent = avgBurn3; el3.style.color = avgBurn3 >= 400 ? '#4CAF50' : '#f44336'; }
                 if (el4) { el4.textContent = avgBurn7; el4.style.color = avgBurn7 >= 400 ? '#4CAF50' : '#f44336'; }
                 
                 // Deficit
-                const avgDeficit3 = Math.round(recent3.reduce((sum, d) => sum + (TARGETS.cal - (d.calIn - d.calOut)), 0) / recent3.length);
-                const avgDeficit7 = Math.round(recent7.reduce((sum, d) => sum + (TARGETS.cal - (d.calIn - d.calOut)), 0) / recent7.length);
+                const avgDeficit3 = recent3.length > 0 ? Math.round(recent3.reduce((sum, d) => sum + (TARGETS.cal - (d.calIn - d.calOut)), 0) / recent3.length) : 0;
+                const avgDeficit7 = recent7.length > 0 ? Math.round(recent7.reduce((sum, d) => sum + (TARGETS.cal - (d.calIn - d.calOut)), 0) / recent7.length) : 0;
                 const el5 = document.getElementById('summaryDeficit3');
                 const el6 = document.getElementById('summaryDeficit7');
                 if (el5) { el5.textContent = avgDeficit3 > 0 ? '-' + avgDeficit3 : '+' + Math.abs(avgDeficit3); el5.style.color = avgDeficit3 > 0 ? '#4CAF50' : '#f44336'; }
                 if (el6) { el6.textContent = avgDeficit7 > 0 ? '-' + avgDeficit7 : '+' + Math.abs(avgDeficit7); el6.style.color = avgDeficit7 > 0 ? '#4CAF50' : '#f44336'; }
                 
                 // Protein
-                const avgProtein3 = avg(history, 'protein', 3);
-                const avgProtein7 = avg(history, 'protein', 7);
+                const avgProtein3 = avgValid(recent3, 'protein');
+                const avgProtein7 = avgValid(recent7, 'protein');
                 const proteinGoalDays = recent7.filter(d => d.protein >= TARGETS.protein).length;
                 const el7 = document.getElementById('summaryProtein3');
                 const el8 = document.getElementById('summaryProtein7');
                 const el9 = document.getElementById('summaryProteinGoal');
                 if (el7) { el7.textContent = avgProtein3 + 'g'; el7.style.color = avgProtein3 >= TARGETS.protein ? '#4CAF50' : '#f44336'; }
                 if (el8) { el8.textContent = avgProtein7 + 'g'; el8.style.color = avgProtein7 >= TARGETS.protein ? '#4CAF50' : '#f44336'; }
-                if (el9) { el9.textContent = proteinGoalDays + '/7'; el9.style.color = proteinGoalDays >= 5 ? '#4CAF50' : '#f44336'; }
+                if (el9) { el9.textContent = proteinGoalDays + '/' + recent7.length; el9.style.color = proteinGoalDays >= 5 ? '#4CAF50' : '#f44336'; }
                 
                 // Sodium
-                const avgSodium3 = avg(history, 'sodium', 3);
-                const avgSodium7 = avg(history, 'sodium', 7);
+                const avgSodium3 = avgValid(recent3, 'sodium');
+                const avgSodium7 = avgValid(recent7, 'sodium');
                 const sodiumGoalDays = recent7.filter(d => (d.sodium || 0) <= TARGETS.sodium).length;
                 const el10 = document.getElementById('summarySodium3');
                 const el11 = document.getElementById('summarySodium7');
                 const el12 = document.getElementById('summarySodiumGoal');
                 if (el10) { el10.textContent = avgSodium3 + 'mg'; el10.style.color = avgSodium3 <= TARGETS.sodium ? '#4CAF50' : '#f44336'; }
                 if (el11) { el11.textContent = avgSodium7 + 'mg'; el11.style.color = avgSodium7 <= TARGETS.sodium ? '#4CAF50' : '#f44336'; }
-                if (el12) { el12.textContent = sodiumGoalDays + '/7'; el12.style.color = sodiumGoalDays >= 5 ? '#4CAF50' : '#f44336'; }
+                if (el12) { el12.textContent = sodiumGoalDays + '/' + recent7.length; el12.style.color = sodiumGoalDays >= 5 ? '#4CAF50' : '#f44336'; }
                 
                 // Fiber
-                const avgFiber3 = avg(history, 'fiber', 3);
-                const avgFiber7 = avg(history, 'fiber', 7);
+                const avgFiber3 = avgValid(recent3, 'fiber');
+                const avgFiber7 = avgValid(recent7, 'fiber');
                 const el13 = document.getElementById('summaryFiber3');
                 const el14 = document.getElementById('summaryFiber7');
                 if (el13) { el13.textContent = avgFiber3 + 'g'; el13.style.color = avgFiber3 >= TARGETS.fiber ? '#4CAF50' : '#f44336'; }
                 if (el14) { el14.textContent = avgFiber7 + 'g'; el14.style.color = avgFiber7 >= TARGETS.fiber ? '#4CAF50' : '#f44336'; }
                 
                 // Steps
-                const avgSteps3 = avg(history, 'steps', 3);
-                const avgSteps7 = avg(history, 'steps', 7);
+                const avgSteps3 = avgValid(recent3, 'steps');
+                const avgSteps7 = avgValid(recent7, 'steps');
                 const el15 = document.getElementById('summarySteps3');
                 const el16 = document.getElementById('summarySteps7');
                 if (el15) { el15.textContent = avgSteps3.toLocaleString(); el15.style.color = avgSteps3 >= 7500 ? '#4CAF50' : '#f44336'; }
