@@ -469,7 +469,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v108</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v109</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -2385,11 +2385,20 @@
             // New columns: Date, Cal In, Protein, Sodium, Cal Out, Steps, Weight, Net, Workout, Entries
             const row = [today, state.calIn, state.protein, state.sodium || 0, state.calOut, state.steps, weight, state.calIn - state.calOut, workoutDone, entriesData];
             try {
+                // Write to row 2
                 await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/LiveData-HED!A2:J2?valueInputOption=RAW`, {
                     method: 'PUT',
                     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ values: [row] })
                 });
+                
+                // SAFEGUARD: Clear any extra rows (3-10) to prevent duplicate data
+                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/LiveData-HED!A3:J10?valueInputOption=RAW`, {
+                    method: 'PUT',
+                    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ values: [['','','','','','','','','','']] })
+                });
+                
                 console.log('Synced to LiveData');
             } catch (e) { 
                 console.error('LiveData sync error:', e); 
