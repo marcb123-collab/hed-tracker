@@ -469,7 +469,7 @@
     <!-- Dashboard -->
     <div class="dashboard">
         <div class="dash-header">
-            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v109</span></span>
+            <span class="dash-title">Marc's HED Tracker <span style="font-size:10px;opacity:0.7;">v110</span></span>
             <div style="display:flex;align-items:center;gap:8px;">
                 <button onclick="location.reload()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">↻</button>
                 <button id="syncStatus" onclick="googleSignIn()" style="width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.3);color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">👤</button>
@@ -2584,12 +2584,45 @@
                 // DailyLog row: Date, Cal In, Protein, Sodium, Cal Out, Steps, Weight, Net, Workout, Items
                 const archiveRow = [rowDate, row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], items];
                 
-                await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog-HED!A:J:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
-                    method: 'POST',
-                    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ values: [archiveRow] })
-                });
-                console.log('Archived to DailyLog:', rowDate);
+                // Find the row number for this date (or where to insert)
+                let targetRow = -1;
+                const allDates = (checkData.values || []).slice(1); // Skip header
+                for (let i = 0; i < allDates.length; i++) {
+                    const existingDate = normalizeDate(allDates[i][0]);
+                    if (existingDate === rowDate) {
+                        targetRow = i + 2; // +2 for header and 0-index
+                        break;
+                    }
+                }
+                
+                if (targetRow > 0) {
+                    // Update existing row
+                    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog-HED!A${targetRow}:J${targetRow}?valueInputOption=RAW`, {
+                        method: 'PUT',
+                        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ values: [archiveRow] })
+                    });
+                    console.log('Updated DailyLog row:', rowDate, 'at row', targetRow);
+                } else {
+                    // Find correct insert position (sorted descending by date)
+                    let insertRow = 2; // Default after header
+                    for (let i = 0; i < allDates.length; i++) {
+                        const existingDate = normalizeDate(allDates[i][0]);
+                        if (existingDate && rowDate > existingDate) {
+                            insertRow = i + 2;
+                            break;
+                        }
+                        insertRow = i + 3; // Insert after this row
+                    }
+                    
+                    // Insert new row at correct position
+                    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/DailyLog-HED!A${insertRow}:J${insertRow}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
+                        method: 'POST',
+                        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ values: [archiveRow] })
+                    });
+                    console.log('Inserted to DailyLog:', rowDate, 'at row', insertRow);
+                }
             } catch (e) {
                 console.error('Archive error:', e);
             }
